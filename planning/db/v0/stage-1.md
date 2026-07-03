@@ -1,0 +1,80 @@
+# Kidney Care — DB Design Plan (v0 / stage-1)
+
+Date: 2026-07-03
+
+## 1. Summary
+
+A patient-facing chronic kidney disease (CKD) management app (Flutter + Supabase/Postgres). Patients self-track labs, medications, vitals (BP/glucose/weight), symptoms, diet/fluid intake, appointments, and dialysis sessions. v1 is single-user-per-patient (no caregiver login yet, but schema avoids decisions that would block adding it later). The app is offline-first: all writes happen locally first (Flutter `drift`/SQLite) and sync to Supabase when connectivity returns, so every table is designed around UUID primary keys and `updated_at`/`deleted_at` timestamps rather than server-assigned serial IDs.
+
+## 2. Entities
+
+| Entity | Description | Est. rows — launch / 1yr / 5yr |
+|---|---|---|
+| `patients` | Core patient/account record, 1:1 with Supabase auth user | scale TBD — designed for moderate growth, revisit once user targets are set |
+| `care_team_members` | Patient's doctors/providers (nephrologist, dietitian, etc.) | ~2-5 per patient |
+| `vital_readings` | BP, glucose, weight, HR, SpO2, temperature readings | highest-volume table — multiple rows/patient/day |
+| `lab_panels` | One blood-draw/lab-visit event | ~1-4 per patient/month |
+| `lab_results` | Individual test values within a panel (creatinine, eGFR, potassium, etc.) | ~5-15 per panel |
+| `medications` | Prescribed meds, versioned on dose change | ~5-15 active + history per patient |
+| `medication_dose_logs` | Each dose taken/skipped event | high-volume — multiple rows/patient/day |
+| `symptom_logs` | Ad-hoc symptom entries | few per patient/day |
+| `diet_fluid_logs` | Fluid intake / food intake entries | few per patient/day |
+| `appointment_series` | Recurring appointment template (e.g. dialysis 3x/week) | ~1-3 per patient |
+| `appointments` | Individual appointment instances (standalone or generated from a series) | several per patient/month |
+| `dialysis_sessions` | Per-session treatment detail, optionally linked to an appointment | ~0-15 per patient/month (if on dialysis) |
+| `documents` | Uploaded files (lab reports, prescriptions, imaging) in Supabase Storage | ~1-5 per patient/month |
+| `reminders` | Medication/appointment/logging reminders | ~5-10 per patient |
+
+Row-volume estimates are placeholders (`unsure` on total user scale per interview) — revisit once real usage data exists.
+
+## 3. Key Relationships
+
+- All entities hang off `patients` as 1:N — no M:N relationships needed for v1.
+- `lab_panels` 1:N `lab_results` — one blood draw yields many test values; `lab_results` also denormalizes `patient_id` directly to avoid a join on every trend query and to keep RLS policies uniform (every table filters on `patient_id`).
+- `medications` self-groups via `lineage_id` + `version_number`: a dose change inserts a new row in the same lineage rather than mutating the old one, so full dose-change history is queryable directly (`WHERE lineage_id = ? ORDER BY version_number`) without walking a linked list.
+- `appointment_series` 1:N `appointments`: recurring appointments (e.g. dialysis schedule) are generated as individual instances that can be edited/cancelled independently without touching the series definition.
+- `dialysis_sessions` optionally links to `appointments` (nullable FK) since a session may or may not have been scheduled via the appointment system.
+- `documents` optionally links to `lab_panels` or `appointments` (nullable FKs) to attach a scan/PDF to the relevant record, or stand alone.
+- `reminders` optionally links to `medications` or `appointments` for context, or stands alone for custom reminders.
+
+## 4. Access Patterns
+
+| Pattern | Frequency | Index strategy |
+|---|---|---|
+| Trend/history of vitals (BP, glucose, weight) for analytics/charts | Highest-frequency read | `(patient_id, metric_type, recorded_at)` on `vital_readings` |
+| Log a vital reading | Highest-frequency write | pk insert only, no read-before-write needed |
+| Log a symptom or diet/fluid entry | High-frequency write | pk insert only |
+| Today's medication schedule / dose check-off | Frequent read+write | `(patient_id, medication_id, scheduled_at)` on `medication_dose_logs` |
+| Lab result trend (e.g. eGFR over time) | Frequent read | `(patient_id, test_name, created_at)` on `lab_results` |
+| Upcoming appointments list | Frequent read | `(patient_id, scheduled_at)` on `appointments` |
+| Offline sync — pull changes since last sync | Every reconnect | `(patient_id, updated_at)` on every table |
+| Medication dose-change history view | Occasional read | `(patient_id, lineage_id, version_number)` on `medications` |
+
+## 5. Design Decisions
+
+| Decision | Choice | Reason |
+|---|---|---|
+| Primary keys | UUID (`gen_random_uuid()`), client-generatable | Offline-first: client can create a stable ID before ever reaching the server, avoiding ID collisions on sync |
+| Sync mechanism | `updated_at` + `deleted_at` (soft delete) on every table, pull-based "changes since X" sync | Chosen over Supabase Realtime as the primary mechanism — Realtime only pushes to online clients and doesn't solve offline conflict resolution; it may be layered on later purely as a nice-to-have for live multi-device refresh |
+| Conflict resolution | Last-write-wins based on `updated_at` | Data is single-user-per-record for v1; low collision risk, simplest to implement client + server side |
+| Vitals modeling | One `vital_readings` table with `metric_type` enum + typed numeric columns, instead of one table per vital type | Keeps trend/analytics queries simple (`WHERE metric_type = ...`) while still supporting `AVG`/`MIN`/`MAX` on real numeric columns (avoided a JSONB/EAV design); allows adding new metric types via enum change instead of new tables |
+| Medication history | Versioned rows via `lineage_id` + `version_number`, not a mutable single row | Preserves full dose-change history for trend review without needing an audit/shadow table |
+| Appointments | Separate `appointment_series` (template) + `appointments` (instances) | Supports recurring schedules (e.g. dialysis 3x/week) while letting individual instances be edited/cancelled independently |
+| Business rule enforcement | None at DB level yet (no CHECK constraints beyond NOT NULL); validation lives in the app layer | Interview confirmed no strict rules needed yet — keep DB permissive, revisit if data-quality issues appear |
+| Compliance | No formal HIPAA/GDPR target yet; general good security practice (RLS per patient_id, Supabase-managed encryption at rest/in transit) | Interview confirmed no formal compliance target for now |
+| Retention | Keep data indefinitely while account active; soft-delete (`deleted_at`) on user-requested deletion, hard purge after a grace period (grace period length TBD) | Matches "keep forever + soft delete" interview answer |
+| Ops | Standard managed Supabase defaults — single region, daily automated backups, no custom HA | Matches current scale/stage of the project |
+| Client stack | `supabase_flutter` (remote) + `drift`/SQLite (local offline store) | Confirmed in interview; local schema should mirror server schema closely to simplify the sync layer |
+
+## 6. Open Questions
+
+- **Caregiver access (future)**: when this ships, likely needs a `patient_access` join table (`patient_id`, `user_id`, `role: owner|caregiver`, permission flags) rather than changing `patients` itself. Not designed yet — deferred until the feature is scoped.
+- **Total user scale**: interview answer was "unsure" — current indexes/design assume moderate scale; revisit partitioning/archival strategy if `vital_readings`/`medication_dose_logs` grow very large per patient over years.
+- **Soft-delete grace period**: length of time between soft delete and hard purge not yet defined.
+- **RLS policies**: not written yet — this stage defines table shape only; RLS policy SQL (`patient_id` scoping via `auth.uid()` → `patients.auth_user_id`) is an implementation task for the next stage.
+- **`test_name` on `lab_results`**: currently free text rather than an enum, since lab panels vary widely. Revisit if standardization/analytics across a fixed lab-test taxonomy becomes important.
+- **Medication reminders vs. dose logs**: `reminders` and `medication_dose_logs` are currently separate (a reminder firing doesn't auto-create a dose log) — confirm desired UX before implementation.
+
+## 7. Change Log
+
+- **v0/stage-1** (2026-07-03): Initial schema from stage-1 interview. 14 tables covering patients, care team, vitals, labs, medications (with version history), symptoms, diet/fluid, appointments (with recurring series), dialysis sessions, documents, and reminders. Offline-first sync foundation (UUID PKs + `updated_at`/`deleted_at`) established as a cross-cutting pattern.

@@ -1,0 +1,99 @@
+{
+  "version": "2.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "tablePositions": [
+      {
+        "name": "patients",
+        "schemaName": "public",
+        "x": 12,
+        "y": 12
+      },
+      {
+        "name": "care_team_members",
+        "schemaName": "public",
+        "x": 419.7553432188352,
+        "y": -321.14747937156625
+      },
+      {
+        "name": "vital_readings",
+        "schemaName": "public",
+        "x": -98.32186451648457,
+        "y": 588.9125189120509
+      },
+      {
+        "name": "lab_panels",
+        "schemaName": "public",
+        "x": 1147.7216796875,
+        "y": 53
+      },
+      {
+        "name": "lab_results",
+        "schemaName": "public",
+        "x": 1811.11376953125,
+        "y": 53
+      },
+      {
+        "name": "medications",
+        "schemaName": "public",
+        "x": 1107.5051712019463,
+        "y": 761.5148290882435
+      },
+      {
+        "name": "medication_dose_logs",
+        "schemaName": "public",
+        "x": 1811.11376953125,
+        "y": 537
+      },
+      {
+        "name": "symptom_logs",
+        "schemaName": "public",
+        "x": 2.949561745978645,
+        "y": 1130.7403381990885
+      },
+      {
+        "name": "diet_fluid_logs",
+        "schemaName": "public",
+        "x": 532.75927734375,
+        "y": 1280
+      },
+      {
+        "name": "appointment_series",
+        "schemaName": "public",
+        "x": 1363.2983184618079,
+        "y": 1525.134351384445
+      },
+      {
+        "name": "appointments",
+        "schemaName": "public",
+        "x": 1861.4580145144716,
+        "y": 1261.5921533526941
+      },
+      {
+        "name": "dialysis_sessions",
+        "schemaName": "public",
+        "x": 2400,
+        "y": 12
+      },
+      {
+        "name": "documents",
+        "schemaName": "public",
+        "x": 2650.430346839615,
+        "y": 783.266834533644
+      },
+      {
+        "name": "reminders",
+        "schemaName": "public",
+        "x": 2523.9242953433145,
+        "y": 1257.9036633862509
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": []
+  },
+  "views": {}
+}

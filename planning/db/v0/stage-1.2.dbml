@@ -1,0 +1,53 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / stage-1.2 (small delta on stage-1.1)
+// Generated: 2026-07-03
+// Engine: Postgres (Supabase)
+// DBML spec: https://dbml.dbdiagram.io/docs
+//
+// Scope of this delta: ONE change, discovered while planning the sync feature
+// (see planning/sync/v0/stage-1.md) — patients.full_name relaxed to nullable
+// so a DB trigger can bootstrap a bare patients row on auth.users insert,
+// before the user has completed profile onboarding.
+//
+// Everything else is identical to stage-1.1 — see stage-1.1.dbml for the
+// unchanged blood_pressure_readings / blood_glucose_readings / weight_readings
+// tables (not repeated here to avoid drift between copies; this file only
+// restates `patients` since it's the one table that changed).
+
+Enum ckd_stage {
+  stage_1
+  stage_2
+  stage_3a
+  stage_3b
+  stage_4
+  stage_5
+  dialysis
+  transplant
+}
+
+Enum dialysis_type {
+  none
+  hemodialysis
+  peritoneal
+}
+
+Table patients {
+  id uuid [pk, default: `gen_random_uuid()`]
+  auth_user_id uuid [unique, not null, note: 'FK to Supabase auth.users(id). Row is auto-created by a DB trigger on auth.users insert (see planning/sync/v0/stage-1.md 7.2)']
+  full_name text [note: 'CHANGED in stage-1.2: was `not null` in stage-1.1. Now nullable because the bootstrap trigger creates this row before the user has entered any profile info; app-layer onboarding flow is responsible for prompting until filled.']
+  date_of_birth date
+  sex text
+  ckd_stage ckd_stage
+  dialysis_type dialysis_type [default: 'none']
+  height_cm numeric
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    auth_user_id [unique]
+    updated_at [name: 'idx_patients_updated_at']
+  }
+
+  Note: 'Core account record, 1:1 with Supabase auth user for v1 (patient-only). See stage-1.2.md for change rationale.'
+}

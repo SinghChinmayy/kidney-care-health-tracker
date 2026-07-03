@@ -1,0 +1,471 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / stage-1
+// Generated: 2026-07-03
+// Engine: Postgres (Supabase)
+// DBML spec: https://dbml.dbdiagram.io/docs
+
+//////////////////////////////////////////////////////////
+// Enums
+//////////////////////////////////////////////////////////
+
+Enum ckd_stage {
+  stage_1
+  stage_2
+  stage_3a
+  stage_3b
+  stage_4
+  stage_5
+  dialysis
+  transplant
+}
+
+Enum dialysis_type {
+  none
+  hemodialysis
+  peritoneal
+}
+
+Enum care_team_role {
+  nephrologist
+  primary_care
+  dietitian
+  nurse
+  social_worker
+  other
+}
+
+Enum vital_metric_type {
+  blood_pressure
+  blood_glucose
+  weight
+  heart_rate
+  spo2
+  temperature
+}
+
+Enum reading_source {
+  manual
+  device
+}
+
+Enum lab_flag {
+  normal
+  low
+  high
+  critical
+}
+
+Enum medication_status {
+  active
+  paused
+  discontinued
+  superseded
+}
+
+Enum dose_log_status {
+  taken
+  skipped
+  missed
+}
+
+Enum symptom_type {
+  fatigue
+  nausea
+  edema
+  itching
+  shortness_of_breath
+  cramping
+  other
+}
+
+Enum diet_log_type {
+  fluid_intake
+  food_intake
+}
+
+Enum recurrence_type {
+  none
+  daily
+  weekly
+  monthly
+  custom
+}
+
+Enum appointment_status {
+  scheduled
+  completed
+  cancelled
+  no_show
+}
+
+Enum document_type {
+  lab_report
+  prescription
+  imaging
+  discharge_summary
+  other
+}
+
+Enum reminder_type {
+  medication
+  appointment
+  vitals_log
+  custom
+}
+
+//////////////////////////////////////////////////////////
+// Core
+//////////////////////////////////////////////////////////
+
+Table patients {
+  id uuid [pk, default: `gen_random_uuid()`]
+  auth_user_id uuid [unique, not null, note: 'FK to Supabase auth.users(id)']
+  full_name text [not null]
+  date_of_birth date
+  sex text
+  ckd_stage ckd_stage
+  dialysis_type dialysis_type [default: 'none']
+  height_cm numeric
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    auth_user_id [unique]
+    updated_at [name: 'idx_patients_updated_at']
+  }
+
+  Note: 'Core account record, 1:1 with Supabase auth user for v1 (patient-only). Caregiver multi-user access planned later — see Open Questions.'
+}
+
+Table care_team_members {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  name text [not null]
+  role care_team_role [not null]
+  phone text
+  email text
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, updated_at) [name: 'idx_care_team_patient_updated']
+  }
+
+  Note: 'Doctors/providers a patient tracks (nephrologist, dietitian, etc). Patient-owned contact list, not a login-capable role in v1.'
+}
+
+//////////////////////////////////////////////////////////
+// Vitals (highest-frequency writes + reads)
+//////////////////////////////////////////////////////////
+
+Table vital_readings {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  metric_type vital_metric_type [not null]
+  recorded_at timestamptz [not null, note: 'When reading was taken (may be backdated for offline entries)']
+  value_numeric numeric [not null, note: 'Primary value: glucose mg/dL, weight kg, heart rate bpm, spo2 %, temp, or systolic for blood_pressure']
+  value_secondary numeric [note: 'Diastolic value, only used when metric_type = blood_pressure']
+  unit text [not null]
+  source reading_source [not null, default: 'manual']
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, metric_type, recorded_at) [name: 'idx_vitals_patient_metric_time']
+    (patient_id, updated_at) [name: 'idx_vitals_patient_updated']
+  }
+
+  Note: 'Single flexible table for all vital sign types to keep trend/analytics queries simple and allow new metric types without schema changes.'
+}
+
+//////////////////////////////////////////////////////////
+// Labs
+//////////////////////////////////////////////////////////
+
+Table lab_panels {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  ordering_provider_id uuid
+  test_date date [not null]
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, test_date) [name: 'idx_lab_panels_patient_date']
+    (patient_id, updated_at) [name: 'idx_lab_panels_patient_updated']
+  }
+
+  Note: 'One blood draw / lab visit event, containing many individual test results.'
+}
+
+Table lab_results {
+  id uuid [pk, default: `gen_random_uuid()`]
+  lab_panel_id uuid [not null]
+  patient_id uuid [not null, note: 'Denormalized for simpler RLS + trend queries without join']
+  test_name text [not null, note: 'e.g. creatinine, egfr, potassium, bun, hemoglobin, albumin, phosphorus, calcium']
+  value_numeric numeric [not null]
+  unit text [not null]
+  reference_range_low numeric
+  reference_range_high numeric
+  flag lab_flag [default: 'normal']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, test_name, created_at) [name: 'idx_lab_results_patient_test_time']
+    (patient_id, updated_at) [name: 'idx_lab_results_patient_updated']
+  }
+
+  Note: 'Individual test values within a panel. test_name kept as free text (not enum) since lab panels vary widely.'
+}
+
+//////////////////////////////////////////////////////////
+// Medications (with dose-change history chain)
+//////////////////////////////////////////////////////////
+
+Table medications {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  lineage_id uuid [not null, note: 'Groups all dose-change versions of "the same medication"; equals id on first version']
+  version_number integer [not null, default: 1]
+  is_current boolean [not null, default: true]
+  name text [not null]
+  dosage_amount numeric
+  dosage_unit text
+  frequency text [note: 'e.g. "twice daily", free text for v1']
+  route text
+  prescribing_provider_id uuid
+  start_date date [not null]
+  end_date date [note: 'Set when superseded or discontinued']
+  status medication_status [not null, default: 'active']
+  change_reason text [note: 'Why this version replaced the previous one']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, lineage_id, version_number) [name: 'idx_meds_patient_lineage_version']
+    (patient_id, is_current) [name: 'idx_meds_patient_current']
+    (patient_id, updated_at) [name: 'idx_meds_patient_updated']
+  }
+
+  Note: 'Dose changes create a new row (new version_number) in the same lineage_id rather than mutating in place, preserving full history.'
+}
+
+Table medication_dose_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  medication_id uuid [not null]
+  patient_id uuid [not null, note: 'Denormalized for simpler RLS + queries']
+  scheduled_at timestamptz
+  taken_at timestamptz
+  status dose_log_status [not null]
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, medication_id, scheduled_at) [name: 'idx_dose_logs_patient_med_time']
+    (patient_id, updated_at) [name: 'idx_dose_logs_patient_updated']
+  }
+}
+
+//////////////////////////////////////////////////////////
+// Symptoms & Diet/Fluid
+//////////////////////////////////////////////////////////
+
+Table symptom_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  recorded_at timestamptz [not null]
+  symptom_type symptom_type [not null]
+  severity integer [not null, note: '1-5 scale']
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, recorded_at) [name: 'idx_symptoms_patient_time']
+    (patient_id, updated_at) [name: 'idx_symptoms_patient_updated']
+  }
+}
+
+Table diet_fluid_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  recorded_at timestamptz [not null]
+  log_type diet_log_type [not null]
+  fluid_ml numeric [note: 'Used when log_type = fluid_intake']
+  food_description text [note: 'Used when log_type = food_intake']
+  sodium_mg numeric
+  potassium_mg numeric
+  phosphorus_mg numeric
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, recorded_at) [name: 'idx_diet_fluid_patient_time']
+    (patient_id, updated_at) [name: 'idx_diet_fluid_patient_updated']
+  }
+}
+
+//////////////////////////////////////////////////////////
+// Appointments (with recurring series support)
+//////////////////////////////////////////////////////////
+
+Table appointment_series {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  care_team_member_id uuid
+  title text [not null]
+  recurrence_type recurrence_type [not null, default: 'none']
+  recurrence_interval integer [default: 1, note: 'e.g. every N days/weeks']
+  days_of_week text [note: 'e.g. "MON,WED,FRI" for weekly dialysis schedule']
+  start_date date [not null]
+  end_date date
+  location text
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, updated_at) [name: 'idx_appt_series_patient_updated']
+  }
+
+  Note: 'Parent record for recurring appointments (e.g. dialysis 3x/week). Editing this updates the whole series.'
+}
+
+Table appointments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  series_id uuid [note: 'Null for standalone (non-recurring) appointments']
+  patient_id uuid [not null]
+  care_team_member_id uuid
+  title text [not null]
+  scheduled_at timestamptz [not null]
+  duration_minutes integer
+  location text
+  status appointment_status [not null, default: 'scheduled']
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, scheduled_at) [name: 'idx_appts_patient_time']
+    (patient_id, updated_at) [name: 'idx_appts_patient_updated']
+  }
+
+  Note: 'Individual appointment instance. A single instance from a series can be edited/cancelled independently.'
+}
+
+//////////////////////////////////////////////////////////
+// Dialysis
+//////////////////////////////////////////////////////////
+
+Table dialysis_sessions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  appointment_id uuid [note: 'Optional link if session was scheduled via an appointment']
+  session_date date [not null]
+  session_type dialysis_type [not null]
+  duration_minutes integer
+  pre_weight_kg numeric
+  post_weight_kg numeric
+  fluid_removed_ml numeric [note: 'Ultrafiltration volume']
+  complications text
+  facility_name text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, session_date) [name: 'idx_dialysis_patient_date']
+    (patient_id, updated_at) [name: 'idx_dialysis_patient_updated']
+  }
+}
+
+//////////////////////////////////////////////////////////
+// Documents & Reminders
+//////////////////////////////////////////////////////////
+
+Table documents {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  document_type document_type [not null]
+  file_path text [not null, note: 'Path in Supabase Storage']
+  file_name text [not null]
+  mime_type text
+  related_lab_panel_id uuid
+  related_appointment_id uuid
+  uploaded_at timestamptz [not null, default: `now()`]
+  notes text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, updated_at) [name: 'idx_documents_patient_updated']
+  }
+}
+
+Table reminders {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null]
+  reminder_type reminder_type [not null]
+  related_medication_id uuid
+  related_appointment_id uuid
+  title text [not null]
+  scheduled_time time [note: 'Time-of-day for recurring reminders']
+  recurrence_rule text [note: 'e.g. daily, or free-form RRULE-like string']
+  is_active boolean [not null, default: true]
+  last_triggered_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz
+
+  indexes {
+    (patient_id, updated_at) [name: 'idx_reminders_patient_updated']
+  }
+}
+
+//////////////////////////////////////////////////////////
+// Relationships
+//////////////////////////////////////////////////////////
+
+Ref: care_team_members.patient_id > patients.id
+Ref: vital_readings.patient_id > patients.id
+Ref: lab_panels.patient_id > patients.id
+Ref: lab_panels.ordering_provider_id > care_team_members.id
+Ref: lab_results.lab_panel_id > lab_panels.id
+Ref: lab_results.patient_id > patients.id
+Ref: medications.patient_id > patients.id
+Ref: medications.prescribing_provider_id > care_team_members.id
+Ref: medication_dose_logs.medication_id > medications.id
+Ref: medication_dose_logs.patient_id > patients.id
+Ref: symptom_logs.patient_id > patients.id
+Ref: diet_fluid_logs.patient_id > patients.id
+Ref: appointment_series.patient_id > patients.id
+Ref: appointment_series.care_team_member_id > care_team_members.id
+Ref: appointments.patient_id > patients.id
+Ref: appointments.series_id > appointment_series.id
+Ref: appointments.care_team_member_id > care_team_members.id
+Ref: dialysis_sessions.patient_id > patients.id
+Ref: dialysis_sessions.appointment_id > appointments.id
+Ref: documents.patient_id > patients.id
+Ref: documents.related_lab_panel_id > lab_panels.id
+Ref: documents.related_appointment_id > appointments.id
+Ref: reminders.patient_id > patients.id
+Ref: reminders.related_medication_id > medications.id
+Ref: reminders.related_appointment_id > appointments.id

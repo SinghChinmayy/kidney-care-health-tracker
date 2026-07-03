@@ -1,0 +1,134 @@
+// Project: Kidney Care — Local DB (drift/SQLite) Schema
+// Plan version: v0 / stage-1
+// Generated: 2026-07-03
+// Engine: SQLite via drift (Flutter client-side local store)
+// Remote counterpart: planning/db/v0/stage-1.2.dbml (Postgres/Supabase)
+// DBML spec: https://dbml.dbdiagram.io/docs
+//
+// This is the LOCAL on-device schema, not the remote Postgres schema.
+// It mirrors planning/db/v0/stage-1.2.dbml 1:1 for the 4 synced tables,
+// plus one addition per table (`_dirty`) and one new local-only table
+// (`sync_state`) that don't exist remotely.
+
+Enum ckd_stage {
+  stage_1
+  stage_2
+  stage_3a
+  stage_3b
+  stage_4
+  stage_5
+  dialysis
+  transplant
+}
+
+Enum dialysis_type {
+  none
+  hemodialysis
+  peritoneal
+}
+
+Enum reading_source {
+  manual
+  device
+}
+
+//////////////////////////////////////////////////////////
+// Synced tables — mirror remote 1:1 + local-only `_dirty` flag
+//////////////////////////////////////////////////////////
+
+Table patients {
+  id uuid [pk, note: 'Client-generatable; matches remote id once synced']
+  auth_user_id uuid [unique, not null]
+  full_name text
+  date_of_birth date
+  sex text
+  ckd_stage ckd_stage
+  dialysis_type dialysis_type [default: 'none']
+  height_cm numeric
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null, note: 'Local-optimistic value until push confirms; overwritten with server-assigned value on push success']
+  deleted_at timestamptz
+  is_dirty boolean [not null, default: true, note: 'LOCAL ONLY — not synced. true = has local changes not yet confirmed by server. Set true on any local insert/update/delete, cleared when push succeeds or an equal/newer remote row is pulled.']
+
+  indexes {
+    auth_user_id [unique]
+    is_dirty [name: 'idx_patients_dirty']
+  }
+}
+
+Table blood_pressure_readings {
+  id uuid [pk]
+  patient_id uuid [not null]
+  recorded_at timestamptz [not null]
+  systolic integer
+  diastolic integer
+  heart_rate_bpm integer
+  source reading_source [not null, default: 'manual']
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+  is_dirty boolean [not null, default: true, note: 'LOCAL ONLY']
+
+  indexes {
+    (patient_id, recorded_at) [name: 'idx_bp_local_patient_time']
+    is_dirty [name: 'idx_bp_local_dirty']
+  }
+}
+
+Table blood_glucose_readings {
+  id uuid [pk]
+  patient_id uuid [not null]
+  recorded_at timestamptz [not null]
+  value_mg_dl numeric [not null]
+  context text
+  source reading_source [not null, default: 'manual']
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+  is_dirty boolean [not null, default: true, note: 'LOCAL ONLY']
+
+  indexes {
+    (patient_id, recorded_at) [name: 'idx_glucose_local_patient_time']
+    is_dirty [name: 'idx_glucose_local_dirty']
+  }
+}
+
+Table weight_readings {
+  id uuid [pk]
+  patient_id uuid [not null]
+  recorded_at timestamptz [not null]
+  value_kg numeric [not null]
+  source reading_source [not null, default: 'manual']
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+  is_dirty boolean [not null, default: true, note: 'LOCAL ONLY']
+
+  indexes {
+    (patient_id, recorded_at) [name: 'idx_weight_local_patient_time']
+    is_dirty [name: 'idx_weight_local_dirty']
+  }
+}
+
+//////////////////////////////////////////////////////////
+// Local-only sync bookkeeping (no remote counterpart)
+//////////////////////////////////////////////////////////
+
+Table sync_state {
+  table_name text [pk, note: 'e.g. "blood_pressure_readings" — one row per table registered in the SyncEngine']
+  last_pulled_at timestamptz [note: 'Cursor: max updated_at successfully pulled and applied for this table. Null = never pulled (triggers full pull).']
+  last_synced_run_at timestamptz [note: 'Wall-clock time of the most recent sync attempt for this table, for debugging/observability only']
+
+  Note: 'Drives incremental pull queries. Not synced to remote — purely local sync-engine bookkeeping. One row per entry in the SyncableTable registry (see planning/sync/v0/stage-1.md 5.1), so adding a new synced table later just adds a new row here automatically.'
+}
+
+//////////////////////////////////////////////////////////
+// Relationships
+//////////////////////////////////////////////////////////
+
+Ref: blood_pressure_readings.patient_id > patients.id
+Ref: blood_glucose_readings.patient_id > patients.id
+Ref: weight_readings.patient_id > patients.id

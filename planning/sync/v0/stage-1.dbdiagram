@@ -1,0 +1,91 @@
+{
+  "version": "2.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "tablePositions": [
+      {
+        "name": "patients",
+        "schemaName": "public",
+        "x": 375.43701171875,
+        "y": 12
+      },
+      {
+        "name": "blood_pressure_readings",
+        "schemaName": "public",
+        "x": 890.0263671875,
+        "y": 12
+      },
+      {
+        "name": "blood_glucose_readings",
+        "schemaName": "public",
+        "x": 890.0263671875,
+        "y": 474
+      },
+      {
+        "name": "weight_readings",
+        "schemaName": "public",
+        "x": 890.0263671875,
+        "y": 904
+      },
+      {
+        "name": "sync_state",
+        "schemaName": "public",
+        "x": 12,
+        "y": 12
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "patient_id"
+        ],
+        "firstTableName": "blood_pressure_readings",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "patients",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "patient_id"
+        ],
+        "firstTableName": "blood_glucose_readings",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "patients",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "patient_id"
+        ],
+        "firstTableName": "weight_readings",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "patients",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

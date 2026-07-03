@@ -1,0 +1,40 @@
+# Kidney Care — DB Design Plan (v0 / stage-1.2)
+
+Date: 2026-07-03
+
+## 1. Summary
+
+Single-field delta on stage-1.1, discovered while planning the local DB + sync implementation (see `planning/sync/v0/stage-1.md`). To support a DB-trigger-based bootstrap of the `patients` row on signup (chosen over app-side "create if missing" during sync design), `patients.full_name` must be nullable — the trigger creates the row immediately on `auth.users` insert, before the user has entered any profile info.
+
+## 2. Entities
+
+Unchanged from stage-1.1, except `patients`:
+
+| Entity | Description | Change from stage-1.1 |
+|---|---|---|
+| `patients` | Core patient/account record | `full_name`: `not null` → nullable |
+| `blood_pressure_readings` | Systolic/diastolic + optional heart rate | No change |
+| `blood_glucose_readings` | Glucose value (mg/dL) + context | No change |
+| `weight_readings` | Weight value (kg) | No change |
+
+## 3. Key Relationships
+
+Unchanged from stage-1.1.
+
+## 4. Access Patterns
+
+Unchanged from stage-1.1.
+
+## 5. Design Decisions
+
+| Decision | Choice | Reason |
+|---|---|---|
+| `patients.full_name` nullability | Relaxed from `not null` (stage-1.1) to nullable | A Postgres trigger on `auth.users` now auto-creates the `patients` row at signup time so it always exists by the time the app's sync engine runs (see sync plan §7.2 for the trigger + rationale vs. app-side creation). At that moment the user hasn't entered a name yet, so the column can't be `not null`. App-layer onboarding is responsible for prompting until this (and other profile fields) are filled in. |
+
+## 6. Open Questions
+
+- Should other currently-nullable profile fields (`date_of_birth`, `sex`, `ckd_stage`) get an explicit "profile incomplete" flag instead of relying on `full_name IS NULL` as an implicit signal? Not needed yet at this scope (single onboarding screen checks `full_name IS NULL` as the completeness gate) — revisit if profile fields grow.
+
+## 7. Change Log
+
+- **v0/stage-1.2** (2026-07-03): `patients.full_name` changed from `not null` to nullable, to support DB-trigger-based row bootstrap on signup. Change originated from the local DB + sync implementation planning session (`planning/sync/v0/stage-1.md`), not a schema-interview change in its own right.
