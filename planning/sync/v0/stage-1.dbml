@@ -118,7 +118,7 @@ Table weight_readings {
 //////////////////////////////////////////////////////////
 
 Table sync_state {
-  table_name text [pk, note: 'e.g. "blood_pressure_readings" — one row per table registered in the SyncEngine']
+  table_key text [pk, note: 'e.g. "blood_pressure_readings" — one row per table registered in the SyncEngine. Named table_key (not table_name) in the drift implementation since `tableName` is a reserved drift Table DSL getter.']
   last_pulled_at timestamptz [note: 'Cursor: max updated_at successfully pulled and applied for this table. Null = never pulled (triggers full pull).']
   last_synced_run_at timestamptz [note: 'Wall-clock time of the most recent sync attempt for this table, for debugging/observability only']
 
