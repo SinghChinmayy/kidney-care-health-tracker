@@ -1,40 +1,16 @@
 // Project: Kidney Care — Patient CKD Tracker
-// Plan version: v0 / stage-1.1 (scope-reduced revision of stage-1)
+// Plan version: v0 / s1 / s1.1 (scope-reduced revision of s1)
 // Generated: 2026-07-03
 // Engine: Postgres (Supabase)
 // DBML spec: https://dbml.dbdiagram.io/docs
 //
 // Scope of this stage: patient profile + vitals ONLY.
-// All other stage-1 entities (care_team_members, lab_panels, lab_results,
+// All other s1 entities (care_team_members, lab_panels, lab_results,
 // medications, medication_dose_logs, symptom_logs, diet_fluid_logs,
 // appointment_series, appointments, dialysis_sessions, documents, reminders)
-// are deferred to a later stage — see stage-1.dbml for their full design.
+// are deferred to a later stage — see ../s1.dbml for their full design.
 
-//////////////////////////////////////////////////////////
-// Enums
-//////////////////////////////////////////////////////////
 
-Enum ckd_stage {
-  stage_1
-  stage_2
-  stage_3a
-  stage_3b
-  stage_4
-  stage_5
-  dialysis
-  transplant
-}
-
-Enum dialysis_type {
-  none
-  hemodialysis
-  peritoneal
-}
-
-Enum reading_source {
-  manual
-  device
-}
 
 //////////////////////////////////////////////////////////
 // Core
@@ -43,7 +19,8 @@ Enum reading_source {
 Table patients {
   id uuid [pk, default: `gen_random_uuid()`]
   auth_user_id uuid [unique, not null, note: 'FK to Supabase auth.users(id)']
-  full_name text [not null]
+  first_name text 
+  last_name text
   date_of_birth date
   sex text
   ckd_stage ckd_stage
@@ -58,13 +35,8 @@ Table patients {
     updated_at [name: 'idx_patients_updated_at']
   }
 
-  Note: 'Core account record, 1:1 with Supabase auth user for v1 (patient-only). Unchanged from stage-1.'
+  Note: 'Core account record, 1:1 with Supabase auth user for v1 (patient-only). Unchanged from s1.'
 }
-
-//////////////////////////////////////////////////////////
-// Vitals — split into one table per metric (revision from stage-1's
-// single generic vital_readings table)
-//////////////////////////////////////////////////////////
 
 Table blood_pressure_readings {
   id uuid [pk, default: `gen_random_uuid()`]
@@ -73,7 +45,6 @@ Table blood_pressure_readings {
   systolic integer [note: 'mmHg']
   diastolic integer [note: 'mmHg']
   heart_rate_bpm integer [note: 'bpm']
-  source reading_source [not null, default: 'manual']
   notes text
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]

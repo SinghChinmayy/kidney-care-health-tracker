@@ -4,7 +4,7 @@ Date: 2026-07-03
 
 ## 1. Summary
 
-Implementation plan for the offline-first local database and bidirectional sync engine that lets a patient log vitals with no network connection and have that data reliably reach Supabase/Postgres once online. Built on top of the schema in `planning/db/v0/stage-1.2.dbml` (`patients` + `blood_pressure_readings` + `blood_glucose_readings` + `weight_readings`). The local store is `drift` (SQLite) mirroring the remote schema 1:1, plus two local-only additions: an `is_dirty` flag per row and a `sync_state` cursor table. The sync engine is deliberately generic/registry-driven so the other 10 entities deferred from stage-1 can be added later by registering them, not by rewriting the engine.
+Implementation plan for the offline-first local database and bidirectional sync engine that lets a patient log vitals with no network connection and have that data reliably reach Supabase/Postgres once online. Built on top of the schema in `planning/db/v0/s1/s1.2/s1.2.dbml` (`patients` + `blood_pressure_readings` + `blood_glucose_readings` + `weight_readings`). The local store is `drift` (SQLite) mirroring the remote schema 1:1, plus two local-only additions: an `is_dirty` flag per row and a `sync_state` cursor table. The sync engine is deliberately generic/registry-driven so the other 10 entities deferred from s1 can be added later by registering them, not by rewriting the engine.
 
 ## 2. Scope
 
@@ -64,10 +64,10 @@ See `planning/sync/v0/stage-1.dbml` for full definitions. Summary of what's loca
 
 | Table | Mirrors remote? | Local-only additions |
 |---|---|---|
-| `patients` | Yes, 1:1 with `stage-1.2` | `is_dirty` |
-| `blood_pressure_readings` | Yes, 1:1 with `stage-1.1` | `is_dirty` |
-| `blood_glucose_readings` | Yes, 1:1 with `stage-1.1` | `is_dirty` |
-| `weight_readings` | Yes, 1:1 with `stage-1.1` | `is_dirty` |
+| `patients` | Yes, 1:1 with `s1.2` | `is_dirty` |
+| `blood_pressure_readings` | Yes, 1:1 with `s1.1` | `is_dirty` |
+| `blood_glucose_readings` | Yes, 1:1 with `s1.1` | `is_dirty` |
+| `weight_readings` | Yes, 1:1 with `s1.1` | `is_dirty` |
 | `sync_state` | No — local only | entire table (`table_name` pk, `last_pulled_at`, `last_synced_run_at`) |
 
 ## 5. Sync Engine Design
@@ -170,7 +170,7 @@ create trigger trg_bootstrap_patient
   for each row execute function bootstrap_patient_on_signup();
 ```
 
-Requires `patients.full_name` nullable — see `planning/db/v0/stage-1.2.md` for that schema delta and rationale (app-side onboarding fills it in after this trigger creates the bare row).
+Requires nullable `patients.first_name` / `last_name` — see `planning/db/v0/s1/s1.2/s1.2.md` for that schema delta and rationale (app-side onboarding fills them in after this trigger creates the bare row).
 
 ### 7.3 Row-Level Security
 
@@ -208,7 +208,7 @@ Standard drift migrations: bump `schemaVersion` on the drift database class and 
 | Background execution | Foreground-only for v1 | No native background fetch/WorkManager infra needed yet; app-alive triggers are sufficient at this stage |
 | Connectivity detection | Reactive-only, no dedicated listener package | Simpler; sync attempts naturally succeed once online via existing triggers |
 | Local schema migrations | Standard drift `schemaVersion`/`onUpgrade` | No data-loss window, no network dependency, ultimately less code than any wipe-based alternative |
-| Patient bootstrap | Postgres trigger on `auth.users` insert | Guarantees a `patients` row always exists once signed in; required relaxing `full_name` to nullable (stage-1.2) |
+| Patient bootstrap | Postgres trigger on `auth.users` insert | Guarantees a `patients` row always exists once signed in; requires nullable name fields (s1.2) |
 | Initial sync on new device | Blocking full pull before app is usable | User-selected — ensures the app never shows incomplete/partial history on first use |
 
 ## 10. Open Questions / Deferred
@@ -218,13 +218,13 @@ Standard drift migrations: bump `schemaVersion` on the drift database class and 
 - **Debounce window** for the after-write trigger: proposed ~2s as a starting point, not tuned/validated yet.
 - **Pull pagination**: revisit once per-patient row counts in `blood_pressure_readings`/`blood_glucose_readings`/`weight_readings` grow large enough that an unpaginated `select()` becomes slow or memory-heavy.
 - **Retry/backoff**: current "retry on next natural trigger" approach assumes triggers fire often enough; revisit if real-world offline gaps prove longer than expected.
-- **Re-introducing stage-1's other 10 entities** into the sync registry: order/priority not yet decided (tracked as an open question in `planning/db/v0/stage-1.1.md` too).
+- **Re-introducing s1's other 10 entities** into the sync registry: order/priority not yet decided (tracked as an open question in `planning/db/v0/s1/s1.1/s1.1.md` too).
 - **Caregiver access** (multi-user per patient): still an open question from the schema planning session; will affect the `patients` bootstrap trigger and RLS policies once designed.
 
 ## 11. Implementation Checklist
 
 1. Add dependencies to `pubspec.yaml`: `drift`, `sqlite3_flutter_libs` (or `drift_flutter`), `supabase_flutter`, `path_provider`, `path`.
-2. Write the Supabase migration SQL: apply `stage-1.2` table definitions + `set_updated_at` trigger (§7.1) + `bootstrap_patient_on_signup` trigger (§7.2) + RLS policies (§7.3).
+2. Write the Supabase migration SQL: apply `s1.2` table definitions + `set_updated_at` trigger (§7.1) + `bootstrap_patient_on_signup` trigger (§7.2) + RLS policies (§7.3).
 3. Define drift tables per `planning/sync/v0/stage-1.dbml` (4 mirrored tables + `is_dirty` + `sync_state`).
 4. Implement the `SyncableTable` registry + `SyncEngine` orchestrator (§5).
 5. Wire triggers: `WidgetsBindingObserver` for app start/resume, debounced post-write hook.
@@ -233,4 +233,4 @@ Standard drift migrations: bump `schemaVersion` on the drift database class and 
 
 ## 12. Change Log
 
-- **v0/stage-1** (2026-07-03): Initial local DB + sync implementation plan. Generic registry-driven sync engine over `patients` + 3 vitals tables from `stage-1.2`. Push-then-pull per run, server-assigned `updated_at`, same-id-only LWW conflict resolution, soft-delete parity between local/remote, drift-migration-based local schema evolution, trigger-based patient bootstrap. Sync status UI and native background execution explicitly deferred.
+- **v0/stage-1** (2026-07-03): Initial local DB + sync implementation plan. Generic registry-driven sync engine over `patients` + 3 vitals tables from `s1.2`. Push-then-pull per run, server-assigned `updated_at`, same-id-only LWW conflict resolution, soft-delete parity between local/remote, drift-migration-based local schema evolution, trigger-based patient bootstrap. Sync status UI and native background execution explicitly deferred.

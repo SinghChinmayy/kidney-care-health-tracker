@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "tablePositions": [
+      {
+        "name": "patients",
+        "schemaName": "public",
+        "x": 12,
+        "y": 12
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": []
+  },
+  "views": {}
+}
