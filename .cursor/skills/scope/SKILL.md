@@ -1,6 +1,6 @@
 ---
 name: scope
-description: Ask the user to define the scope of the current development phase before broad exploration or implementation. Use when the user invokes /scope, asks to scope work, or starts an ambiguous phase where boundaries should be clarified to avoid unnecessary token-heavy exploration.
+description: Ask the user to define the scope of the current development phase before broad exploration or implementation, including whether to use git history or current repo state. Use when the user invokes /scope, asks to scope work, or starts an ambiguous phase where boundaries should be clarified to avoid unnecessary token-heavy exploration.
 disable-model-invocation: true
 ---
 
@@ -24,4 +24,18 @@ If the user's answer is still broad, ask follow-up questions one at a time until
 - Depth: quick answer, focused implementation, review, debugging, or full plan.
 - Verification: tests, commands, migrations, screenshots, or checks expected before completion.
 
-After the user answers, summarize the scope in 3-5 bullets and ask for confirmation before doing broad exploration or edits.
+Ask how the agent should use git history when making decisions:
+
+```text
+Should I refer to old git commits for context, or work from the current repo state only?
+```
+
+Use AskQuestion when available:
+
+- **Current state only** — read files, diffs, and status as they are now; do not dig through commit history unless the user later asks.
+- **Git history** — inspect specific commits, branches, or `git log`/`git show` for prior decisions, reverts, or abandoned approaches.
+- **Both** — start from current state, but check named commits or a time range when context is missing.
+
+If the user picks git history, ask one follow-up: which commits, branch, tag, or time window to use. If they pick current state only, do not run broad history searches.
+
+After the user answers, summarize the scope in 3-6 bullets (include the git-history choice) and ask for confirmation before doing broad exploration or edits.

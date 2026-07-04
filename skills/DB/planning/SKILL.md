@@ -3,13 +3,61 @@ name: db-planning
 description: >
   DB design planning skill. Two-stage workflow: (1) relentless one-at-a-time interview
   to reach shared understanding of requirements, (2) generate versioned plan artifacts
-  (DBML + MD) under /planning/db/ with session/stage versioning (v0/stage-1, v0/stage-2…).
+  (DBML + MD + migration SQL) under planning/db/ with v{N}/s{M}/s{M}.{m} folder nesting.
   Triggers on: "plan db", "design database", "db planning", "database design", "db design".
 ---
 
 ## Caveman Mode
 
 Activate caveman full mode throughout. Skip filler. Stay precise. Auto-clarity on destructive or ambiguous ops.
+
+## Versioning Scheme
+
+Three levels, nested as folders:
+
+| Level | Label | Meaning | Example path |
+|---|---|---|---|
+| Major | `v{N}` | Planning epoch — breaking redesign or new domain | `planning/db/v0/` |
+| Stage | `s{M}` | Logical implementation phase within a major version | `planning/db/v0/s1/` |
+| Minor | `s{M}.{m}` | Implementable slice within a stage | `planning/db/v0/s1/s1.1/` |
+
+```
+planning/db/
+  v0/
+    s1/
+      s1.dbml              # stage-wide schema (review)
+      s1.md                # stage reference doc
+      s1.1/
+        s1.1.dbml          # slice schema (review before migration)
+        s1.1.md            # slice reference doc
+        migration.sql      # SQL to apply for this slice
+      s1.2/
+        s1.2.dbml
+        s1.2.md
+        migration.sql
+    s2/
+      s2.dbml
+      s2.md
+      s2.1/
+        ...
+  v1/
+    s1/
+      ...
+```
+
+### When to increment
+
+- **v{N} → v{N+1}**: new major planning epoch (full redesign or user explicitly resets).
+- **s{M} → s{M+1}**: new logical phase within same major version.
+- **s{M}.{m} → s{M}.{m+1}**: next implementable delta within same stage.
+
+Confirm target path with user if ambiguous. When continuing, read latest minor slice (highest `s{M}.{m}`).
+
+### Legacy layout
+
+Flat `stage-*` files under `planning/db/v0/` were migrated to `v0/s1/s1.*`. Use the nested layout for all new work.
+
+---
 
 ## Stage 1 — Interview
 
@@ -64,35 +112,21 @@ Signal end of interview: when all branches resolved or user says "done" / "enoug
 
 ---
 
-## Stage 2 — Plan Artifacts
+## Stage 2 — Stage Artifacts
 
-When interview done, generate versioned artifacts.
+Create at `planning/db/v{N}/s{M}/`:
 
-### Versioning Scheme
-
-```
-/planning/db/
-  v{N}/
-    stage-{M}.dbml   <- DBML for DB visualisation
-    stage-{M}.md     <- Design plan doc
-```
-
-- N = session number (0-indexed). Increment each NEW conversation/session.
-- M = stage number within session (1-indexed). Increment each plan update in same session.
-- First ever output -> v0/stage-1.*
-- Next edit same session -> v0/stage-2.*
-- New session -> v1/stage-1.*
-
-### DBML File (stage-M.dbml)
+### s{M}.dbml
 
 Use DBML spec: https://dbml.dbdiagram.io/docs
 
 Include:
+- Full stage schema
 - Table definitions with column types, pk, indexes, notes
 - Ref lines for all relationships (>, -, <>)
-- Header comment with project name, version, date
+- Header comment with project name, version path, date
 
-### MD File (stage-M.md)
+### s{M}.md
 
 Sections:
 1. Summary - one paragraph purpose
@@ -100,8 +134,44 @@ Sections:
 3. Key Relationships - M:N join tables, notable constraints
 4. Access Patterns table - pattern, frequency, index strategy
 5. Design Decisions table - decision, choice, reason
-6. Open Questions - unresolved items for next stage
-7. Change Log - what changed from previous stage
+6. Implementation Slices - planned s{M}.1, s{M}.2, … and what each ships
+7. Open Questions - unresolved items for next stage
+8. Change Log - what changed from previous stage
+
+Pause for user DBML review before minor slices or SQL.
+
+---
+
+## Stage 3 — Minor Slice Artifacts
+
+Folder: `planning/db/v{N}/s{M}/s{M}.{m}/`
+
+### s{M}.{m}.dbml
+
+- Slice-only schema (tables/columns/indexes in this slice)
+- Consistent with stage DBML; note intentional deltas
+
+### s{M}.{m}.md
+
+Same sections as stage MD, scoped to slice. Change Log references prior minor slice.
+
+### migration.sql
+
+- Postgres SQL for slice DBML
+- Header: `-- Source: planning/db/v0/s1/s1.1/s1.1.dbml`
+- Idempotent where practical
+
+**Order:** DBML → review → MD → migration.sql → review → apply.
+
+---
+
+## Applying Migrations
+
+Copy/adapt planning `migration.sql` to:
+
+`supabase/migrations/{timestamp}_v{N}_s{M}_s{M}_{m}_{slug}.sql`
+
+Keep `-- Source:` comment. Run locally via Supabase CLI before remote.
 
 ---
 
@@ -109,9 +179,9 @@ Sections:
 
 ```
 interview -> shared understanding
-  -> create v{N}/stage-1.dbml + stage-1.md
-  -> each update in session -> stage-2, stage-3 ...
-  -> new session -> v{N+1}/stage-1.*
+  -> v{N}/s{M}/s{M}.dbml + s{M}.md (stage, review)
+  -> v{N}/s{M}/s{M}.1/ ... s{M}.n/ (slices: dbml -> md -> migration.sql -> supabase)
+  -> s{M+1}/ (next stage) or v{N+1}/s1/ (new major)
 ```
 
 Ask first interview question now if user says "start" or invokes skill.
