@@ -1,6 +1,5 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
-import 'package:app/ui/features/auth/views/login_view.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
@@ -22,12 +21,7 @@ class HomeView extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Sign out',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute<void>(builder: (_) => const LoginView()),
-                (_) => false,
-              );
-            },
+            onPressed: () => viewModel.signOut(),
             icon: const Icon(Icons.logout_outlined),
           ),
         ],

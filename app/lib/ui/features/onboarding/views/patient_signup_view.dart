@@ -1,8 +1,9 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
 import 'package:app/ui/core/widgets/app_form_layout.dart';
-import 'package:app/ui/features/home/views/home_view.dart';
+import 'package:app/ui/features/onboarding/view_models/patient_signup_view_model.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class PatientSignupView extends StatefulWidget {
   const PatientSignupView({super.key});
@@ -13,6 +14,8 @@ class PatientSignupView extends StatefulWidget {
 
 class _PatientSignupViewState extends State<PatientSignupView> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   static const _ckdStages = [
@@ -30,7 +33,16 @@ class _PatientSignupViewState extends State<PatientSignupView> {
   String? _selectedSex;
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<PatientSignupViewModel>();
+
     return Scaffold(
       appBar: const AppScreenAppBar(title: 'Patient signup'),
       body: SafeArea(
@@ -53,18 +65,21 @@ class _PatientSignupViewState extends State<PatientSignupView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
+                    enabled: !viewModel.isLoading,
                     decoration: const InputDecoration(labelText: 'First name'),
                     validator: (value) =>
                         validateRequired(value, label: 'First name'),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    enabled: !viewModel.isLoading,
                     decoration: const InputDecoration(labelText: 'Last name'),
                     validator: (value) =>
                         validateRequired(value, label: 'Last name'),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    enabled: !viewModel.isLoading,
                     decoration: const InputDecoration(
                       labelText: 'Date of birth',
                       hintText: 'YYYY-MM-DD',
@@ -83,7 +98,9 @@ class _PatientSignupViewState extends State<PatientSignupView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) => setState(() => _selectedSex = value),
+                    onChanged: viewModel.isLoading
+                        ? null
+                        : (value) => setState(() => _selectedSex = value),
                     validator: (value) =>
                         value == null ? 'Sex is required' : null,
                   ),
@@ -99,13 +116,16 @@ class _PatientSignupViewState extends State<PatientSignupView> {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) =>
-                        setState(() => _selectedCkdStage = value),
+                    onChanged: viewModel.isLoading
+                        ? null
+                        : (value) =>
+                            setState(() => _selectedCkdStage = value),
                     validator: (value) =>
                         value == null ? 'CKD stage is required' : null,
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    enabled: !viewModel.isLoading,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
@@ -114,20 +134,30 @@ class _PatientSignupViewState extends State<PatientSignupView> {
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    controller: _emailController,
+                    enabled: !viewModel.isLoading,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(labelText: 'Email'),
                     validator: validateEmail,
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    controller: _passwordController,
+                    enabled: !viewModel.isLoading,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Password'),
                     validator: validatePassword,
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Create account'),
+                    onPressed: viewModel.isLoading ? null : _submit,
+                    child: viewModel.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Create account'),
                   ),
                 ],
               ),
@@ -138,13 +168,37 @@ class _PatientSignupViewState extends State<PatientSignupView> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
-    if (_formKey.currentState?.validate() ?? false) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const HomeView()),
-        (_) => false,
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final viewModel = context.read<PatientSignupViewModel>();
+    final result = await viewModel.signUp(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result == null) {
+      final message = viewModel.errorMessage;
+      if (message != null) {
+        showPlaceholderSnackBar(context, message);
+      }
+      return;
+    }
+
+    if (result.needsEmailConfirmation) {
+      showPlaceholderSnackBar(
+        context,
+        'Account created. Check your email to confirm, then sign in.',
       );
     }
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

@@ -1,8 +1,11 @@
+import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/services/auth_service.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
-import 'package:app/ui/features/auth/views/login_view.dart';
+import 'package:app/ui/features/auth/views/auth_gate.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
+import 'package:app/ui/features/onboarding/view_models/patient_signup_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
@@ -16,14 +19,27 @@ class KidneyCareApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider(create: (_) => AuthService()),
+        ProxyProvider<AuthService, AuthRepository>(
+          update: (_, authService, _) =>
+              AuthRepository(authService: authService),
+        ),
         Provider(create: (_) => MockVitalsRepository()),
-        ChangeNotifierProvider(create: (_) => LoginViewModel()),
-        ChangeNotifierProxyProvider<MockVitalsRepository, HomeViewModel>(
+        ChangeNotifierProvider(
+          create: (context) => LoginViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PatientSignupViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+        ChangeNotifierProvider(
           create: (context) => HomeViewModel(
             vitalsRepository: context.read<MockVitalsRepository>(),
+            authRepository: context.read<AuthRepository>(),
           ),
-          update: (_, repository, previous) =>
-              previous ?? HomeViewModel(vitalsRepository: repository),
         ),
         ChangeNotifierProxyProvider<MockVitalsRepository, BloodPressureViewModel>(
           create: (context) => BloodPressureViewModel(
@@ -50,7 +66,7 @@ class KidneyCareApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Kidney Care',
         theme: AppTheme.light,
-        home: const LoginView(),
+        home: const AuthGate(),
       ),
     );
   }

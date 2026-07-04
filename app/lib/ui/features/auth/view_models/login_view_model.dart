@@ -1,39 +1,50 @@
-import 'package:app/ui/core/widgets/app_form_layout.dart';
-import 'package:app/ui/features/home/views/home_view.dart';
-import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
+import 'package:app/data/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginViewModel extends ChangeNotifier {
+  LoginViewModel({required AuthRepository authRepository})
+      : _authRepository = authRepository;
+
+  final AuthRepository _authRepository;
+
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   bool get obscurePassword => _obscurePassword;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   void togglePasswordVisibility() {
     _obscurePassword = !_obscurePassword;
     notifyListeners();
   }
 
-  void signIn(BuildContext context) {
-    _goToHome(context);
-  }
+  Future<bool> signIn({
+    required String email,
+    required String password,
+  }) async {
+    if (_isLoading) {
+      return false;
+    }
 
-  void skipToHome(BuildContext context) {
-    _goToHome(context);
-  }
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
-  void _goToHome(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const HomeView()),
-    );
-  }
-
-  void goToSignUp(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const OnboardingView()),
-    );
-  }
-
-  void forgotPassword(BuildContext context) {
-    showPlaceholderSnackBar(context, 'Password reset coming soon.');
+    try {
+      await _authRepository.signIn(email: email, password: password);
+      return true;
+    } on AuthException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Sign in failed. Please try again.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_form_layout.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
-import 'package:flutter/foundation.dart';
+import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,7 +14,16 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,19 +59,25 @@ class _LoginViewState extends State<LoginView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
+                    enabled: !viewModel.isLoading,
                     decoration: const InputDecoration(labelText: 'Email'),
                     validator: validateEmail,
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextFormField(
+                    controller: _passwordController,
                     obscureText: viewModel.obscurePassword,
                     textInputAction: TextInputAction.done,
+                    enabled: !viewModel.isLoading,
                     decoration: InputDecoration(
                       labelText: 'Password',
                       suffixIcon: IconButton(
-                        onPressed: viewModel.togglePasswordVisibility,
+                        onPressed: viewModel.isLoading
+                            ? null
+                            : viewModel.togglePasswordVisibility,
                         icon: Icon(
                           viewModel.obscurePassword
                               ? Icons.visibility_outlined
@@ -77,27 +92,40 @@ class _LoginViewState extends State<LoginView> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () => viewModel.forgotPassword(context),
+                      onPressed: viewModel.isLoading
+                          ? null
+                          : () => showPlaceholderSnackBar(
+                                context,
+                                'Password reset coming soon.',
+                              ),
                       child: const Text('Forgot password?'),
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   ElevatedButton(
-                    onPressed: () => _submit(viewModel),
-                    child: const Text('Sign In'),
+                    onPressed:
+                        viewModel.isLoading ? null : () => _submit(viewModel),
+                    child: viewModel.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Sign In'),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   TextButton(
-                    onPressed: () => viewModel.goToSignUp(context),
+                    onPressed: viewModel.isLoading
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const OnboardingView(),
+                              ),
+                            );
+                          },
                     child: const Text("Don't have an account? Sign up"),
                   ),
-                  if (kDebugMode) ...[
-                    const SizedBox(height: AppTheme.spacingSm),
-                    TextButton(
-                      onPressed: () => viewModel.skipToHome(context),
-                      child: const Text('Skip to home (debug)'),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -107,10 +135,24 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  void _submit(LoginViewModel viewModel) {
+  Future<void> _submit(LoginViewModel viewModel) async {
     setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
-    if (_formKey.currentState?.validate() ?? false) {
-      viewModel.signIn(context);
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final success = await viewModel.signIn(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    if (!mounted || success) {
+      return;
+    }
+
+    final message = viewModel.errorMessage;
+    if (message != null) {
+      showPlaceholderSnackBar(context, message);
     }
   }
 }
