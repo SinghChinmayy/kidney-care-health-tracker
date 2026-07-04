@@ -24,7 +24,7 @@ This document is the single source of truth for design principles and UI/UX guid
 
 Reusable, app-wide building blocks. Fill these in as they're decided — don't invent values speculatively; add a row only once a decision has actually been made.
 
-Implemented centrally in `flutter_app/lib/theme/app_theme.dart` (`AppTheme`) — update code and doc together.
+Implemented centrally in `app/lib/theme/app_theme.dart` (`AppTheme`) and shared widgets in `app/lib/ui/core/widgets/` — update code and doc together.
 
 ### 2.1 Color Palette
 
@@ -42,8 +42,10 @@ No custom font family yet (uses Flutter's default Material type). Only override 
 
 | Style | Value | Usage |
 |---|---|---|
-| `headlineMedium` | 28px, bold, `ink` | Screen/section titles (e.g. app name on login) |
-| `bodyMedium` | 14px, `ink` | Supporting/secondary text (e.g. taglines) |
+| `headlineMedium` | 28px, bold, `ink` | Screen/section titles (e.g. app name on login, "Welcome back" on home) |
+| `titleMedium` | 16px, semibold, `ink` | Card titles (vital summary cards, reading values) |
+| `bodyMedium` | 14px, `ink` | Supporting/secondary text (e.g. taglines, timestamps, card descriptions) |
+| `optionCardTitle` | 18px, semibold, `ink` | Onboarding signup option titles |
 
 Full type scale (labels, captions, etc.) still TBD — falls back to Material defaults until decided.
 
@@ -59,7 +61,9 @@ Full type scale (labels, captions, etc.) still TBD — falls back to Material de
 | `spacingLg` | 32 |
 | `spacingXl` | 40 |
 
-Form/content width on larger screens: constrain to `maxWidth: 400` and center, rather than stretching full-width.
+Form/content width on larger screens: constrain to `formMaxWidth: 400` and center, rather than stretching full-width.
+
+Bottom sheets use `sheetTopRadius` (16px top corners only).
 
 ### 2.4 Iconography
 
@@ -67,16 +71,39 @@ Using Flutter's built-in Material Icons (outlined style) as placeholders until r
 
 ### 2.5 Components
 
+Shared widgets live in `app/lib/ui/core/widgets/app_components.dart` and `app_form_layout.dart`.
+
 **Buttons**
 | Variant | Style | Usage |
 |---|---|---|
-| Primary (`ElevatedButton`) | Filled `ink` background, `background`-colored text, full-width, 8px corner radius | Main call-to-action per screen (e.g. "Sign In") |
-| Text (`TextButton`) | No fill, `ink` text | Secondary/tertiary actions (e.g. "Forgot password?", "Sign up") |
+| Primary (`ElevatedButton`) | Filled `ink` background, `background`-colored text, full-width, 8px corner radius | Main call-to-action per screen (e.g. "Sign In", "Save reading") |
+| Secondary (`OutlinedButton` via `AppTheme.secondaryButtonStyle()`) | `ink` border/text, full-width, 8px corner radius | Secondary screen actions (e.g. "View all vitals") |
+| Option card (`AppOptionCard` / `AppTheme.optionCardButtonStyle()`) | Outlined, left-aligned row: icon + title + description + chevron | Onboarding signup choices, home vital summaries, vitals hub navigation |
+| Text (`TextButton`) | No fill, `ink` text | Tertiary actions (e.g. "Forgot password?", "Sign up") |
 
 **Inputs (`TextFormField`)**
 - Outlined border, 8px corner radius, `ink` border (2px when focused).
 - Error state: `error`-colored border/text (1px default, 2px when focused+error).
 - Inline validation messages shown below the field via `validator`.
+
+**App bar (`AppScreenAppBar`)**
+- White background, black foreground, zero elevation — used on all screens with a title/back button.
+
+**Reading card (`AppReadingCard`)**
+- Outlined container (`readingCardDecoration`), `spacingSm` padding, value in `titleMedium`, timestamp/notes in `bodyMedium`.
+
+**Empty state (`AppEmptyState`)**
+- Centered `bodyMedium` message when a list has no items (e.g. vitals pages before first reading).
+
+**FAB (`FloatingActionButton`)**
+- Filled `ink` background, `background` icon — used on vitals pages to add a reading.
+
+**Bottom sheet**
+- White background, 16px top corner radius, opens instantly (no slide animation beyond system default sheet behavior).
+- Form uses global input/button styles; inline errors use `error` color.
+
+**SnackBar**
+- Floating, `ink` background, white text — used for placeholder actions (e.g. "Password reset coming soon").
 
 **Motion**
 - Route/page transitions are disabled app-wide (`NoAnimationPageTransitionsBuilder` in `AppTheme`) to match the "no animations for now" principle — navigating between screens is instant, no slide/fade.
@@ -87,36 +114,91 @@ Design decisions that apply to one page or feature rather than the whole app. Ad
 
 ### 3.1 Login Screen
 
-Implemented at `flutter_app/lib/screens/auth/login_screen.dart`.
+Implemented at `app/lib/ui/features/auth/views/login_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI only (sample) | No Supabase auth wiring yet — "Sign In"/"Forgot password"/"Sign up" show a placeholder snackbar. Wire to real auth in a later pass. |
+| Scope | Static UI only (sample) | No Supabase auth wiring yet — "Forgot password?" shows a placeholder snackbar. "Sign In" navigates to Home; "Sign up" navigates to Onboarding. Wire to real auth in a later pass. |
 | Auth method | Email + Password | Phone/OTP not built for this sample. |
-| Layout | Centered, single-column form, no card/border, generous whitespace | Uses global spacing scale (Section 2.3); constrained to `maxWidth: 400` and vertically/horizontally scrollable so it works on small and large screens. |
+| Layout | Centered, single-column form, no card/border, generous whitespace | Uses `AppFormLayout` + global spacing scale (Section 2.3); constrained to `formMaxWidth: 400` and vertically/horizontally scrollable. |
 | Branding | Icon (`Icons.health_and_safety_outlined`) + "Kidney Care" headline + one-line tagline | Icon is a placeholder for a real logo (see Section 2.4). |
 | Fields | Email (validated: non-empty, basic email format), Password (validated: non-empty, min 6 chars, show/hide toggle) | Validation runs on submit and on user interaction after first submit (`AutovalidateMode.onUserInteraction`). |
-| Extra elements | "Forgot password?" link (right-aligned, above submit), "Sign In" primary button, "Don't have an account? Sign up" (below submit) | All three are placeholders for now (scope above). |
+| Extra elements | "Forgot password?" link (right-aligned, above submit), "Sign In" primary button, "Don't have an account? Sign up" (below submit) | See scope row for current navigation behavior. |
 
-<!--
-Template for a new page/feature entry:
+### 3.2 Onboarding Screen
 
-### 3.N <Page/Feature Name>
+Implemented at `app/lib/ui/features/onboarding/views/onboarding_view.dart`.
+
 | Element | Decision | Notes |
 |---|---|---|
-| ... | ... | ... |
--->
+| Scope | Static UI only | Two signup paths; no backend wiring. |
+| Layout | Full-width page padding (`spacingMd`), headline + subtitle, stacked option cards | Uses `AppOptionCard` with 32px icons for signup choices. |
+| Options | Patient signup, Caretaker signup | Each card navigates to its respective signup form. |
+
+### 3.3 Patient Signup
+
+Implemented at `app/lib/ui/features/onboarding/views/patient_signup_view.dart`.
+
+| Element | Decision | Notes |
+|---|---|---|
+| Scope | Static UI only | Fields mirror `patients` table from s1.1 schema; submit navigates to Home (mock). |
+| Layout | `AppFormLayout`, scrollable single column | Same max-width constraint as login. |
+| Fields | First name, last name, date of birth, sex (dropdown), CKD stage (dropdown), height (cm, optional), email, password | Required fields validated on submit. |
+
+### 3.4 Caretaker Signup
+
+Implemented at `app/lib/ui/features/onboarding/views/caretaker_signup_view.dart`.
+
+| Element | Decision | Notes |
+|---|---|---|
+| Scope | Static UI only | Patient linking deferred; submit navigates to Home (mock). |
+| Fields | Full name, email, password, patient invite code (optional) | Invite code is a UI placeholder for a later linking flow. |
+
+### 3.5 Home Screen
+
+Implemented at `app/lib/ui/features/home/views/home_view.dart`.
+
+| Element | Decision | Notes |
+|---|---|---|
+| Scope | Static UI with mock vitals data | Pull-to-refresh reloads latest readings from in-memory repository. |
+| Layout | App bar with sign-out action, headline, three vital summary cards, "View all vitals" secondary button | Summary cards reuse `AppOptionCard`; latest value shown as card description. |
+| Navigation | Tap card → vital detail page; "View all vitals" → vitals hub; sign out → login | Returning from a vital page refreshes home summaries. |
+
+### 3.6 Vitals Hub
+
+Implemented at `app/lib/ui/features/vitals/views/vitals_hub_view.dart`.
+
+| Element | Decision | Notes |
+|---|---|---|
+| Scope | Navigation only | Lists all three vital types with short descriptions. |
+| Layout | Same option-card pattern as onboarding/home | Icons: blood pressure, glucose, weight. |
+
+### 3.7 Vital Detail Pages (Blood Pressure, Glucose, Weight)
+
+Implemented at:
+- `app/lib/ui/features/vitals/views/blood_pressure_view.dart`
+- `app/lib/ui/features/vitals/views/blood_glucose_view.dart`
+- `app/lib/ui/features/vitals/views/weight_view.dart`
+
+| Element | Decision | Notes |
+|---|---|---|
+| Scope | Static UI with in-memory mock data | New readings persist for the session only (no Supabase/local DB yet). |
+| Layout | App bar + FAB + list of `AppReadingCard` items, or `AppEmptyState` | List separated by `spacingSm`. |
+| Add reading | Bottom sheet form opened by FAB | BP: systolic/diastolic and/or heart rate (at least one required). Glucose: mg/dL + optional context. Weight: kg. All support optional notes. |
+| Units | BP in mmHg/bpm, glucose in mg/dL, weight in kg | Matches s1.1 schema canonical units. |
 
 ## 4. Open Questions
 
 - Full color palette (primary/secondary/accent; only `error` red decided so far) — not yet decided.
-- Typography system (font family, full scale, weights) — only `headlineMedium`/`bodyMedium` decided so far.
+- Typography system (font family, full scale, weights) — only `headlineMedium`/`titleMedium`/`bodyMedium`/`optionCardTitle` decided so far.
 - Dark mode — explicitly out of scope for now; revisit later.
 - Accessibility targets (contrast ratios, text scaling, screen reader support) — important given the patient audience; not yet discussed.
 - Real branding/logo assets — login screen currently uses a placeholder Material icon.
-- Real auth wiring (Supabase email/password) for the login screen — currently static/sample only.
+- Real auth wiring (Supabase email/password) for login and signup — currently static/sample only.
+- Caretaker–patient linking flow — UI placeholder only on caretaker signup.
 
 ## 5. Change Log
 
 - **2026-07-03**: Restructured design.md into a living-document format (maintenance instructions, global foundations, page-specific section, change log). Carried over existing decisions as-is: white background, black/mono font color, no animations.
 - **2026-07-03**: Built sample Login Screen (static UI, email+password). Introduced first concrete Global Foundations: mono color palette + functional `error` red, spacing scale, headline/body type overrides, button/input component styles, and app-wide disabled route-transition animations (operationalizes the existing "no animations" principle). See Section 2 and Section 3.1.
+- **2026-07-04**: Migrated implementation path from `flutter_app/` to `app/`. Added onboarding, signup, home, vitals hub, and vital detail screens. Extended Global Foundations with `titleMedium`, `optionCardTitle`, shared components (`AppOptionCard`, `AppReadingCard`, `AppScreenAppBar`, `AppEmptyState`), secondary/outlined button styles, app bar/FAB/snackbar themes, and bottom-sheet radius. Documented all new pages in Section 3.2–3.7.
