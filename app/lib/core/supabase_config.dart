@@ -12,13 +12,19 @@ abstract final class SupabaseConfig {
 
   static const publishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
-  static void validate() {
+  static String? get validationError {
     if (url.isEmpty || publishableKey.isEmpty) {
-      throw StateError(
-        'Missing Supabase config. Run with '
-        '--dart-define=SUPABASE_URL=... '
-        '--dart-define=SUPABASE_PUBLISHABLE_KEY=...',
-      );
+      return 'Copy dart_defines/dev.example.json to dart_defines/dev.json, '
+          'then run:\n'
+          'flutter run --dart-define-from-file=dart_defines/dev.json';
+    }
+    return null;
+  }
+
+  static void validate() {
+    final error = validationError;
+    if (error != null) {
+      throw StateError(error);
     }
   }
 }
