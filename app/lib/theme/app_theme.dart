@@ -18,6 +18,11 @@ class NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
 class AppTheme {
   static const Color background = Colors.white;
   static const Color ink = Colors.black;
+  static const Color surfaceMuted = Color(0xFFF9FAFB);
+  static const Color muted = Color(0xFF6B7280);
+  static const Color logBloodPressure = Color(0xFFE57373);
+  static const Color logBloodGlucose = Color(0xFF64B5F6);
+  static const Color logWeight = Color(0xFF4DB6AC);
   static Color get error => Colors.red.shade700;
 
   static const double spacingXs = 8;

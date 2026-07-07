@@ -5,6 +5,8 @@ import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
 import 'package:app/ui/features/vitals/views/vitals_hub_view.dart';
 import 'package:app/ui/features/vitals/views/weight_view.dart';
+import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
+import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,10 +42,19 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openLogMenu(context),
+        child: const Icon(Icons.add),
+      ),
       body: RefreshIndicator(
         onRefresh: () async => viewModel.refresh(),
         child: ListView(
-          padding: const EdgeInsets.all(AppTheme.spacingSm),
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.spacingSm,
+            AppTheme.spacingSm,
+            AppTheme.spacingSm,
+            80,
+          ),
           children: [
             Text(
               'Welcome back',
@@ -96,6 +107,18 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _openLogMenu(BuildContext context) async {
+    final type = await showVitalLogMenuSheet(context);
+    if (!context.mounted || type == null) {
+      return;
+    }
+    await showVitalLogSheet(
+      context,
+      type,
+      onSaved: () => context.read<HomeViewModel>().refresh(),
     );
   }
 
