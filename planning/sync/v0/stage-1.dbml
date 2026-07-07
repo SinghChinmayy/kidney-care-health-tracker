@@ -6,7 +6,7 @@
 // DBML spec: https://dbml.dbdiagram.io/docs
 //
 // This is the LOCAL on-device schema, not the remote Postgres schema.
-// It mirrors planning/db/v0/s1/s1.2/s1.2.dbml 1:1 for the 4 synced tables,
+// It mirrors planning/db/v0/s1/s1.1/s1.1.dbml for vitals and s1.2 for patients,
 // plus one addition per table (`_dirty`) and one new local-only table
 // (`sync_state`) that don't exist remotely.
 
@@ -39,7 +39,8 @@ Enum reading_source {
 Table patients {
   id uuid [pk, note: 'Client-generatable; matches remote id once synced']
   auth_user_id uuid [unique, not null]
-  full_name text
+  first_name text
+  last_name text
   date_of_birth date
   sex text
   ckd_stage ckd_stage
@@ -63,7 +64,6 @@ Table blood_pressure_readings {
   systolic integer
   diastolic integer
   heart_rate_bpm integer
-  source reading_source [not null, default: 'manual']
   notes text
   created_at timestamptz [not null]
   updated_at timestamptz [not null]
