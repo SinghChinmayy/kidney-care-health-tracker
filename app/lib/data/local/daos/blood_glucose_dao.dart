@@ -79,4 +79,42 @@ class BloodGlucoseDao extends DatabaseAccessor<AppDatabase>
       ),
     );
   }
+
+  Future<BloodGlucoseRow?> getRowById(String id) {
+    return (select(bloodGlucoseReadings)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertRemoteRow(BloodGlucoseRow row, {required bool isDirty}) {
+    return into(bloodGlucoseReadings).insertOnConflictUpdate(
+      BloodGlucoseReadingsCompanion(
+        id: Value(row.id),
+        patientId: Value(row.patientId),
+        recordedAt: Value(row.recordedAt),
+        valueMgDl: Value(row.valueMgDl),
+        context: Value(row.context),
+        source: Value(row.source),
+        notes: Value(row.notes),
+        createdAt: Value(row.createdAt),
+        updatedAt: Value(row.updatedAt),
+        deletedAt: Value(row.deletedAt),
+        isDirty: Value(isDirty),
+      ),
+    );
+  }
+
+  Future<void> markSynced(String id, DateTime updatedAt) {
+    return (update(bloodGlucoseReadings)..where((t) => t.id.equals(id))).write(
+      BloodGlucoseReadingsCompanion(
+        updatedAt: Value(updatedAt),
+        isDirty: const Value(false),
+      ),
+    );
+  }
+
+  Future<void> reassignPatientId(String oldPatientId, String newPatientId) {
+    return (update(bloodGlucoseReadings)
+          ..where((t) => t.patientId.equals(oldPatientId)))
+        .write(BloodGlucoseReadingsCompanion(patientId: Value(newPatientId)));
+  }
 }

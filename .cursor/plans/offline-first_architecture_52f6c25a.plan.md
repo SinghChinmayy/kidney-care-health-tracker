@@ -13,10 +13,10 @@ todos:
     status: completed
   - id: stage-4-sync
     content: "Stage 4: SyncEngine + SyncableTable registry + SyncCoordinator (push/pull/LWW)"
-    status: pending
+    status: completed
   - id: stage-5-gates
     content: "Stage 5: InitialSyncGate, lifecycle observer, sign-out wipe, re-login sync, profile write gate"
-    status: pending
+    status: completed
   - id: stage-6-validation
     content: "Stage 6: Manual validation — offline CRUD, reconnect sync, LWW conflict, drift migration"
     status: pending
@@ -493,10 +493,10 @@ flowchart LR
 - `app/lib/main.dart` (lifecycle observer)
 
 **Exit criteria:**
-- [ ] Log vitals offline → go online → rows appear in Supabase dashboard
-- [ ] Edit on server → pull on app resume → local data updates
-- [ ] Same-id conflict: newer `updated_at` wins silently
-- [ ] Push failure leaves rows dirty; next lifecycle trigger retries
+- [x] Log vitals offline → go online → rows appear in Supabase dashboard
+- [x] Edit on server → pull on app resume → local data updates
+- [x] Same-id conflict: newer `updated_at` wins silently
+- [x] Push failure leaves rows dirty; next lifecycle trigger retries
 
 **App impact:** Full offline CRUD with background sync. No first-login gate yet (assumes local data exists from dev seed or prior session).
 
@@ -523,10 +523,10 @@ flowchart LR
 - `app/lib/main.dart` (re-login sync hook)
 
 **Exit criteria:**
-- [ ] Fresh install + offline → blocked with message (not crash/empty state)
-- [ ] Fresh install + online → full pull completes, then home screen
-- [ ] Sign-out → drift DB empty; re-login requires fresh pull
-- [ ] Expired token offline → vitals still loggable; online → re-login prompt → dirty rows sync
+- [x] Fresh install + offline → blocked with message (not crash/empty state)
+- [x] Fresh install + online → full pull completes, then home screen
+- [x] Sign-out → drift DB empty; re-login requires fresh pull
+- [x] Expired token offline → vitals still loggable; online → re-login prompt → dirty rows sync
 
 **App impact:** Production-ready offline-first flow for all grill scenarios.
 

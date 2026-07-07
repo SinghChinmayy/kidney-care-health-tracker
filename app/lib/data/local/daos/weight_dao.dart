@@ -66,4 +66,41 @@ class WeightDao extends DatabaseAccessor<AppDatabase> with _$WeightDaoMixin {
       ),
     );
   }
+
+  Future<WeightRow?> getRowById(String id) {
+    return (select(weightReadings)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertRemoteRow(WeightRow row, {required bool isDirty}) {
+    return into(weightReadings).insertOnConflictUpdate(
+      WeightReadingsCompanion(
+        id: Value(row.id),
+        patientId: Value(row.patientId),
+        recordedAt: Value(row.recordedAt),
+        valueKg: Value(row.valueKg),
+        source: Value(row.source),
+        notes: Value(row.notes),
+        createdAt: Value(row.createdAt),
+        updatedAt: Value(row.updatedAt),
+        deletedAt: Value(row.deletedAt),
+        isDirty: Value(isDirty),
+      ),
+    );
+  }
+
+  Future<void> markSynced(String id, DateTime updatedAt) {
+    return (update(weightReadings)..where((t) => t.id.equals(id))).write(
+      WeightReadingsCompanion(
+        updatedAt: Value(updatedAt),
+        isDirty: const Value(false),
+      ),
+    );
+  }
+
+  Future<void> reassignPatientId(String oldPatientId, String newPatientId) {
+    return (update(weightReadings)
+          ..where((t) => t.patientId.equals(oldPatientId)))
+        .write(WeightReadingsCompanion(patientId: Value(newPatientId)));
+  }
 }

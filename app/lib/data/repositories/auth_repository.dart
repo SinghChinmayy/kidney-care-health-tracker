@@ -1,13 +1,18 @@
+import 'package:app/data/local/app_database.dart';
 import 'package:app/data/services/auth_service.dart';
 import 'package:app/domain/models/sign_up_result.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Single source of truth for authentication state and actions.
 class AuthRepository {
-  AuthRepository({required AuthService authService})
-      : _authService = authService;
+  AuthRepository({
+    required AuthService authService,
+    required AppDatabase db,
+  })  : _authService = authService,
+        _db = db;
 
   final AuthService _authService;
+  final AppDatabase _db;
 
   Stream<AuthState> get onAuthStateChange => _authService.onAuthStateChange;
 
@@ -38,7 +43,8 @@ class AuthRepository {
     );
   }
 
-  Future<void> signOut() {
-    return _authService.signOut();
+  Future<void> signOut() async {
+    await _db.wipeAllData();
+    await _authService.signOut();
   }
 }

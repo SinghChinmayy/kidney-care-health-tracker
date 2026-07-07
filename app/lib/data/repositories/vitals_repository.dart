@@ -25,8 +25,8 @@ class VitalsRepository {
     if (authUserId == null) {
       return null;
     }
-    final patient = await _patientRepository.ensureLocalPatient(authUserId);
-    return patient.id;
+    final patient = await _patientRepository.getPatientForAuthUser(authUserId);
+    return patient?.id;
   }
 
   Future<String> _requirePatientId() async {

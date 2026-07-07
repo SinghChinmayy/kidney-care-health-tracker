@@ -1,7 +1,6 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/domain/errors/profile_update_requires_network.dart';
 import 'package:app/domain/models/patient.dart';
-import 'package:uuid/uuid.dart';
 
 class PatientRepository {
   PatientRepository({
@@ -18,25 +17,6 @@ class PatientRepository {
 
   Future<Patient?> getPatientForAuthUser(String authUserId) {
     return _db.patientsDao.getActiveByAuthUserId(authUserId);
-  }
-
-  /// Ensures a local patients row exists until Stage 4 pull replaces this seed.
-  Future<Patient> ensureLocalPatient(String authUserId) async {
-    final existing = await _db.patientsDao.getActiveByAuthUserId(authUserId);
-    if (existing != null) {
-      return existing;
-    }
-
-    final now = DateTime.now().toUtc();
-    final patient = Patient(
-      id: const Uuid().v4(),
-      authUserId: authUserId,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await _db.patientsDao.insertPatient(patient, isDirty: true);
-    _onWrite();
-    return patient;
   }
 
   Future<void> updateProfile(Patient patient) async {

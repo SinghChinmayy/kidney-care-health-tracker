@@ -5,6 +5,9 @@ import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
 import 'package:app/data/services/connectivity_service.dart';
+import 'package:app/data/sync/sync_coordinator.dart';
+import 'package:app/data/sync/sync_engine.dart';
+import 'package:app/data/sync/sync_lifecycle_observer.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
 import 'package:app/ui/features/auth/views/auth_gate.dart';
@@ -15,6 +18,7 @@ import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dar
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class KidneyCareApp extends StatelessWidget {
   const KidneyCareApp({super.key});
@@ -26,23 +30,37 @@ class KidneyCareApp extends StatelessWidget {
         Provider.value(value: appDatabase),
         Provider(create: (_) => AuthService()),
         Provider(create: (_) => ConnectivityService()),
-        ProxyProvider<AuthService, AuthRepository>(
-          update: (_, authService, _) =>
-              AuthRepository(authService: authService),
-        ),
-        ProxyProvider2<AppDatabase, ConnectivityService, PatientRepository>(
-          update: (_, db, connectivity, _) => PatientRepository(
+        ProxyProvider2<AuthService, AppDatabase, AuthRepository>(
+          update: (_, authService, db, _) => AuthRepository(
+            authService: authService,
             db: db,
-            isOnline: connectivity.isOnline,
-            onWrite: () {},
           ),
         ),
-        ProxyProvider2<AuthRepository, PatientRepository, VitalsRepository>(
-          update: (_, auth, patients, _) => VitalsRepository(
+        ProxyProvider2<AppDatabase, AuthRepository, SyncEngine>(
+          update: (_, db, auth, _) => SyncEngine(
+            db: db,
+            supabase: Supabase.instance.client,
+            currentAuthUserId: () => auth.currentSession?.user.id,
+          ),
+        ),
+        ProxyProvider<SyncEngine, SyncCoordinator>(
+          update: (_, engine, _) => SyncCoordinator(engine: engine),
+        ),
+        ProxyProvider3<AppDatabase, ConnectivityService, SyncCoordinator,
+            PatientRepository>(
+          update: (_, db, connectivity, coordinator, _) => PatientRepository(
+            db: db,
+            isOnline: connectivity.isOnline,
+            onWrite: coordinator.onDriftWrite,
+          ),
+        ),
+        ProxyProvider3<AuthRepository, PatientRepository, SyncCoordinator,
+            VitalsRepository>(
+          update: (_, auth, patients, coordinator, _) => VitalsRepository(
             db: appDatabase,
             patientRepository: patients,
             currentAuthUserId: () => auth.currentSession?.user.id,
-            onWrite: () {},
+            onWrite: coordinator.onDriftWrite,
           ),
         ),
         ChangeNotifierProvider(
@@ -83,10 +101,12 @@ class KidneyCareApp extends StatelessWidget {
               previous ?? WeightViewModel(vitalsRepository: repository),
         ),
       ],
-      child: MaterialApp(
-        title: 'Kidney Care',
-        theme: AppTheme.light,
-        home: const AuthGate(),
+      child: SyncLifecycleObserver(
+        child: MaterialApp(
+          title: 'Kidney Care',
+          theme: AppTheme.light,
+          home: const AuthGate(),
+        ),
       ),
     );
   }

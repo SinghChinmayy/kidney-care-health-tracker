@@ -1,0 +1,128 @@
+import 'package:app/data/local/app_database.dart';
+import 'package:app/data/sync/sync_utils.dart';
+
+Map<String, dynamic> patientRowToRemoteJson(PatientRow row) {
+  return {
+    'id': row.id,
+    'auth_user_id': row.authUserId,
+    'first_name': row.firstName,
+    'last_name': row.lastName,
+    'date_of_birth': remoteIsoDate(row.dateOfBirth),
+    'sex': row.sex,
+    'ckd_stage': row.ckdStage,
+    'dialysis_type': row.dialysisType,
+    'height_cm': row.heightCm,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+PatientRow patientRowFromRemoteJson(Map<String, dynamic> json) {
+  return PatientRow(
+    id: json['id'] as String,
+    authUserId: json['auth_user_id'] as String,
+    firstName: json['first_name'] as String?,
+    lastName: json['last_name'] as String?,
+    dateOfBirth: parseRemoteDateOrNull(json['date_of_birth']),
+    sex: json['sex'] as String?,
+    ckdStage: json['ckd_stage'] as String?,
+    dialysisType: json['dialysis_type'] as String? ?? 'none',
+    heightCm: parseRemoteDouble(json['height_cm']),
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}
+
+Map<String, dynamic> bloodPressureRowToRemoteJson(BloodPressureRow row) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'recorded_at': remoteIsoDateTime(row.recordedAt),
+    'systolic': row.systolic,
+    'diastolic': row.diastolic,
+    'heart_rate_bpm': row.heartRateBpm,
+    'notes': row.notes,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+BloodPressureRow bloodPressureRowFromRemoteJson(Map<String, dynamic> json) {
+  return BloodPressureRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    recordedAt: parseRemoteDateTime(json['recorded_at']),
+    systolic: parseRemoteInt(json['systolic']),
+    diastolic: parseRemoteInt(json['diastolic']),
+    heartRateBpm: parseRemoteInt(json['heart_rate_bpm']),
+    notes: json['notes'] as String?,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}
+
+Map<String, dynamic> bloodGlucoseRowToRemoteJson(BloodGlucoseRow row) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'recorded_at': remoteIsoDateTime(row.recordedAt),
+    'value_mg_dl': row.valueMgDl,
+    'context': row.context,
+    'source': row.source,
+    'notes': row.notes,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+BloodGlucoseRow bloodGlucoseRowFromRemoteJson(Map<String, dynamic> json) {
+  return BloodGlucoseRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    recordedAt: parseRemoteDateTime(json['recorded_at']),
+    valueMgDl: parseRemoteDouble(json['value_mg_dl']) ?? 0,
+    context: json['context'] as String?,
+    source: json['source'] as String? ?? 'manual',
+    notes: json['notes'] as String?,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}
+
+Map<String, dynamic> weightRowToRemoteJson(WeightRow row) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'recorded_at': remoteIsoDateTime(row.recordedAt),
+    'value_kg': row.valueKg,
+    'source': row.source,
+    'notes': row.notes,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+WeightRow weightRowFromRemoteJson(Map<String, dynamic> json) {
+  return WeightRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    recordedAt: parseRemoteDateTime(json['recorded_at']),
+    valueKg: parseRemoteDouble(json['value_kg']) ?? 0,
+    source: json['source'] as String? ?? 'manual',
+    notes: json['notes'] as String?,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}

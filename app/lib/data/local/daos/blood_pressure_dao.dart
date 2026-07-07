@@ -77,4 +77,42 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
       ),
     );
   }
+
+  Future<BloodPressureRow?> getRowById(String id) {
+    return (select(bloodPressureReadings)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertRemoteRow(BloodPressureRow row, {required bool isDirty}) {
+    return into(bloodPressureReadings).insertOnConflictUpdate(
+      BloodPressureReadingsCompanion(
+        id: Value(row.id),
+        patientId: Value(row.patientId),
+        recordedAt: Value(row.recordedAt),
+        systolic: Value(row.systolic),
+        diastolic: Value(row.diastolic),
+        heartRateBpm: Value(row.heartRateBpm),
+        notes: Value(row.notes),
+        createdAt: Value(row.createdAt),
+        updatedAt: Value(row.updatedAt),
+        deletedAt: Value(row.deletedAt),
+        isDirty: Value(isDirty),
+      ),
+    );
+  }
+
+  Future<void> markSynced(String id, DateTime updatedAt) {
+    return (update(bloodPressureReadings)..where((t) => t.id.equals(id))).write(
+      BloodPressureReadingsCompanion(
+        updatedAt: Value(updatedAt),
+        isDirty: const Value(false),
+      ),
+    );
+  }
+
+  Future<void> reassignPatientId(String oldPatientId, String newPatientId) {
+    return (update(bloodPressureReadings)
+          ..where((t) => t.patientId.equals(oldPatientId)))
+        .write(BloodPressureReadingsCompanion(patientId: Value(newPatientId)));
+  }
 }

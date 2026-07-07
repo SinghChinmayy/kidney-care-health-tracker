@@ -69,4 +69,43 @@ class PatientsDao extends DatabaseAccessor<AppDatabase>
       ),
     );
   }
+
+  Future<PatientRow?> getRowById(String id) {
+    return (select(patients)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<PatientRow?> getRowByAuthUserId(String authUserId) {
+    return (select(patients)
+          ..where((t) => t.authUserId.equals(authUserId)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertRemoteRow(PatientRow row, {required bool isDirty}) {
+    return into(patients).insertOnConflictUpdate(
+      PatientsCompanion(
+        id: Value(row.id),
+        authUserId: Value(row.authUserId),
+        firstName: Value(row.firstName),
+        lastName: Value(row.lastName),
+        dateOfBirth: Value(row.dateOfBirth),
+        sex: Value(row.sex),
+        ckdStage: Value(row.ckdStage),
+        dialysisType: Value(row.dialysisType),
+        heightCm: Value(row.heightCm),
+        createdAt: Value(row.createdAt),
+        updatedAt: Value(row.updatedAt),
+        deletedAt: Value(row.deletedAt),
+        isDirty: Value(isDirty),
+      ),
+    );
+  }
+
+  Future<void> markSynced(String id, DateTime updatedAt) {
+    return (update(patients)..where((t) => t.id.equals(id))).write(
+      PatientsCompanion(
+        updatedAt: Value(updatedAt),
+        isDirty: const Value(false),
+      ),
+    );
+  }
 }

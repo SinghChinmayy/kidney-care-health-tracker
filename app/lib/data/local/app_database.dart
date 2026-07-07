@@ -63,4 +63,55 @@ class AppDatabase extends _$AppDatabase {
       await delete(syncState).go();
     });
   }
+
+  /// Rewrites local FK references when the server patient id differs from local seed.
+  Future<void> reconcilePatientId({
+    required String oldPatientId,
+    required String newPatientId,
+  }) async {
+    if (oldPatientId == newPatientId) {
+      return;
+    }
+
+    await transaction(() async {
+      await bloodPressureDao.reassignPatientId(oldPatientId, newPatientId);
+      await bloodGlucoseDao.reassignPatientId(oldPatientId, newPatientId);
+      await weightDao.reassignPatientId(oldPatientId, newPatientId);
+
+      final localRow = await patientsDao.getRowById(oldPatientId);
+      if (localRow == null) {
+        return;
+      }
+
+      await delete(patients).delete(localRow);
+      await patientsDao.upsertRemoteRow(
+        PatientRow(
+          id: newPatientId,
+          authUserId: localRow.authUserId,
+          firstName: localRow.firstName,
+          lastName: localRow.lastName,
+          dateOfBirth: localRow.dateOfBirth,
+          sex: localRow.sex,
+          ckdStage: localRow.ckdStage,
+          dialysisType: localRow.dialysisType,
+          heightCm: localRow.heightCm,
+          createdAt: localRow.createdAt,
+          updatedAt: localRow.updatedAt,
+          deletedAt: localRow.deletedAt,
+          isDirty: localRow.isDirty,
+        ),
+        isDirty: localRow.isDirty,
+      );
+    });
+  }
+
+  Future<String?> patientIdForAuthUser(String authUserId) async {
+    final row = await patientsDao.getRowByAuthUserId(authUserId);
+    return row?.id;
+  }
+
+  Future<bool> hasLocalDataForAuthUser(String authUserId) async {
+    final row = await patientsDao.getRowByAuthUserId(authUserId);
+    return row != null;
+  }
 }
