@@ -5,8 +5,22 @@ import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dar
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class BloodPressureView extends StatelessWidget {
+class BloodPressureView extends StatefulWidget {
   const BloodPressureView({super.key});
+
+  @override
+  State<BloodPressureView> createState() => _BloodPressureViewState();
+}
+
+class _BloodPressureViewState extends State<BloodPressureView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<BloodPressureViewModel>().refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +72,16 @@ class BloodPressureView extends StatelessWidget {
                 AppTheme.spacingSm,
           ),
           child: _AddBloodPressureForm(
-            onSubmit: (systolic, diastolic, heartRate, notes) {
-              viewModel.addReading(
+            onSubmit: (systolic, diastolic, heartRate, notes) async {
+              await viewModel.addReading(
                 systolic: systolic,
                 diastolic: diastolic,
                 heartRateBpm: heartRate,
                 notes: notes,
               );
-              Navigator.of(sheetContext).pop();
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
             },
           ),
         );

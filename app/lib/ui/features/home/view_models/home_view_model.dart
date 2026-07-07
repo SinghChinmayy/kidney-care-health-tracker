@@ -1,5 +1,5 @@
 import 'package:app/data/repositories/auth_repository.dart';
-import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/weight_reading.dart';
@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
-    required MockVitalsRepository vitalsRepository,
+    required VitalsRepository vitalsRepository,
     required AuthRepository authRepository,
   })  : _vitalsRepository = vitalsRepository,
         _authRepository = authRepository {
-    _refresh();
+    refresh();
   }
 
-  final MockVitalsRepository _vitalsRepository;
+  final VitalsRepository _vitalsRepository;
   final AuthRepository _authRepository;
 
   BloodPressureReading? _latestBloodPressure;
@@ -29,14 +29,10 @@ class HomeViewModel extends ChangeNotifier {
     return _authRepository.signOut();
   }
 
-  void refresh() {
-    _refresh();
+  Future<void> refresh() async {
+    _latestBloodPressure = await _vitalsRepository.getLatestBloodPressure();
+    _latestBloodGlucose = await _vitalsRepository.getLatestBloodGlucose();
+    _latestWeight = await _vitalsRepository.getLatestWeight();
     notifyListeners();
-  }
-
-  void _refresh() {
-    _latestBloodPressure = _vitalsRepository.getLatestBloodPressure();
-    _latestBloodGlucose = _vitalsRepository.getLatestBloodGlucose();
-    _latestWeight = _vitalsRepository.getLatestWeight();
   }
 }

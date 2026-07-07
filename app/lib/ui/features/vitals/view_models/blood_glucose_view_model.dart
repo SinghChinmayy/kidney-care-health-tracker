@@ -1,40 +1,37 @@
-import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 class BloodGlucoseViewModel extends ChangeNotifier {
-  BloodGlucoseViewModel({required MockVitalsRepository vitalsRepository})
+  BloodGlucoseViewModel({required VitalsRepository vitalsRepository})
       : _vitalsRepository = vitalsRepository {
-    _load();
+    refresh();
   }
 
-  final MockVitalsRepository _vitalsRepository;
+  final VitalsRepository _vitalsRepository;
   List<BloodGlucoseReading> _readings = [];
 
   List<BloodGlucoseReading> get readings => _readings;
 
-  void _load() {
-    _readings = _vitalsRepository.getBloodGlucoseReadings();
-  }
-
-  void refresh() {
-    _load();
+  Future<void> refresh() async {
+    _readings = await _vitalsRepository.getBloodGlucoseReadings();
     notifyListeners();
   }
 
-  void addReading({
+  Future<void> addReading({
     required double valueMgDl,
     String? context,
     String? notes,
-  }) {
+  }) async {
     final reading = BloodGlucoseReading(
-      id: 'bg-${DateTime.now().millisecondsSinceEpoch}',
-      recordedAt: DateTime.now(),
+      id: const Uuid().v4(),
+      recordedAt: DateTime.now().toUtc(),
       valueMgDl: valueMgDl,
       context: context?.trim().isEmpty ?? true ? null : context?.trim(),
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );
-    _vitalsRepository.addBloodGlucoseReading(reading);
-    refresh();
+    await _vitalsRepository.addBloodGlucoseReading(reading);
+    await refresh();
   }
 }

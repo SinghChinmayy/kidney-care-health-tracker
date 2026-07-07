@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: stage-3-repos
     content: "Stage 3: VitalsRepository + PatientRepository, replace MockVitalsRepository in DI"
-    status: pending
+    status: completed
   - id: stage-4-sync
     content: "Stage 4: SyncEngine + SyncableTable registry + SyncCoordinator (push/pull/LWW)"
     status: pending
@@ -459,10 +459,10 @@ flowchart LR
 - `app/lib/data/repositories/mock_vitals_repository.dart` (delete)
 
 **Exit criteria:**
-- [ ] Log vitals in airplane mode → data persists across app restart
-- [ ] Soft-delete removes reading from UI but row remains in SQLite with `deletedAt` set
-- [ ] Profile readable offline; profile write blocked offline with user-facing message
-- [ ] No imports of `supabase_flutter` in repository files
+- [x] Log vitals in airplane mode → data persists across app restart
+- [x] Soft-delete removes reading from UI but row remains in SQLite with `deletedAt` set
+- [x] Profile readable offline; profile write blocked offline with user-facing message
+- [x] No imports of `supabase_flutter` in repository files
 
 **App impact:** Users get persistent local vitals. Data stays on device only (no cloud sync yet).
 

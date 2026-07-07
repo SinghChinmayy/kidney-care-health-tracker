@@ -5,8 +5,22 @@ import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class WeightView extends StatelessWidget {
+class WeightView extends StatefulWidget {
   const WeightView({super.key});
+
+  @override
+  State<WeightView> createState() => _WeightViewState();
+}
+
+class _WeightViewState extends State<WeightView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<WeightViewModel>().refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +64,11 @@ class WeightView extends StatelessWidget {
       ),
       builder: (sheetContext) {
         return _AddWeightForm(
-          onSubmit: (valueKg, notes) {
-            viewModel.addReading(valueKg: valueKg, notes: notes);
-            Navigator.of(sheetContext).pop();
+          onSubmit: (valueKg, notes) async {
+            await viewModel.addReading(valueKg: valueKg, notes: notes);
+            if (sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
           },
         );
       },

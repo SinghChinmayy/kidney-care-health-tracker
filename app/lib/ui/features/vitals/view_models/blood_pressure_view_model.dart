@@ -1,33 +1,30 @@
-import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 class BloodPressureViewModel extends ChangeNotifier {
-  BloodPressureViewModel({required MockVitalsRepository vitalsRepository})
+  BloodPressureViewModel({required VitalsRepository vitalsRepository})
       : _vitalsRepository = vitalsRepository {
-    _load();
+    refresh();
   }
 
-  final MockVitalsRepository _vitalsRepository;
+  final VitalsRepository _vitalsRepository;
   List<BloodPressureReading> _readings = [];
 
   List<BloodPressureReading> get readings => _readings;
 
-  void _load() {
-    _readings = _vitalsRepository.getBloodPressureReadings();
-  }
-
-  void refresh() {
-    _load();
+  Future<void> refresh() async {
+    _readings = await _vitalsRepository.getBloodPressureReadings();
     notifyListeners();
   }
 
-  void addReading({
+  Future<void> addReading({
     int? systolic,
     int? diastolic,
     int? heartRateBpm,
     String? notes,
-  }) {
+  }) async {
     final hasBp = systolic != null && diastolic != null;
     final hasHr = heartRateBpm != null;
     if (!hasBp && !hasHr) {
@@ -35,14 +32,14 @@ class BloodPressureViewModel extends ChangeNotifier {
     }
 
     final reading = BloodPressureReading(
-      id: 'bp-${DateTime.now().millisecondsSinceEpoch}',
-      recordedAt: DateTime.now(),
+      id: const Uuid().v4(),
+      recordedAt: DateTime.now().toUtc(),
       systolic: systolic,
       diastolic: diastolic,
       heartRateBpm: heartRateBpm,
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );
-    _vitalsRepository.addBloodPressureReading(reading);
-    refresh();
+    await _vitalsRepository.addBloodPressureReading(reading);
+    await refresh();
   }
 }

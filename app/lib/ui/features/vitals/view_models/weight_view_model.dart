@@ -1,35 +1,32 @@
-import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/weight_reading.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 class WeightViewModel extends ChangeNotifier {
-  WeightViewModel({required MockVitalsRepository vitalsRepository})
+  WeightViewModel({required VitalsRepository vitalsRepository})
       : _vitalsRepository = vitalsRepository {
-    _load();
+    refresh();
   }
 
-  final MockVitalsRepository _vitalsRepository;
+  final VitalsRepository _vitalsRepository;
   List<WeightReading> _readings = [];
 
   List<WeightReading> get readings => _readings;
 
-  void _load() {
-    _readings = _vitalsRepository.getWeightReadings();
-  }
-
-  void refresh() {
-    _load();
+  Future<void> refresh() async {
+    _readings = await _vitalsRepository.getWeightReadings();
     notifyListeners();
   }
 
-  void addReading({required double valueKg, String? notes}) {
+  Future<void> addReading({required double valueKg, String? notes}) async {
     final reading = WeightReading(
-      id: 'wt-${DateTime.now().millisecondsSinceEpoch}',
-      recordedAt: DateTime.now(),
+      id: const Uuid().v4(),
+      recordedAt: DateTime.now().toUtc(),
       valueKg: valueKg,
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );
-    _vitalsRepository.addWeightReading(reading);
-    refresh();
+    await _vitalsRepository.addWeightReading(reading);
+    await refresh();
   }
 }

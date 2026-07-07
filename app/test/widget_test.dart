@@ -1,4 +1,7 @@
 import 'package:app/app.dart';
+import 'package:app/data/local/app_database.dart';
+import 'package:app/data/local/database_holder.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,6 +27,7 @@ class _InMemoryAsyncStorage extends GotrueAsyncStorage {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
+    appDatabase = AppDatabase.forTesting(NativeDatabase.memory());
     await Supabase.initialize(
       url: 'https://example.supabase.co',
       publishableKey:

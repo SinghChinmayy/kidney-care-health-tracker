@@ -5,7 +5,7 @@ import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class BloodGlucoseView extends StatelessWidget {
+class BloodGlucoseView extends StatefulWidget {
   const BloodGlucoseView({super.key});
 
   static const _contextOptions = [
@@ -14,6 +14,20 @@ class BloodGlucoseView extends StatelessWidget {
     'random',
     'bedtime',
   ];
+
+  @override
+  State<BloodGlucoseView> createState() => _BloodGlucoseViewState();
+}
+
+class _BloodGlucoseViewState extends State<BloodGlucoseView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<BloodGlucoseViewModel>().refresh();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,14 +72,16 @@ class BloodGlucoseView extends StatelessWidget {
       ),
       builder: (sheetContext) {
         return _AddBloodGlucoseForm(
-          contextOptions: _contextOptions,
-          onSubmit: (value, readingContext, notes) {
-            viewModel.addReading(
+          contextOptions: BloodGlucoseView._contextOptions,
+          onSubmit: (value, readingContext, notes) async {
+            await viewModel.addReading(
               valueMgDl: value,
               context: readingContext,
               notes: notes,
             );
-            Navigator.of(sheetContext).pop();
+            if (sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
           },
         );
       },

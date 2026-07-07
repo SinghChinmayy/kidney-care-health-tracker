@@ -1,6 +1,10 @@
+import 'package:app/data/local/app_database.dart';
+import 'package:app/data/local/database_holder.dart';
 import 'package:app/data/repositories/auth_repository.dart';
-import 'package:app/data/repositories/mock_vitals_repository.dart';
+import 'package:app/data/repositories/patient_repository.dart';
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
+import 'package:app/data/services/connectivity_service.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
 import 'package:app/ui/features/auth/views/auth_gate.dart';
@@ -19,12 +23,28 @@ class KidneyCareApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider.value(value: appDatabase),
         Provider(create: (_) => AuthService()),
+        Provider(create: (_) => ConnectivityService()),
         ProxyProvider<AuthService, AuthRepository>(
           update: (_, authService, _) =>
               AuthRepository(authService: authService),
         ),
-        Provider(create: (_) => MockVitalsRepository()),
+        ProxyProvider2<AppDatabase, ConnectivityService, PatientRepository>(
+          update: (_, db, connectivity, _) => PatientRepository(
+            db: db,
+            isOnline: connectivity.isOnline,
+            onWrite: () {},
+          ),
+        ),
+        ProxyProvider2<AuthRepository, PatientRepository, VitalsRepository>(
+          update: (_, auth, patients, _) => VitalsRepository(
+            db: appDatabase,
+            patientRepository: patients,
+            currentAuthUserId: () => auth.currentSession?.user.id,
+            onWrite: () {},
+          ),
+        ),
         ChangeNotifierProvider(
           create: (context) => LoginViewModel(
             authRepository: context.read<AuthRepository>(),
@@ -37,27 +57,27 @@ class KidneyCareApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => HomeViewModel(
-            vitalsRepository: context.read<MockVitalsRepository>(),
+            vitalsRepository: context.read<VitalsRepository>(),
             authRepository: context.read<AuthRepository>(),
           ),
         ),
-        ChangeNotifierProxyProvider<MockVitalsRepository, BloodPressureViewModel>(
+        ChangeNotifierProxyProvider<VitalsRepository, BloodPressureViewModel>(
           create: (context) => BloodPressureViewModel(
-            vitalsRepository: context.read<MockVitalsRepository>(),
+            vitalsRepository: context.read<VitalsRepository>(),
           ),
           update: (_, repository, previous) =>
               previous ?? BloodPressureViewModel(vitalsRepository: repository),
         ),
-        ChangeNotifierProxyProvider<MockVitalsRepository, BloodGlucoseViewModel>(
+        ChangeNotifierProxyProvider<VitalsRepository, BloodGlucoseViewModel>(
           create: (context) => BloodGlucoseViewModel(
-            vitalsRepository: context.read<MockVitalsRepository>(),
+            vitalsRepository: context.read<VitalsRepository>(),
           ),
           update: (_, repository, previous) =>
               previous ?? BloodGlucoseViewModel(vitalsRepository: repository),
         ),
-        ChangeNotifierProxyProvider<MockVitalsRepository, WeightViewModel>(
+        ChangeNotifierProxyProvider<VitalsRepository, WeightViewModel>(
           create: (context) => WeightViewModel(
-            vitalsRepository: context.read<MockVitalsRepository>(),
+            vitalsRepository: context.read<VitalsRepository>(),
           ),
           update: (_, repository, previous) =>
               previous ?? WeightViewModel(vitalsRepository: repository),
