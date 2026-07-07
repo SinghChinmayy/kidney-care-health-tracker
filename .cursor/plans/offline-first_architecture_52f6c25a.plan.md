@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: stage-2-drift
     content: "Stage 2: drift AppDatabase, tables, DAOs, domain models, build_runner codegen"
-    status: pending
+    status: completed
   - id: stage-3-repos
     content: "Stage 3: VitalsRepository + PatientRepository, replace MockVitalsRepository in DI"
     status: pending
@@ -428,9 +428,9 @@ flowchart LR
 - `app/pubspec.yaml` (deps)
 
 **Exit criteria:**
-- [ ] App compiles with drift codegen
-- [ ] Can insert/query vitals rows via DAO in a unit test or debug harness
-- [ ] `schemaVersion = 1` with empty `onUpgrade` stub for future migrations
+- [x] App compiles with drift codegen
+- [x] Can insert/query vitals rows via DAO in a unit test or debug harness
+- [x] `schemaVersion = 1` with empty `onUpgrade` stub for future migrations
 
 **App impact:** None visible — mock repo still serves UI.
 

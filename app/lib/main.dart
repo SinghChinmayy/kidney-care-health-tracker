@@ -1,8 +1,12 @@
 import 'package:app/app.dart';
 import 'package:app/core/supabase_config.dart';
+import 'package:app/data/local/app_database.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Opened on startup; wired into repositories in Stage 3.
+late final AppDatabase appDatabase;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +21,8 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
   );
+
+  appDatabase = AppDatabase();
   runApp(const KidneyCareApp());
 }
 
