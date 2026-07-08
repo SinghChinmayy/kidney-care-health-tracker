@@ -1,7 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
 import 'package:app/ui/core/widgets/app_form_layout.dart';
-import 'package:app/ui/features/home/views/home_view.dart';
+import 'package:app/ui/features/shell/views/app_shell_view.dart';
 import 'package:flutter/material.dart';
 
 class CaretakerSignupView extends StatefulWidget {
@@ -80,7 +80,7 @@ class _CaretakerSignupViewState extends State<CaretakerSignupView> {
     setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (_formKey.currentState?.validate() ?? false) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const HomeView()),
+        MaterialPageRoute<void>(builder: (_) => const AppShellView()),
         (_) => false,
       );
     }

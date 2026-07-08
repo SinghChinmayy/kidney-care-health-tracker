@@ -76,7 +76,6 @@ class KidneyCareApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => HomeViewModel(
             vitalsRepository: context.read<VitalsRepository>(),
-            authRepository: context.read<AuthRepository>(),
           ),
         ),
         ChangeNotifierProxyProvider<VitalsRepository, BloodPressureViewModel>(

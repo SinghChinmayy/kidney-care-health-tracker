@@ -1,6 +1,6 @@
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/ui/features/auth/views/login_view.dart';
-import 'package:app/ui/features/home/views/home_view.dart';
+import 'package:app/ui/features/shell/views/app_shell_view.dart';
 import 'package:app/ui/features/sync/views/initial_sync_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +24,7 @@ class AuthGate extends StatelessWidget {
         if (session != null) {
           return InitialSyncGate(
             key: ValueKey(session.user.id),
-            child: const HomeView(),
+            child: const AppShellView(),
           );
         }
 

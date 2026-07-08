@@ -1,4 +1,3 @@
-import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
@@ -9,15 +8,12 @@ import 'package:flutter/material.dart';
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
     required VitalsRepository vitalsRepository,
-    required AuthRepository authRepository,
   })  : _vitalsRepository = vitalsRepository,
-        _authRepository = authRepository,
         _selectedDate = localDateOnly(DateTime.now()) {
     refresh();
   }
 
   final VitalsRepository _vitalsRepository;
-  final AuthRepository _authRepository;
 
   DateTime _selectedDate;
   List<BloodPressureReading> _bloodPressureReadings = [];
@@ -73,10 +69,6 @@ class HomeViewModel extends ChangeNotifier {
     if (picked != null) {
       selectDate(picked);
     }
-  }
-
-  Future<void> signOut() {
-    return _authRepository.signOut();
   }
 
   Future<void> refresh() async {

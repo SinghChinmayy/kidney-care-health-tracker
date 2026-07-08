@@ -74,12 +74,6 @@ class HomeDateHeader extends StatelessWidget {
                     icon: const Icon(Icons.chevron_right),
                     color: AppTheme.background,
                   ),
-                  IconButton(
-                    tooltip: 'Sign out',
-                    onPressed: viewModel.signOut,
-                    icon: const Icon(Icons.logout_outlined),
-                    color: AppTheme.background,
-                  ),
                 ],
               ),
             ),
