@@ -4,6 +4,7 @@ import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/sync/sync_coordinator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -48,8 +49,16 @@ class _SyncLifecycleObserverState extends State<SyncLifecycleObserver>
       }
     });
 
-    _connectivitySubscription ??=
-        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+    try {
+      _connectivitySubscription ??=
+          Connectivity().onConnectivityChanged.listen(
+        _onConnectivityChanged,
+        onError: (_) {},
+      );
+    } on MissingPluginException {
+      _connectivityInitialized = true;
+      _wasOffline = true;
+    }
 
     if (_authRepository!.currentSession != null) {
       _triggerStartupSync();
@@ -59,12 +68,19 @@ class _SyncLifecycleObserverState extends State<SyncLifecycleObserver>
   }
 
   Future<void> _initializeConnectivityState() async {
-    final results = await Connectivity().checkConnectivity();
-    if (!mounted) {
-      return;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      if (!mounted) {
+        return;
+      }
+      _wasOffline = !_isOnline(results);
+    } on MissingPluginException {
+      _wasOffline = true;
+    } finally {
+      if (mounted) {
+        _connectivityInitialized = true;
+      }
     }
-    _wasOffline = !_isOnline(results);
-    _connectivityInitialized = true;
   }
 
   void _onConnectivityChanged(List<ConnectivityResult> results) {

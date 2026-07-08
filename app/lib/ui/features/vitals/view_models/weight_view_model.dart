@@ -14,15 +14,22 @@ class WeightViewModel extends ChangeNotifier {
 
   List<WeightReading> get readings => _readings;
 
+  WeightReading? get latestReading =>
+      _readings.isEmpty ? null : _readings.first;
+
   Future<void> refresh() async {
     _readings = await _vitalsRepository.getWeightReadings();
     notifyListeners();
   }
 
-  Future<void> addReading({required double valueKg, String? notes}) async {
+  Future<void> addReading({
+    required double valueKg,
+    DateTime? recordedAt,
+    String? notes,
+  }) async {
     final reading = WeightReading(
       id: const Uuid().v4(),
-      recordedAt: DateTime.now().toUtc(),
+      recordedAt: (recordedAt ?? DateTime.now()).toUtc(),
       valueKg: valueKg,
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );

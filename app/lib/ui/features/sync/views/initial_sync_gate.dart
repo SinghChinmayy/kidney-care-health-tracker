@@ -7,6 +7,7 @@ import 'package:app/data/sync/sync_coordinator.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 enum _InitialSyncPhase {
@@ -44,17 +45,28 @@ class _InitialSyncGateState extends State<InitialSyncGate> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _connectivitySubscription ??=
-        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+    try {
+      _connectivitySubscription ??=
+          Connectivity().onConnectivityChanged.listen(
+        _onConnectivityChanged,
+        onError: (_) {},
+      );
+    } on MissingPluginException {
+      _wasOffline = true;
+    }
     unawaited(_initializeConnectivityState());
   }
 
   Future<void> _initializeConnectivityState() async {
-    final results = await Connectivity().checkConnectivity();
-    if (!mounted) {
-      return;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      if (!mounted) {
+        return;
+      }
+      _wasOffline = !_hasConnectivity(results);
+    } on MissingPluginException {
+      _wasOffline = true;
     }
-    _wasOffline = !_hasConnectivity(results);
   }
 
   void _onConnectivityChanged(List<ConnectivityResult> results) {
