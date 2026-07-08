@@ -1,5 +1,6 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/domain/models/weight_reading.dart';
+import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:drift/drift.dart';
 
 extension WeightRowMapper on WeightRow {
@@ -9,6 +10,10 @@ extension WeightRowMapper on WeightRow {
       patientId: patientId,
       recordedAt: recordedAt,
       valueKg: valueKg,
+      dialysisTiming: dialysisTiming.isEmpty
+          ? dialysisTimingNonDialysis
+          : dialysisTiming,
+      weightContext: weightContext,
       source: source,
       notes: notes,
       createdAt: createdAt,
@@ -26,6 +31,8 @@ extension WeightDomainMapper on WeightReading {
       patientId: patientId ?? '',
       recordedAt: recordedAt,
       valueKg: valueKg,
+      dialysisTiming: Value(dialysisTiming),
+      weightContext: Value(weightContext),
       source: Value(source),
       notes: Value(notes),
       createdAt: createdAt ?? now,

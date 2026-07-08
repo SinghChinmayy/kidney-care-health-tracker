@@ -97,20 +97,27 @@ class VitalHistoryRow extends StatelessWidget {
     required this.primaryText,
     required this.secondaryText,
     this.notes,
+    this.onEdit,
+    this.onDelete,
   });
 
   final String primaryText;
   final String secondaryText;
   final String? notes;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final hasActions = onEdit != null || onDelete != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
@@ -122,6 +129,44 @@ class VitalHistoryRow extends StatelessWidget {
                 secondaryText,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
+              if (hasActions) ...[
+                const SizedBox(width: AppTheme.spacingXs),
+                PopupMenuButton<_HistoryRowAction>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: AppTheme.muted,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  onSelected: (action) {
+                    switch (action) {
+                      case _HistoryRowAction.edit:
+                        onEdit?.call();
+                      case _HistoryRowAction.delete:
+                        onDelete?.call();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (onEdit != null)
+                      const PopupMenuItem(
+                        value: _HistoryRowAction.edit,
+                        child: Text('Edit'),
+                      ),
+                    if (onDelete != null)
+                      PopupMenuItem(
+                        value: _HistoryRowAction.delete,
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(color: AppTheme.error),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
           if (notes != null && notes!.isNotEmpty) ...[
@@ -138,3 +183,5 @@ class VitalHistoryRow extends StatelessWidget {
     );
   }
 }
+
+enum _HistoryRowAction { edit, delete }

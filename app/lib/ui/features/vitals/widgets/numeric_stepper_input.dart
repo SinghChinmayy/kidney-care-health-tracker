@@ -96,18 +96,26 @@ class _NumericStepperInputState extends State<NumericStepperInput> {
     return result;
   }
 
-  void _commitText(String text) {
+  void _commitText(String text, {bool formatField = true}) {
     final parsed = double.tryParse(text.trim());
     if (parsed == null) {
-      _controller.text = _formatValue(widget.value);
+      if (formatField) {
+        _controller.text = _formatValue(widget.value);
+      }
       return;
     }
 
     final clamped = _round(parsed.clamp(widget.min, widget.max));
-    _controller.text = _formatValue(clamped);
+    if (formatField) {
+      _controller.text = _formatValue(clamped);
+    }
     if (clamped != widget.value) {
       widget.onChanged(clamped);
     }
+  }
+
+  void _handleTextChanged(String text) {
+    _commitText(text, formatField: false);
   }
 
   @override
@@ -162,6 +170,7 @@ class _NumericStepperInputState extends State<NumericStepperInput> {
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
+                      onChanged: _handleTextChanged,
                       onSubmitted: _commitText,
                       onEditingComplete: () {
                         _commitText(_controller.text);

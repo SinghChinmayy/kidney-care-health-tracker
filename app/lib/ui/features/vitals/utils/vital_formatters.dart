@@ -58,6 +58,38 @@ String formatHistoryTime(DateTime recordedAt) {
   return '$hour:$minute';
 }
 
+String formatDialysisTimingLabel(String dialysisTiming) {
+  return switch (dialysisTiming) {
+    'pre_dialysis' => 'Pre-dialysis',
+    'post_dialysis' => 'Post-dialysis',
+    _ => 'Non-dialysis day',
+  };
+}
+
+String formatWeightContextLabel(String context) {
+  return switch (context) {
+    'morning' => 'Morning',
+    'evening' => 'Evening',
+    'random' => 'Random',
+    _ => context.replaceAll('_', ' '),
+  };
+}
+
+String formatWeightHistorySubtitle({
+  required String dialysisTiming,
+  required DateTime recordedAt,
+  String? weightContext,
+}) {
+  final parts = <String>[
+    formatDialysisTimingLabel(dialysisTiming),
+    formatHistoryTime(recordedAt),
+  ];
+  if (weightContext != null && weightContext.isNotEmpty) {
+    parts.add(formatWeightContextLabel(weightContext));
+  }
+  return parts.join(' · ');
+}
+
 String formatTrackRecordedAt(DateTime recordedAt) {
   final local = recordedAt.toLocal();
   final now = DateTime.now();

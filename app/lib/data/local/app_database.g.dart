@@ -2154,6 +2154,29 @@ class $WeightReadingsTable extends WeightReadings
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dialysisTimingMeta = const VerificationMeta(
+    'dialysisTiming',
+  );
+  @override
+  late final GeneratedColumn<String> dialysisTiming = GeneratedColumn<String>(
+    'dialysis_timing',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('non_dialysis'),
+  );
+  static const VerificationMeta _weightContextMeta = const VerificationMeta(
+    'weightContext',
+  );
+  @override
+  late final GeneratedColumn<String> weightContext = GeneratedColumn<String>(
+    'weight_context',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
@@ -2227,6 +2250,8 @@ class $WeightReadingsTable extends WeightReadings
     patientId,
     recordedAt,
     valueKg,
+    dialysisTiming,
+    weightContext,
     source,
     notes,
     createdAt,
@@ -2274,6 +2299,24 @@ class $WeightReadingsTable extends WeightReadings
       );
     } else if (isInserting) {
       context.missing(_valueKgMeta);
+    }
+    if (data.containsKey('dialysis_timing')) {
+      context.handle(
+        _dialysisTimingMeta,
+        dialysisTiming.isAcceptableOrUnknown(
+          data['dialysis_timing']!,
+          _dialysisTimingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weight_context')) {
+      context.handle(
+        _weightContextMeta,
+        weightContext.isAcceptableOrUnknown(
+          data['weight_context']!,
+          _weightContextMeta,
+        ),
+      );
     }
     if (data.containsKey('source')) {
       context.handle(
@@ -2340,6 +2383,14 @@ class $WeightReadingsTable extends WeightReadings
         DriftSqlType.double,
         data['${effectivePrefix}value_kg'],
       )!,
+      dialysisTiming: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialysis_timing'],
+      )!,
+      weightContext: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}weight_context'],
+      ),
       source: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source'],
@@ -2378,6 +2429,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
   final String patientId;
   final DateTime recordedAt;
   final double valueKg;
+  final String dialysisTiming;
+  final String? weightContext;
   final String source;
   final String? notes;
   final DateTime createdAt;
@@ -2389,6 +2442,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     required this.patientId,
     required this.recordedAt,
     required this.valueKg,
+    required this.dialysisTiming,
+    this.weightContext,
     required this.source,
     this.notes,
     required this.createdAt,
@@ -2403,6 +2458,10 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     map['patient_id'] = Variable<String>(patientId);
     map['recorded_at'] = Variable<DateTime>(recordedAt);
     map['value_kg'] = Variable<double>(valueKg);
+    map['dialysis_timing'] = Variable<String>(dialysisTiming);
+    if (!nullToAbsent || weightContext != null) {
+      map['weight_context'] = Variable<String>(weightContext);
+    }
     map['source'] = Variable<String>(source);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -2422,6 +2481,10 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       patientId: Value(patientId),
       recordedAt: Value(recordedAt),
       valueKg: Value(valueKg),
+      dialysisTiming: Value(dialysisTiming),
+      weightContext: weightContext == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightContext),
       source: Value(source),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
@@ -2445,6 +2508,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       patientId: serializer.fromJson<String>(json['patientId']),
       recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
       valueKg: serializer.fromJson<double>(json['valueKg']),
+      dialysisTiming: serializer.fromJson<String>(json['dialysisTiming']),
+      weightContext: serializer.fromJson<String?>(json['weightContext']),
       source: serializer.fromJson<String>(json['source']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2461,6 +2526,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       'patientId': serializer.toJson<String>(patientId),
       'recordedAt': serializer.toJson<DateTime>(recordedAt),
       'valueKg': serializer.toJson<double>(valueKg),
+      'dialysisTiming': serializer.toJson<String>(dialysisTiming),
+      'weightContext': serializer.toJson<String?>(weightContext),
       'source': serializer.toJson<String>(source),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2475,6 +2542,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     String? patientId,
     DateTime? recordedAt,
     double? valueKg,
+    String? dialysisTiming,
+    Value<String?> weightContext = const Value.absent(),
     String? source,
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
@@ -2486,6 +2555,10 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     patientId: patientId ?? this.patientId,
     recordedAt: recordedAt ?? this.recordedAt,
     valueKg: valueKg ?? this.valueKg,
+    dialysisTiming: dialysisTiming ?? this.dialysisTiming,
+    weightContext: weightContext.present
+        ? weightContext.value
+        : this.weightContext,
     source: source ?? this.source,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
@@ -2501,6 +2574,12 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           ? data.recordedAt.value
           : this.recordedAt,
       valueKg: data.valueKg.present ? data.valueKg.value : this.valueKg,
+      dialysisTiming: data.dialysisTiming.present
+          ? data.dialysisTiming.value
+          : this.dialysisTiming,
+      weightContext: data.weightContext.present
+          ? data.weightContext.value
+          : this.weightContext,
       source: data.source.present ? data.source.value : this.source,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2517,6 +2596,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           ..write('patientId: $patientId, ')
           ..write('recordedAt: $recordedAt, ')
           ..write('valueKg: $valueKg, ')
+          ..write('dialysisTiming: $dialysisTiming, ')
+          ..write('weightContext: $weightContext, ')
           ..write('source: $source, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
@@ -2533,6 +2614,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     patientId,
     recordedAt,
     valueKg,
+    dialysisTiming,
+    weightContext,
     source,
     notes,
     createdAt,
@@ -2548,6 +2631,8 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           other.patientId == this.patientId &&
           other.recordedAt == this.recordedAt &&
           other.valueKg == this.valueKg &&
+          other.dialysisTiming == this.dialysisTiming &&
+          other.weightContext == this.weightContext &&
           other.source == this.source &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
@@ -2561,6 +2646,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
   final Value<String> patientId;
   final Value<DateTime> recordedAt;
   final Value<double> valueKg;
+  final Value<String> dialysisTiming;
+  final Value<String?> weightContext;
   final Value<String> source;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
@@ -2573,6 +2660,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     this.patientId = const Value.absent(),
     this.recordedAt = const Value.absent(),
     this.valueKg = const Value.absent(),
+    this.dialysisTiming = const Value.absent(),
+    this.weightContext = const Value.absent(),
     this.source = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2586,6 +2675,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     required String patientId,
     required DateTime recordedAt,
     required double valueKg,
+    this.dialysisTiming = const Value.absent(),
+    this.weightContext = const Value.absent(),
     this.source = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
@@ -2604,6 +2695,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     Expression<String>? patientId,
     Expression<DateTime>? recordedAt,
     Expression<double>? valueKg,
+    Expression<String>? dialysisTiming,
+    Expression<String>? weightContext,
     Expression<String>? source,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
@@ -2617,6 +2710,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
       if (patientId != null) 'patient_id': patientId,
       if (recordedAt != null) 'recorded_at': recordedAt,
       if (valueKg != null) 'value_kg': valueKg,
+      if (dialysisTiming != null) 'dialysis_timing': dialysisTiming,
+      if (weightContext != null) 'weight_context': weightContext,
       if (source != null) 'source': source,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
@@ -2632,6 +2727,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     Value<String>? patientId,
     Value<DateTime>? recordedAt,
     Value<double>? valueKg,
+    Value<String>? dialysisTiming,
+    Value<String?>? weightContext,
     Value<String>? source,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
@@ -2645,6 +2742,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
       patientId: patientId ?? this.patientId,
       recordedAt: recordedAt ?? this.recordedAt,
       valueKg: valueKg ?? this.valueKg,
+      dialysisTiming: dialysisTiming ?? this.dialysisTiming,
+      weightContext: weightContext ?? this.weightContext,
       source: source ?? this.source,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
@@ -2669,6 +2768,12 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     }
     if (valueKg.present) {
       map['value_kg'] = Variable<double>(valueKg.value);
+    }
+    if (dialysisTiming.present) {
+      map['dialysis_timing'] = Variable<String>(dialysisTiming.value);
+    }
+    if (weightContext.present) {
+      map['weight_context'] = Variable<String>(weightContext.value);
     }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
@@ -2701,6 +2806,8 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
           ..write('patientId: $patientId, ')
           ..write('recordedAt: $recordedAt, ')
           ..write('valueKg: $valueKg, ')
+          ..write('dialysisTiming: $dialysisTiming, ')
+          ..write('weightContext: $weightContext, ')
           ..write('source: $source, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
@@ -4642,6 +4749,8 @@ typedef $$WeightReadingsTableCreateCompanionBuilder =
       required String patientId,
       required DateTime recordedAt,
       required double valueKg,
+      Value<String> dialysisTiming,
+      Value<String?> weightContext,
       Value<String> source,
       Value<String?> notes,
       required DateTime createdAt,
@@ -4656,6 +4765,8 @@ typedef $$WeightReadingsTableUpdateCompanionBuilder =
       Value<String> patientId,
       Value<DateTime> recordedAt,
       Value<double> valueKg,
+      Value<String> dialysisTiming,
+      Value<String?> weightContext,
       Value<String> source,
       Value<String?> notes,
       Value<DateTime> createdAt,
@@ -4712,6 +4823,16 @@ class $$WeightReadingsTableFilterComposer
 
   ColumnFilters<double> get valueKg => $composableBuilder(
     column: $table.valueKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialysisTiming => $composableBuilder(
+    column: $table.dialysisTiming,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weightContext => $composableBuilder(
+    column: $table.weightContext,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4793,6 +4914,16 @@ class $$WeightReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dialysisTiming => $composableBuilder(
+    column: $table.dialysisTiming,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weightContext => $composableBuilder(
+    column: $table.weightContext,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get source => $composableBuilder(
     column: $table.source,
     builder: (column) => ColumnOrderings(column),
@@ -4866,6 +4997,16 @@ class $$WeightReadingsTableAnnotationComposer
 
   GeneratedColumn<double> get valueKg =>
       $composableBuilder(column: $table.valueKg, builder: (column) => column);
+
+  GeneratedColumn<String> get dialysisTiming => $composableBuilder(
+    column: $table.dialysisTiming,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get weightContext => $composableBuilder(
+    column: $table.weightContext,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
@@ -4943,6 +5084,8 @@ class $$WeightReadingsTableTableManager
                 Value<String> patientId = const Value.absent(),
                 Value<DateTime> recordedAt = const Value.absent(),
                 Value<double> valueKg = const Value.absent(),
+                Value<String> dialysisTiming = const Value.absent(),
+                Value<String?> weightContext = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4955,6 +5098,8 @@ class $$WeightReadingsTableTableManager
                 patientId: patientId,
                 recordedAt: recordedAt,
                 valueKg: valueKg,
+                dialysisTiming: dialysisTiming,
+                weightContext: weightContext,
                 source: source,
                 notes: notes,
                 createdAt: createdAt,
@@ -4969,6 +5114,8 @@ class $$WeightReadingsTableTableManager
                 required String patientId,
                 required DateTime recordedAt,
                 required double valueKg,
+                Value<String> dialysisTiming = const Value.absent(),
+                Value<String?> weightContext = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
@@ -4981,6 +5128,8 @@ class $$WeightReadingsTableTableManager
                 patientId: patientId,
                 recordedAt: recordedAt,
                 valueKg: valueKg,
+                dialysisTiming: dialysisTiming,
+                weightContext: weightContext,
                 source: source,
                 notes: notes,
                 createdAt: createdAt,

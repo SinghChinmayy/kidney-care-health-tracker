@@ -1,4 +1,6 @@
+import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:app/theme/app_theme.dart';
+import 'package:app/ui/features/vitals/widgets/weight_dialysis_picker.dart';
 import 'package:flutter/material.dart';
 
 const bloodGlucoseContextOptions = [
@@ -223,9 +225,17 @@ class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
 }
 
 class AddWeightForm extends StatefulWidget {
-  const AddWeightForm({super.key, required this.onSubmit});
+  const AddWeightForm({
+    super.key,
+    required this.onSubmit,
+  });
 
-  final void Function(double valueKg, String? notes) onSubmit;
+  final void Function(
+    double valueKg,
+    String dialysisTiming,
+    String? weightContext,
+    String? notes,
+  ) onSubmit;
 
   @override
   State<AddWeightForm> createState() => _AddWeightFormState();
@@ -234,6 +244,8 @@ class AddWeightForm extends StatefulWidget {
 class _AddWeightFormState extends State<AddWeightForm> {
   final _valueController = TextEditingController();
   final _notesController = TextEditingController();
+  String _dialysisTiming = dialysisTimingNonDialysis;
+  String? _weightContext;
   String? _errorText;
 
   @override
@@ -265,6 +277,16 @@ class _AddWeightFormState extends State<AddWeightForm> {
           decoration: const InputDecoration(labelText: 'Weight (kg)'),
         ),
         const SizedBox(height: AppTheme.spacingSm),
+        WeightDialysisPicker(
+          dialysisTiming: _dialysisTiming,
+          weightContext: _weightContext,
+          accentColor: AppTheme.logWeight,
+          onDialysisTimingChanged: (value) =>
+              setState(() => _dialysisTiming = value),
+          onWeightContextChanged: (value) =>
+              setState(() => _weightContext = value),
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
         TextFormField(
           controller: _notesController,
           decoration: const InputDecoration(labelText: 'Notes (optional)'),
@@ -290,6 +312,11 @@ class _AddWeightFormState extends State<AddWeightForm> {
       return;
     }
     setState(() => _errorText = null);
-    widget.onSubmit(value, _notesController.text);
+    widget.onSubmit(
+      value,
+      _dialysisTiming,
+      _weightContext,
+      _notesController.text,
+    );
   }
 }

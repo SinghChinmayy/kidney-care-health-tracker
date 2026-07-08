@@ -2,6 +2,7 @@ import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
+import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/weight_reading.dart';
 
 class VitalsRepository {
@@ -27,6 +28,14 @@ class VitalsRepository {
     }
     final patient = await _patientRepository.getPatientForAuthUser(authUserId);
     return patient?.id;
+  }
+
+  Future<Patient?> getCurrentPatient() async {
+    final authUserId = _currentAuthUserId();
+    if (authUserId == null) {
+      return null;
+    }
+    return _patientRepository.getPatientForAuthUser(authUserId);
   }
 
   Future<String> _requirePatientId() async {
@@ -192,6 +201,8 @@ class VitalsRepository {
         patientId: patientId,
         recordedAt: reading.recordedAt,
         valueKg: reading.valueKg,
+        dialysisTiming: reading.dialysisTiming,
+        weightContext: reading.weightContext,
         source: reading.source,
         notes: reading.notes,
         createdAt: now,
@@ -210,6 +221,8 @@ class VitalsRepository {
         patientId: reading.patientId,
         recordedAt: reading.recordedAt,
         valueKg: reading.valueKg,
+        dialysisTiming: reading.dialysisTiming,
+        weightContext: reading.weightContext,
         source: reading.source,
         notes: reading.notes,
         createdAt: reading.createdAt,

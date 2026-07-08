@@ -1,6 +1,8 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/weight_reading.dart';
+import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -93,6 +95,33 @@ void main() {
     expect(dirty.first.id, readingId);
     expect(dirty.first.deletedAt, isNotNull);
     expect(dirty.first.isDirty, isTrue);
+  });
+
+  test('weight dao inserts and reads dialysis timing fields', () async {
+    const patient = Patient(
+      id: 'patient-1',
+      authUserId: 'auth-1',
+    );
+    await db.patientsDao.insertPatient(patient, isDirty: false);
+
+    final recordedAt = DateTime.utc(2026, 7, 7, 10);
+    final reading = WeightReading(
+      id: const Uuid().v4(),
+      patientId: patient.id,
+      recordedAt: recordedAt,
+      valueKg: 72.5,
+      dialysisTiming: dialysisTimingPostDialysis,
+      weightContext: 'evening',
+      createdAt: recordedAt,
+      updatedAt: recordedAt,
+    );
+
+    await db.weightDao.insertReading(reading, isDirty: true);
+
+    final active = await db.weightDao.getActiveForPatient(patient.id);
+    expect(active, hasLength(1));
+    expect(active.first.dialysisTiming, dialysisTimingPostDialysis);
+    expect(active.first.weightContext, 'evening');
   });
 
   test('sync state dao stores pull cursor per table', () async {

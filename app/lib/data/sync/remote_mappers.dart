@@ -1,5 +1,6 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/sync/sync_utils.dart';
+import 'package:app/domain/models/weight_reading_options.dart';
 
 Map<String, dynamic> patientRowToRemoteJson(PatientRow row) {
   return {
@@ -104,6 +105,8 @@ Map<String, dynamic> weightRowToRemoteJson(WeightRow row) {
     'patient_id': row.patientId,
     'recorded_at': remoteIsoDateTime(row.recordedAt),
     'value_kg': row.valueKg,
+    'dialysis_timing': row.dialysisTiming,
+    'weight_context': row.weightContext,
     'source': row.source,
     'notes': row.notes,
     'created_at': remoteIsoDateTime(row.createdAt),
@@ -118,6 +121,9 @@ WeightRow weightRowFromRemoteJson(Map<String, dynamic> json) {
     patientId: json['patient_id'] as String,
     recordedAt: parseRemoteDateTime(json['recorded_at']),
     valueKg: parseRemoteDouble(json['value_kg']) ?? 0,
+    dialysisTiming:
+        json['dialysis_timing'] as String? ?? dialysisTimingNonDialysis,
+    weightContext: json['weight_context'] as String?,
     source: json['source'] as String? ?? 'manual',
     notes: json['notes'] as String?,
     createdAt: parseRemoteDateTime(json['created_at']),

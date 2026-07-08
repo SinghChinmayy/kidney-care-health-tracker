@@ -24,6 +24,44 @@ void main() {
     });
   });
 
+  group('formatWeightHistorySubtitle', () {
+    test('includes timing, time, and optional context', () {
+      final subtitle = formatWeightHistorySubtitle(
+        dialysisTiming: 'pre_dialysis',
+        recordedAt: DateTime.utc(2026, 7, 7, 3, 30),
+        weightContext: 'morning',
+      );
+
+      expect(subtitle, contains('Pre-dialysis'));
+      expect(subtitle, contains('Morning'));
+    });
+
+    test('omits context when null', () {
+      final subtitle = formatWeightHistorySubtitle(
+        dialysisTiming: 'non_dialysis',
+        recordedAt: DateTime.utc(2026, 7, 7, 3, 30),
+      );
+
+      expect(subtitle, contains('Non-dialysis day'));
+      expect(subtitle, isNot(contains('Morning')));
+    });
+  });
+
+  group('formatDialysisTimingLabel', () {
+    test('maps known timing values', () {
+      expect(formatDialysisTimingLabel('pre_dialysis'), 'Pre-dialysis');
+      expect(formatDialysisTimingLabel('post_dialysis'), 'Post-dialysis');
+      expect(formatDialysisTimingLabel('non_dialysis'), 'Non-dialysis day');
+    });
+  });
+
+  group('formatWeightContextLabel', () {
+    test('maps known context values', () {
+      expect(formatWeightContextLabel('morning'), 'Morning');
+      expect(formatWeightContextLabel('evening'), 'Evening');
+    });
+  });
+
   group('groupReadingsByLocalDate', () {
     test('groups readings by local calendar date newest first', () {
       final readings = [

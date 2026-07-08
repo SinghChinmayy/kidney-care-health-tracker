@@ -41,12 +41,25 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (migrator, from, to) async {
-          // Future schema bumps add steps here.
+          if (from < 2) {
+            await migrator.addColumn(
+              weightReadings,
+              weightReadings.dialysisTiming,
+            );
+            await migrator.addColumn(
+              weightReadings,
+              weightReadings.weightContext,
+            );
+            await customStatement(
+              "UPDATE weight_readings SET dialysis_timing = 'non_dialysis' "
+              "WHERE dialysis_timing IS NULL",
+            );
+          }
         },
       );
 

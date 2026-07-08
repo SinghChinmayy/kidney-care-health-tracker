@@ -4,6 +4,7 @@ import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dar
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_forms.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
+import 'package:app/ui/features/vitals/widgets/vital_save_confirmation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -31,6 +32,13 @@ Future<void> showBloodPressureLogSheet(
             );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
+            }
+            if (context.mounted) {
+              showVitalSavedConfirmation(
+                context,
+                message: 'Blood pressure saved',
+                accentColor: AppTheme.logBloodPressure,
+              );
             }
             onSaved?.call();
           },
@@ -65,6 +73,13 @@ Future<void> showBloodGlucoseLogSheet(
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
             }
+            if (context.mounted) {
+              showVitalSavedConfirmation(
+                context,
+                message: 'Blood glucose saved',
+                accentColor: AppTheme.logBloodGlucose,
+              );
+            }
             onSaved?.call();
           },
         ),
@@ -88,10 +103,22 @@ Future<void> showWeightLogSheet(
       final viewModel = sheetContext.read<WeightViewModel>();
       return _VitalLogSheetPadding(
         child: AddWeightForm(
-          onSubmit: (valueKg, notes) async {
-            await viewModel.addReading(valueKg: valueKg, notes: notes);
+          onSubmit: (valueKg, dialysisTiming, weightContext, notes) async {
+            await viewModel.addReading(
+              valueKg: valueKg,
+              dialysisTiming: dialysisTiming,
+              weightContext: weightContext,
+              notes: notes,
+            );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
+            }
+            if (context.mounted) {
+              showVitalSavedConfirmation(
+                context,
+                message: 'Weight saved',
+                accentColor: AppTheme.logWeight,
+              );
             }
             onSaved?.call();
           },

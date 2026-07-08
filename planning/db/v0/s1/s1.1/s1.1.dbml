@@ -81,6 +81,8 @@ Table weight_readings {
   patient_id uuid [not null]
   recorded_at timestamptz [not null]
   value_kg numeric [not null, note: 'Canonical unit kg — any lb input converted at app layer before storing, DB always kg']
+  dialysis_timing text [not null, default: 'non_dialysis', note: 'pre_dialysis, post_dialysis, or non_dialysis']
+  weight_context text [note: 'Optional general context (morning, evening, random, etc.); independent of dialysis_timing']
   source reading_source [not null, default: 'manual']
   notes text
   created_at timestamptz [not null, default: `now()`]

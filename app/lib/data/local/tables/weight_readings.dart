@@ -12,6 +12,11 @@ class WeightReadings extends Table {
 
   RealColumn get valueKg => real()();
 
+  TextColumn get dialysisTiming =>
+      text().withDefault(const Constant('non_dialysis'))();
+
+  TextColumn get weightContext => text().nullable()();
+
   TextColumn get source =>
       text().withDefault(const Constant('manual'))();
 
