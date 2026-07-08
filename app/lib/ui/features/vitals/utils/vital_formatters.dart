@@ -45,6 +45,43 @@ DateTime localDateOnly(DateTime value) {
   return DateTime(local.year, local.month, local.day);
 }
 
+String formatHomeDateLabel(DateTime localDate) {
+  final weekday = _shortWeekdays[localDate.weekday - 1];
+  final month = _shortMonths[localDate.month - 1];
+  return '$weekday, $month ${localDate.day}';
+}
+
+DateTime recordedAtFromSelectedDate(DateTime selectedLocalDate) {
+  final now = DateTime.now();
+  return DateTime(
+    selectedLocalDate.year,
+    selectedLocalDate.month,
+    selectedLocalDate.day,
+    now.hour,
+    now.minute,
+    now.second,
+    now.millisecond,
+    now.microsecond,
+  );
+}
+
+T? latestReadingOnLocalDate<T>(
+  List<T> readings,
+  DateTime localDate,
+  DateTime Function(T reading) recordedAt,
+) {
+  T? latest;
+  for (final reading in readings) {
+    if (localDateOnly(recordedAt(reading)) != localDate) {
+      continue;
+    }
+    if (latest == null || recordedAt(reading).isAfter(recordedAt(latest))) {
+      latest = reading;
+    }
+  }
+  return latest;
+}
+
 String formatHistoryDateHeader(DateTime localDate) {
   final weekday = _weekdays[localDate.weekday - 1];
   final month = _months[localDate.month - 1];

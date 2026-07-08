@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 Future<void> showBloodPressureLogSheet(
   BuildContext context, {
+  DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
   return showModalBottomSheet<void>(
@@ -23,12 +24,13 @@ Future<void> showBloodPressureLogSheet(
       final viewModel = sheetContext.read<BloodPressureViewModel>();
       return _VitalLogSheetPadding(
         child: AddBloodPressureForm(
-          onSubmit: (systolic, diastolic, heartRate, notes) async {
+          initialRecordedAt: initialRecordedAt,
+          onSubmit: (systolic, diastolic, heartRate, recordedAt) async {
             await viewModel.addReading(
               systolic: systolic,
               diastolic: diastolic,
               heartRateBpm: heartRate,
-              notes: notes,
+              recordedAt: recordedAt,
             );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
@@ -50,6 +52,7 @@ Future<void> showBloodPressureLogSheet(
 
 Future<void> showBloodGlucoseLogSheet(
   BuildContext context, {
+  DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
   return showModalBottomSheet<void>(
@@ -63,12 +66,12 @@ Future<void> showBloodGlucoseLogSheet(
       final viewModel = sheetContext.read<BloodGlucoseViewModel>();
       return _VitalLogSheetPadding(
         child: AddBloodGlucoseForm(
-          contextOptions: bloodGlucoseContextOptions,
-          onSubmit: (value, readingContext, notes) async {
+          initialRecordedAt: initialRecordedAt,
+          onSubmit: (value, readingContext, recordedAt) async {
             await viewModel.addReading(
               valueMgDl: value,
               context: readingContext,
-              notes: notes,
+              recordedAt: recordedAt,
             );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
@@ -90,6 +93,7 @@ Future<void> showBloodGlucoseLogSheet(
 
 Future<void> showWeightLogSheet(
   BuildContext context, {
+  DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
   return showModalBottomSheet<void>(
@@ -109,6 +113,7 @@ Future<void> showWeightLogSheet(
               dialysisTiming: dialysisTiming,
               weightContext: weightContext,
               notes: notes,
+              recordedAt: initialRecordedAt,
             );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();
@@ -131,18 +136,25 @@ Future<void> showWeightLogSheet(
 Future<void> showVitalLogSheet(
   BuildContext context,
   VitalLogType type, {
+  DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
   return switch (type) {
     VitalLogType.bloodPressure => showBloodPressureLogSheet(
         context,
+        initialRecordedAt: initialRecordedAt,
         onSaved: onSaved,
       ),
     VitalLogType.bloodGlucose => showBloodGlucoseLogSheet(
         context,
+        initialRecordedAt: initialRecordedAt,
         onSaved: onSaved,
       ),
-    VitalLogType.weight => showWeightLogSheet(context, onSaved: onSaved),
+    VitalLogType.weight => showWeightLogSheet(
+        context,
+        initialRecordedAt: initialRecordedAt,
+        onSaved: onSaved,
+      ),
   };
 }
 

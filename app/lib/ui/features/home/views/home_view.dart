@@ -1,6 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
+import 'package:app/ui/features/home/widgets/home_date_header.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
 import 'package:app/ui/features/vitals/views/vitals_hub_view.dart';
@@ -9,6 +10,8 @@ import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+const double _homeContentMaxWidth = 600;
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -32,85 +35,102 @@ class _HomeViewState extends State<HomeView> {
     final viewModel = context.watch<HomeViewModel>();
 
     return Scaffold(
-      appBar: AppScreenAppBar(
-        title: 'Home',
-        actions: [
-          IconButton(
-            tooltip: 'Sign out',
-            onPressed: () => viewModel.signOut(),
-            icon: const Icon(Icons.logout_outlined),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openLogMenu(context),
         child: const Icon(Icons.add),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => viewModel.refresh(),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.spacingSm,
-            AppTheme.spacingSm,
-            AppTheme.spacingSm,
-            80,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const HomeDateHeader(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: viewModel.refresh,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacingSm,
+                      AppTheme.spacingSm,
+                      AppTheme.spacingSm,
+                      80,
+                    ),
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: _homeContentMaxWidth,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              AppOptionCard(
+                                title: 'Blood pressure',
+                                description:
+                                    viewModel.bloodPressureForSelectedDate
+                                            ?.displayValue ??
+                                        'No readings yet',
+                                icon: Icons.monitor_heart_outlined,
+                                titleStyle:
+                                    Theme.of(context).textTheme.titleMedium,
+                                onTap: () =>
+                                    _open(context, const BloodPressureView()),
+                              ),
+                              const SizedBox(height: AppTheme.spacingSm),
+                              AppOptionCard(
+                                title: 'Blood glucose',
+                                description:
+                                    viewModel.bloodGlucoseForSelectedDate
+                                            ?.displayValue ??
+                                        'No readings yet',
+                                icon: Icons.water_drop_outlined,
+                                titleStyle:
+                                    Theme.of(context).textTheme.titleMedium,
+                                onTap: () =>
+                                    _open(context, const BloodGlucoseView()),
+                              ),
+                              const SizedBox(height: AppTheme.spacingSm),
+                              AppOptionCard(
+                                title: 'Weight',
+                                description:
+                                    viewModel.weightForSelectedDate
+                                            ?.displayValue ??
+                                        'No readings yet',
+                                icon: Icons.scale_outlined,
+                                titleStyle:
+                                    Theme.of(context).textTheme.titleMedium,
+                                onTap: () =>
+                                    _open(context, const WeightView()),
+                              ),
+                              const SizedBox(height: AppTheme.spacingMd),
+                              OutlinedButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const VitalsHubView(),
+                                    ),
+                                  );
+                                },
+                                style: AppTheme.secondaryButtonStyle(),
+                                child: const Text('View all vitals'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-          children: [
-            Text(
-              'Welcome back',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(
-              'Your latest vitals at a glance.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            AppOptionCard(
-              title: 'Blood pressure',
-              description:
-                  viewModel.latestBloodPressure?.displayValue ?? 'No readings yet',
-              icon: Icons.monitor_heart_outlined,
-              titleStyle: Theme.of(context).textTheme.titleMedium,
-              onTap: () => _open(context, const BloodPressureView()),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            AppOptionCard(
-              title: 'Blood glucose',
-              description:
-                  viewModel.latestBloodGlucose?.displayValue ?? 'No readings yet',
-              icon: Icons.water_drop_outlined,
-              titleStyle: Theme.of(context).textTheme.titleMedium,
-              onTap: () => _open(context, const BloodGlucoseView()),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            AppOptionCard(
-              title: 'Weight',
-              description:
-                  viewModel.latestWeight?.displayValue ?? 'No readings yet',
-              icon: Icons.scale_outlined,
-              titleStyle: Theme.of(context).textTheme.titleMedium,
-              onTap: () => _open(context, const WeightView()),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const VitalsHubView(),
-                  ),
-                );
-              },
-              style: AppTheme.secondaryButtonStyle(),
-              child: const Text('View all vitals'),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Future<void> _openLogMenu(BuildContext context) async {
+    final viewModel = context.read<HomeViewModel>();
     final type = await showVitalLogMenuSheet(context);
     if (!context.mounted || type == null) {
       return;
@@ -118,7 +138,8 @@ class _HomeViewState extends State<HomeView> {
     await showVitalLogSheet(
       context,
       type,
-      onSaved: () => context.read<HomeViewModel>().refresh(),
+      initialRecordedAt: viewModel.logRecordedAt,
+      onSaved: viewModel.refresh,
     );
   }
 

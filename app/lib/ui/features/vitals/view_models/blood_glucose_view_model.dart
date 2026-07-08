@@ -23,10 +23,11 @@ class BloodGlucoseViewModel extends ChangeNotifier {
     required double valueMgDl,
     String? context,
     String? notes,
+    DateTime? recordedAt,
   }) async {
     final reading = BloodGlucoseReading(
       id: const Uuid().v4(),
-      recordedAt: DateTime.now().toUtc(),
+      recordedAt: (recordedAt ?? DateTime.now()).toUtc(),
       valueMgDl: valueMgDl,
       context: context?.trim().isEmpty ?? true ? null : context?.trim(),
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),

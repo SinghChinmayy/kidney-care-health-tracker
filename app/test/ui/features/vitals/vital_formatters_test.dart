@@ -62,6 +62,55 @@ void main() {
     });
   });
 
+  group('formatHomeDateLabel', () {
+    test('formats short weekday, month, and day', () {
+      expect(formatHomeDateLabel(DateTime(2026, 1, 20)), 'Tue, Jan 20');
+    });
+  });
+
+  group('recordedAtFromSelectedDate', () {
+    test('uses selected day with current local time', () {
+      final selectedDate = DateTime(2026, 1, 20);
+      final recordedAt = recordedAtFromSelectedDate(selectedDate);
+      final now = DateTime.now();
+
+      expect(recordedAt.year, 2026);
+      expect(recordedAt.month, 1);
+      expect(recordedAt.day, 20);
+      expect(recordedAt.hour, now.hour);
+      expect(recordedAt.minute, now.minute);
+    });
+  });
+
+  group('latestReadingOnLocalDate', () {
+    test('returns latest reading for the requested local date', () {
+      final readings = [
+        _Reading(DateTime.utc(2026, 7, 7, 8)),
+        _Reading(DateTime.utc(2026, 7, 7, 18)),
+        _Reading(DateTime.utc(2026, 7, 6, 18)),
+      ];
+      final date = localDateOnly(readings[0].recordedAt);
+
+      final latest = latestReadingOnLocalDate(
+        readings,
+        date,
+        (reading) => reading.recordedAt,
+      );
+
+      expect(latest?.recordedAt, readings[1].recordedAt);
+    });
+
+    test('returns null when no readings match the date', () {
+      final latest = latestReadingOnLocalDate(
+        [_Reading(DateTime.utc(2026, 7, 7, 8))],
+        DateTime(2026, 7, 8),
+        (reading) => reading.recordedAt,
+      );
+
+      expect(latest, isNull);
+    });
+  });
+
   group('groupReadingsByLocalDate', () {
     test('groups readings by local calendar date newest first', () {
       final readings = [

@@ -24,6 +24,7 @@ class BloodPressureViewModel extends ChangeNotifier {
     int? diastolic,
     int? heartRateBpm,
     String? notes,
+    DateTime? recordedAt,
   }) async {
     final hasBp = systolic != null && diastolic != null;
     final hasHr = heartRateBpm != null;
@@ -33,7 +34,7 @@ class BloodPressureViewModel extends ChangeNotifier {
 
     final reading = BloodPressureReading(
       id: const Uuid().v4(),
-      recordedAt: DateTime.now().toUtc(),
+      recordedAt: (recordedAt ?? DateTime.now()).toUtc(),
       systolic: systolic,
       diastolic: diastolic,
       heartRateBpm: heartRateBpm,

@@ -1,5 +1,8 @@
 import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:app/theme/app_theme.dart';
+import 'package:app/ui/features/vitals/widgets/blood_glucose_reading_form.dart';
+import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
+import 'package:app/ui/features/vitals/widgets/blood_pressure_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/weight_dialysis_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -11,13 +14,18 @@ const bloodGlucoseContextOptions = [
 ];
 
 class AddBloodPressureForm extends StatefulWidget {
-  const AddBloodPressureForm({super.key, required this.onSubmit});
+  const AddBloodPressureForm({
+    super.key,
+    required this.onSubmit,
+    this.initialRecordedAt,
+  });
 
+  final DateTime? initialRecordedAt;
   final void Function(
     int? systolic,
     int? diastolic,
     int? heartRate,
-    String? notes,
+    DateTime recordedAt,
   ) onSubmit;
 
   @override
@@ -25,19 +33,16 @@ class AddBloodPressureForm extends StatefulWidget {
 }
 
 class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
-  final _systolicController = TextEditingController();
-  final _diastolicController = TextEditingController();
-  final _heartRateController = TextEditingController();
-  final _notesController = TextEditingController();
-  String? _errorText;
+  BloodPressureLogType _logType = BloodPressureLogType.bloodPressure;
+  int _systolic = 120;
+  int _diastolic = 80;
+  int _heartRate = 72;
+  late DateTime _recordedAt;
 
   @override
-  void dispose() {
-    _systolicController.dispose();
-    _diastolicController.dispose();
-    _heartRateController.dispose();
-    _notesController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _recordedAt = widget.initialRecordedAt ?? DateTime.now();
   }
 
   @override
@@ -50,42 +55,26 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
           'Log blood pressure',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
-        const SizedBox(height: AppTheme.spacingXs),
-        Text(
-          'Enter BP and/or heart rate. At least one is required.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
         const SizedBox(height: AppTheme.spacingMd),
-        TextFormField(
-          controller: _systolicController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Systolic (mmHg)'),
+        BloodPressureReadingForm(
+          logType: _logType,
+          systolic: _systolic,
+          diastolic: _diastolic,
+          heartRateBpm: _heartRate,
+          recordedAt: _recordedAt,
+          onLogTypeChanged: (value) => setState(() => _logType = value),
+          onSystolicChanged: (value) => setState(() => _systolic = value),
+          onDiastolicChanged: (value) => setState(() => _diastolic = value),
+          onHeartRateChanged: (value) => setState(() => _heartRate = value),
+          onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
-        TextFormField(
-          controller: _diastolicController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Diastolic (mmHg)'),
-        ),
-        const SizedBox(height: AppTheme.spacingSm),
-        TextFormField(
-          controller: _heartRateController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Heart rate (bpm)'),
-        ),
-        const SizedBox(height: AppTheme.spacingSm),
-        TextFormField(
-          controller: _notesController,
-          decoration: const InputDecoration(labelText: 'Notes (optional)'),
-          maxLines: 2,
-        ),
-        if (_errorText != null) ...[
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(_errorText!, style: TextStyle(color: AppTheme.error)),
-        ],
         const SizedBox(height: AppTheme.spacingMd),
         ElevatedButton(
           onPressed: _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.logBloodPressure,
+            foregroundColor: AppTheme.background,
+          ),
           child: const Text('Save reading'),
         ),
       ],
@@ -93,70 +82,44 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
   }
 
   void _submit() {
-    final systolic = _parseInt(_systolicController.text);
-    final diastolic = _parseInt(_diastolicController.text);
-    final heartRate = _parseInt(_heartRateController.text);
-    final hasBp = systolic != null && diastolic != null;
-    final hasPartialBp =
-        (systolic != null && diastolic == null) ||
-        (systolic == null && diastolic != null);
-    final hasHr = heartRate != null;
+    final systolic =
+        _logType == BloodPressureLogType.heartRate ? null : _systolic;
+    final diastolic =
+        _logType == BloodPressureLogType.heartRate ? null : _diastolic;
+    final heartRate =
+        _logType == BloodPressureLogType.bloodPressure ? null : _heartRate;
 
-    if (hasPartialBp) {
-      setState(() {
-        _errorText = 'Enter both systolic and diastolic, or leave both empty.';
-      });
-      return;
-    }
-    if (!hasBp && !hasHr) {
-      setState(() {
-        _errorText = 'Enter blood pressure and/or heart rate.';
-      });
-      return;
-    }
-
-    setState(() => _errorText = null);
-    widget.onSubmit(
-      systolic,
-      diastolic,
-      heartRate,
-      _notesController.text,
-    );
-  }
-
-  int? _parseInt(String value) {
-    if (value.trim().isEmpty) {
-      return null;
-    }
-    return int.tryParse(value.trim());
+    widget.onSubmit(systolic, diastolic, heartRate, _recordedAt);
   }
 }
 
 class AddBloodGlucoseForm extends StatefulWidget {
   const AddBloodGlucoseForm({
     super.key,
-    required this.contextOptions,
     required this.onSubmit,
+    this.initialRecordedAt,
   });
 
-  final List<String> contextOptions;
-  final void Function(double value, String? context, String? notes) onSubmit;
+  final DateTime? initialRecordedAt;
+  final void Function(
+    double value,
+    String? context,
+    DateTime recordedAt,
+  ) onSubmit;
 
   @override
   State<AddBloodGlucoseForm> createState() => _AddBloodGlucoseFormState();
 }
 
 class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
-  final _valueController = TextEditingController();
-  final _notesController = TextEditingController();
+  double _valueMgDl = 100;
   String? _selectedContext;
-  String? _errorText;
+  late DateTime _recordedAt;
 
   @override
-  void dispose() {
-    _valueController.dispose();
-    _notesController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _recordedAt = widget.initialRecordedAt ?? DateTime.now();
   }
 
   @override
@@ -169,44 +132,22 @@ class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
           'Log blood glucose',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
-        const SizedBox(height: AppTheme.spacingXs),
-        Text(
-          'Values are stored in mg/dL.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
         const SizedBox(height: AppTheme.spacingMd),
-        TextFormField(
-          controller: _valueController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Glucose (mg/dL)'),
+        BloodGlucoseReadingForm(
+          valueMgDl: _valueMgDl,
+          selectedContext: _selectedContext,
+          recordedAt: _recordedAt,
+          onValueChanged: (value) => setState(() => _valueMgDl = value),
+          onContextChanged: (value) => setState(() => _selectedContext = value),
+          onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedContext,
-          decoration: const InputDecoration(labelText: 'Context (optional)'),
-          items: widget.contextOptions
-              .map(
-                (option) => DropdownMenuItem(
-                  value: option,
-                  child: Text(option.replaceAll('_', ' ')),
-                ),
-              )
-              .toList(),
-          onChanged: (value) => setState(() => _selectedContext = value),
-        ),
-        const SizedBox(height: AppTheme.spacingSm),
-        TextFormField(
-          controller: _notesController,
-          decoration: const InputDecoration(labelText: 'Notes (optional)'),
-          maxLines: 2,
-        ),
-        if (_errorText != null) ...[
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(_errorText!, style: TextStyle(color: AppTheme.error)),
-        ],
         const SizedBox(height: AppTheme.spacingMd),
         ElevatedButton(
           onPressed: _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.logBloodGlucose,
+            foregroundColor: AppTheme.background,
+          ),
           child: const Text('Save reading'),
         ),
       ],
@@ -214,13 +155,7 @@ class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
   }
 
   void _submit() {
-    final value = double.tryParse(_valueController.text.trim());
-    if (value == null || value <= 0) {
-      setState(() => _errorText = 'Enter a valid glucose value.');
-      return;
-    }
-    setState(() => _errorText = null);
-    widget.onSubmit(value, _selectedContext, _notesController.text);
+    widget.onSubmit(_valueMgDl, _selectedContext, _recordedAt);
   }
 }
 
