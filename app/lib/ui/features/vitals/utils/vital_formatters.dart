@@ -1,3 +1,5 @@
+import 'package:app/domain/models/weight_reading_options.dart';
+
 const _shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _shortMonths = [
@@ -105,9 +107,9 @@ String formatDialysisTimingLabel(String dialysisTiming) {
 
 String formatWeightContextLabel(String context) {
   return switch (context) {
-    'morning' => 'Morning',
-    'evening' => 'Evening',
-    'random' => 'Random',
+    weightContextMorning => 'Morning',
+    weightContextEvening => 'Evening',
+    weightContextRandom => 'Random',
     _ => context.replaceAll('_', ' '),
   };
 }

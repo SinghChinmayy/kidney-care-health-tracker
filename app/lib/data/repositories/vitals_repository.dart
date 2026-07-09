@@ -2,6 +2,7 @@ import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
+import 'package:app/domain/models/fluid_intake_log.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/weight_reading.dart';
 
@@ -237,6 +238,68 @@ class VitalsRepository {
   Future<void> deleteWeightReading(String id) async {
     final now = DateTime.now().toUtc();
     await _db.weightDao.softDelete(id, now);
+    _onWrite();
+  }
+
+  // --- Fluid intake ---
+
+  Future<List<FluidIntakeLog>> getFluidIntakeLogs() async {
+    final patientId = await _patientIdOrNull();
+    if (patientId == null) {
+      return [];
+    }
+    return _db.fluidIntakeDao.getActiveForPatient(patientId);
+  }
+
+  Future<FluidIntakeLog?> getLatestFluidIntake() async {
+    final patientId = await _patientIdOrNull();
+    if (patientId == null) {
+      return null;
+    }
+    return _db.fluidIntakeDao.getLatestForPatient(patientId);
+  }
+
+  Future<void> addFluidIntakeLog(FluidIntakeLog log) async {
+    final patientId = await _requirePatientId();
+    final now = DateTime.now().toUtc();
+    await _db.fluidIntakeDao.insertLog(
+      FluidIntakeLog(
+        id: log.id,
+        patientId: patientId,
+        recordedAt: log.recordedAt,
+        fluidMl: log.fluidMl,
+        source: log.source,
+        notes: log.notes,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      isDirty: true,
+    );
+    _onWrite();
+  }
+
+  Future<void> updateFluidIntakeLog(FluidIntakeLog log) async {
+    final now = DateTime.now().toUtc();
+    await _db.fluidIntakeDao.updateLog(
+      FluidIntakeLog(
+        id: log.id,
+        patientId: log.patientId,
+        recordedAt: log.recordedAt,
+        fluidMl: log.fluidMl,
+        source: log.source,
+        notes: log.notes,
+        createdAt: log.createdAt,
+        updatedAt: now,
+        deletedAt: log.deletedAt,
+      ),
+      isDirty: true,
+    );
+    _onWrite();
+  }
+
+  Future<void> deleteFluidIntakeLog(String id) async {
+    final now = DateTime.now().toUtc();
+    await _db.fluidIntakeDao.softDelete(id, now);
     _onWrite();
   }
 }

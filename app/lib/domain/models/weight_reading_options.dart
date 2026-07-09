@@ -8,4 +8,12 @@ const dialysisTimingOptions = [
   dialysisTimingPostDialysis,
 ];
 
-const weightContextOptions = ['morning', 'evening', 'random'];
+const weightContextMorning = 'morning';
+const weightContextEvening = 'evening';
+const weightContextRandom = 'random';
+
+const weightContextOptions = [
+  weightContextMorning,
+  weightContextEvening,
+  weightContextRandom,
+];

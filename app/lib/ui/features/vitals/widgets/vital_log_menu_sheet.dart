@@ -6,6 +6,7 @@ enum VitalLogType {
   bloodPressure,
   bloodGlucose,
   weight,
+  fluidIntake,
 }
 
 Future<VitalLogType?> showVitalLogMenuSheet(BuildContext context) {
@@ -71,6 +72,14 @@ Future<VitalLogType?> showVitalLogMenuSheet(BuildContext context) {
                     accentColor: AppTheme.logWeight,
                     onTap: () => Navigator.of(sheetContext).pop(
                       VitalLogType.weight,
+                    ),
+                  ),
+                  LogOptionTile(
+                    icon: Icons.local_drink_outlined,
+                    label: 'Water intake',
+                    accentColor: AppTheme.logFluidIntake,
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      VitalLogType.fluidIntake,
                     ),
                   ),
                 ],

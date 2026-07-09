@@ -2,6 +2,7 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
+import 'package:app/ui/features/vitals/views/fluid_intake_view.dart';
 import 'package:app/ui/features/vitals/views/weight_view.dart';
 import 'package:flutter/material.dart';
 
@@ -21,7 +22,7 @@ class VitalsHubView extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacingXs),
           Text(
-            'Blood pressure, glucose, and weight from your patient profile.',
+            'Blood pressure, glucose, weight, and water intake.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -47,6 +48,14 @@ class VitalsHubView extends StatelessWidget {
             icon: Icons.scale_outlined,
             titleStyle: Theme.of(context).textTheme.titleMedium,
             onTap: () => _open(context, const WeightView()),
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          AppOptionCard(
+            title: 'Water intake',
+            description: 'Stored in ml',
+            icon: Icons.local_drink_outlined,
+            titleStyle: Theme.of(context).textTheme.titleMedium,
+            onTap: () => _open(context, const FluidIntakeView()),
           ),
         ],
       ),

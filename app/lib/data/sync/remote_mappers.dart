@@ -132,3 +132,32 @@ WeightRow weightRowFromRemoteJson(Map<String, dynamic> json) {
     isDirty: false,
   );
 }
+
+Map<String, dynamic> fluidIntakeRowToRemoteJson(FluidIntakeRow row) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'recorded_at': remoteIsoDateTime(row.recordedAt),
+    'fluid_ml': row.fluidMl,
+    'source': row.source,
+    'notes': row.notes,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+FluidIntakeRow fluidIntakeRowFromRemoteJson(Map<String, dynamic> json) {
+  return FluidIntakeRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    recordedAt: parseRemoteDateTime(json['recorded_at']),
+    fluidMl: parseRemoteDouble(json['fluid_ml']) ?? 0,
+    source: json['source'] as String? ?? 'manual',
+    notes: json['notes'] as String?,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}

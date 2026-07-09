@@ -1,6 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
+import 'package:app/ui/features/vitals/view_models/fluid_intake_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_forms.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
@@ -133,6 +134,46 @@ Future<void> showWeightLogSheet(
   );
 }
 
+Future<void> showFluidIntakeLogSheet(
+  BuildContext context, {
+  DateTime? initialRecordedAt,
+  VoidCallback? onSaved,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppTheme.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: AppTheme.sheetTopRadius,
+    ),
+    builder: (sheetContext) {
+      final viewModel = sheetContext.read<FluidIntakeViewModel>();
+      return _VitalLogSheetPadding(
+        child: AddFluidIntakeForm(
+          initialRecordedAt: initialRecordedAt,
+          onSubmit: (fluidMl, recordedAt) async {
+            await viewModel.addLog(
+              fluidMl: fluidMl,
+              recordedAt: recordedAt,
+            );
+            if (sheetContext.mounted) {
+              Navigator.of(sheetContext).pop();
+            }
+            if (context.mounted) {
+              showVitalSavedConfirmation(
+                context,
+                message: 'Water intake saved',
+                accentColor: AppTheme.logFluidIntake,
+              );
+            }
+            onSaved?.call();
+          },
+        ),
+      );
+    },
+  );
+}
+
 Future<void> showVitalLogSheet(
   BuildContext context,
   VitalLogType type, {
@@ -151,6 +192,11 @@ Future<void> showVitalLogSheet(
         onSaved: onSaved,
       ),
     VitalLogType.weight => showWeightLogSheet(
+        context,
+        initialRecordedAt: initialRecordedAt,
+        onSaved: onSaved,
+      ),
+    VitalLogType.fluidIntake => showFluidIntakeLogSheet(
         context,
         initialRecordedAt: initialRecordedAt,
         onSaved: onSaved,

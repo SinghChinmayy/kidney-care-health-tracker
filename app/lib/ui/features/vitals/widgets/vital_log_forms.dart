@@ -3,6 +3,7 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_reading_form.dart';
+import 'package:app/ui/features/vitals/widgets/fluid_intake_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/weight_dialysis_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -252,6 +253,64 @@ class _AddWeightFormState extends State<AddWeightForm> {
       _dialysisTiming,
       _weightContext,
       _notesController.text,
+    );
+  }
+}
+
+class AddFluidIntakeForm extends StatefulWidget {
+  const AddFluidIntakeForm({
+    super.key,
+    required this.onSubmit,
+    this.initialRecordedAt,
+  });
+
+  final DateTime? initialRecordedAt;
+  final void Function(
+    double fluidMl,
+    DateTime recordedAt,
+  ) onSubmit;
+
+  @override
+  State<AddFluidIntakeForm> createState() => _AddFluidIntakeFormState();
+}
+
+class _AddFluidIntakeFormState extends State<AddFluidIntakeForm> {
+  double _fluidMl = 250;
+  late DateTime _recordedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _recordedAt = widget.initialRecordedAt ?? DateTime.now();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Log water intake',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        FluidIntakeReadingForm(
+          fluidMl: _fluidMl,
+          recordedAt: _recordedAt,
+          onFluidMlChanged: (value) => setState(() => _fluidMl = value),
+          onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        ElevatedButton(
+          onPressed: () => widget.onSubmit(_fluidMl, _recordedAt),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.logFluidIntake,
+            foregroundColor: AppTheme.background,
+          ),
+          child: const Text('Save intake'),
+        ),
+      ],
     );
   }
 }

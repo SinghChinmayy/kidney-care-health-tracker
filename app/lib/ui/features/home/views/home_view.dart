@@ -1,15 +1,17 @@
 import 'package:app/theme/app_theme.dart';
-import 'package:app/ui/core/widgets/app_components.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/home/widgets/home_date_header.dart';
+import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
+import 'package:app/ui/features/home/widgets/weight_gain_card.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
-import 'package:app/ui/features/vitals/views/vitals_hub_view.dart';
+import 'package:app/ui/features/vitals/views/fluid_intake_view.dart';
 import 'package:app/ui/features/vitals/views/weight_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 const double _homeContentMaxWidth = 600;
+const double _vitalGridGap = AppTheme.spacingXs;
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -57,54 +59,64 @@ class _HomeViewState extends State<HomeView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            AppOptionCard(
-                              title: 'Blood pressure',
-                              description:
-                                  viewModel.bloodPressureForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                              icon: Icons.monitor_heart_outlined,
-                              titleStyle:
-                                  Theme.of(context).textTheme.titleMedium,
-                              onTap: () =>
-                                  _open(context, const BloodPressureView()),
-                            ),
-                            const SizedBox(height: AppTheme.spacingSm),
-                            AppOptionCard(
-                              title: 'Blood glucose',
-                              description:
-                                  viewModel.bloodGlucoseForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                              icon: Icons.water_drop_outlined,
-                              titleStyle:
-                                  Theme.of(context).textTheme.titleMedium,
-                              onTap: () =>
-                                  _open(context, const BloodGlucoseView()),
-                            ),
-                            const SizedBox(height: AppTheme.spacingSm),
-                            AppOptionCard(
-                              title: 'Weight',
-                              description:
-                                  viewModel.weightForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                              icon: Icons.scale_outlined,
-                              titleStyle:
-                                  Theme.of(context).textTheme.titleMedium,
+                            WeightGainCard(
+                              weightGain: viewModel.weightGainForSelectedDate,
                               onTap: () => _open(context, const WeightView()),
                             ),
-                            const SizedBox(height: AppTheme.spacingMd),
-                            OutlinedButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const VitalsHubView(),
+                            const SizedBox(height: AppTheme.spacingSm),
+                            GridView.count(
+                              crossAxisCount: 2,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              mainAxisSpacing: _vitalGridGap,
+                              crossAxisSpacing: _vitalGridGap,
+                              childAspectRatio: 1.45,
+                              children: [
+                                HomeVitalTile(
+                                  title: 'Blood pressure',
+                                  value: viewModel
+                                          .bloodPressureForSelectedDate
+                                          ?.displayValue ??
+                                      'No readings yet',
+                                  icon: Icons.monitor_heart_outlined,
+                                  onTap: () => _open(
+                                    context,
+                                    const BloodPressureView(),
                                   ),
-                                );
-                              },
-                              style: AppTheme.secondaryButtonStyle(),
-                              child: const Text('View all vitals'),
+                                ),
+                                HomeVitalTile(
+                                  title: 'Blood glucose',
+                                  value: viewModel
+                                          .bloodGlucoseForSelectedDate
+                                          ?.displayValue ??
+                                      'No readings yet',
+                                  icon: Icons.water_drop_outlined,
+                                  onTap: () => _open(
+                                    context,
+                                    const BloodGlucoseView(),
+                                  ),
+                                ),
+                                HomeVitalTile(
+                                  title: 'Weight',
+                                  value: viewModel.weightForSelectedDate
+                                          ?.displayValue ??
+                                      'No readings yet',
+                                  icon: Icons.scale_outlined,
+                                  onTap: () =>
+                                      _open(context, const WeightView()),
+                                ),
+                                HomeVitalTile(
+                                  title: 'Water intake',
+                                  value: viewModel
+                                          .fluidIntakeForSelectedDateLabel ??
+                                      'No intake logged',
+                                  icon: Icons.local_drink_outlined,
+                                  onTap: () => _open(
+                                    context,
+                                    const FluidIntakeView(),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

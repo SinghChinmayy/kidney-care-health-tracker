@@ -23,6 +23,7 @@ class AppTheme {
   static const Color logBloodPressure = Color(0xFFE57373);
   static const Color logBloodGlucose = Color(0xFF64B5F6);
   static const Color logWeight = Color(0xFF4DB6AC);
+  static const Color logFluidIntake = Color(0xFF4FC3F7);
   static Color get error => Colors.red.shade700;
 
   static const double spacingXs = 8;

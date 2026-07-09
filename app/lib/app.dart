@@ -13,8 +13,10 @@ import 'package:app/ui/features/auth/view_models/login_view_model.dart';
 import 'package:app/ui/features/auth/views/auth_gate.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/onboarding/view_models/patient_signup_view_model.dart';
+import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
+import 'package:app/ui/features/vitals/view_models/fluid_intake_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -78,6 +80,19 @@ class KidneyCareApp extends StatelessWidget {
             vitalsRepository: context.read<VitalsRepository>(),
           ),
         ),
+        ChangeNotifierProxyProvider2<AuthRepository, PatientRepository,
+            ProfileViewModel>(
+          create: (context) => ProfileViewModel(
+            authRepository: context.read<AuthRepository>(),
+            patientRepository: context.read<PatientRepository>(),
+          ),
+          update: (_, auth, patients, previous) =>
+              previous ??
+              ProfileViewModel(
+                authRepository: auth,
+                patientRepository: patients,
+              ),
+        ),
         ChangeNotifierProxyProvider<VitalsRepository, BloodPressureViewModel>(
           create: (context) => BloodPressureViewModel(
             vitalsRepository: context.read<VitalsRepository>(),
@@ -98,6 +113,13 @@ class KidneyCareApp extends StatelessWidget {
           ),
           update: (_, repository, previous) =>
               previous ?? WeightViewModel(vitalsRepository: repository),
+        ),
+        ChangeNotifierProxyProvider<VitalsRepository, FluidIntakeViewModel>(
+          create: (context) => FluidIntakeViewModel(
+            vitalsRepository: context.read<VitalsRepository>(),
+          ),
+          update: (_, repository, previous) =>
+              previous ?? FluidIntakeViewModel(vitalsRepository: repository),
         ),
       ],
       child: SyncLifecycleObserver(

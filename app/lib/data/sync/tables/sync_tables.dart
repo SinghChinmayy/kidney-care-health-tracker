@@ -379,6 +379,98 @@ class WeightSync implements SyncableTable {
   }
 }
 
+class FluidIntakeSync implements SyncableTable {
+  FluidIntakeSync({
+    required AppDatabase db,
+    required String? Function() currentAuthUserId,
+  })  : _db = db,
+        _currentAuthUserId = currentAuthUserId;
+
+  final AppDatabase _db;
+  final String? Function() _currentAuthUserId;
+
+  @override
+  String get tableKey => remoteTableName;
+
+  @override
+  String get remoteTableName => 'fluid_intake_logs';
+
+  @override
+  Future<void> push(SupabaseClient supabase) async {
+    final dirtyRows = await _db.fluidIntakeDao.getDirtyRows();
+    if (dirtyRows.isEmpty) {
+      return;
+    }
+
+    final payload = dirtyRows.map(fluidIntakeRowToRemoteJson).toList();
+    final response = await supabase
+        .from(remoteTableName)
+        .upsert(payload, onConflict: 'id')
+        .select();
+
+    for (final serverRow in List<Map<String, dynamic>>.from(response)) {
+      final id = serverRow['id'] as String;
+      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
+      await _db.fluidIntakeDao.markSynced(id, updatedAt);
+    }
+  }
+
+  @override
+  Future<void> pull(SupabaseClient supabase) async {
+    final patientId = await _resolvePatientId();
+    if (patientId == null) {
+      return;
+    }
+
+    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
+    var query =
+        supabase.from(remoteTableName).select().eq('patient_id', patientId);
+    if (lastPulledAt != null) {
+      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
+    }
+
+    final response = await query.order('updated_at');
+    final rows = List<Map<String, dynamic>>.from(response);
+    var maxUpdatedAt = lastPulledAt;
+
+    for (final remote in rows) {
+      await _applyPulledRow(remote);
+      final updatedAt = parseRemoteDateTime(remote['updated_at']);
+      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
+        maxUpdatedAt = updatedAt;
+      }
+    }
+
+    if (maxUpdatedAt != lastPulledAt) {
+      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
+    }
+  }
+
+  Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
+    final remoteRow = fluidIntakeRowFromRemoteJson(remote);
+    final local = await _db.fluidIntakeDao.getRowById(remoteRow.id);
+    if (local == null) {
+      await _db.fluidIntakeDao.upsertRemoteRow(remoteRow, isDirty: false);
+      return;
+    }
+
+    if (shouldApplyRemoteUpdate(
+      remoteUpdatedAt: remoteRow.updatedAt,
+      localUpdatedAt: local.updatedAt,
+    )) {
+      await _db.fluidIntakeDao.upsertRemoteRow(remoteRow, isDirty: false);
+    }
+  }
+
+  Future<String?> _resolvePatientId() async {
+    final authUserId = _currentAuthUserId();
+    if (authUserId == null) {
+      return null;
+    }
+    return _db.patientIdForAuthUser(authUserId);
+  }
+}
+
 void logSyncError(String tableKey, Object error, StackTrace stackTrace) {
   developer.log(
     'Sync failed for $tableKey',
