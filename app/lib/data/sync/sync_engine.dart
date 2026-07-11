@@ -16,6 +16,10 @@ class SyncEngine {
         registry = registry ??
             [
               PatientsSync(db: db, currentAuthUserId: currentAuthUserId),
+              PatientPreferencesSync(
+                db: db,
+                currentAuthUserId: currentAuthUserId,
+              ),
               BpSync(db: db, currentAuthUserId: currentAuthUserId),
               GlucoseSync(db: db, currentAuthUserId: currentAuthUserId),
               WeightSync(db: db, currentAuthUserId: currentAuthUserId),

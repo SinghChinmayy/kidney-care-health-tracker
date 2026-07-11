@@ -184,3 +184,98 @@ class _HeightPickerSheetState extends State<_HeightPickerSheet> {
     );
   }
 }
+
+Future<int?> showProfileWaterGoalPickerSheet(
+  BuildContext context, {
+  int? initialGoalMl,
+}) {
+  return showModalBottomSheet<int>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppTheme.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: AppTheme.sheetTopRadius,
+    ),
+    builder: (sheetContext) {
+      return _WaterGoalPickerSheet(initialGoalMl: initialGoalMl);
+    },
+  );
+}
+
+class _WaterGoalPickerSheet extends StatefulWidget {
+  const _WaterGoalPickerSheet({this.initialGoalMl});
+
+  final int? initialGoalMl;
+
+  @override
+  State<_WaterGoalPickerSheet> createState() => _WaterGoalPickerSheetState();
+}
+
+class _WaterGoalPickerSheetState extends State<_WaterGoalPickerSheet> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: '${widget.initialGoalMl ?? 1200}',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = int.tryParse(_controller.text.trim());
+    if (value == null || value < 100 || value > 5000) {
+      setState(() => _errorText = 'Enter a goal between 100 and 5000 ml.');
+      return;
+    }
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppTheme.spacingSm,
+        right: AppTheme.spacingSm,
+        top: AppTheme.spacingSm,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingSm,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Daily water goal',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          TextFormField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Goal (ml)',
+            ),
+            onFieldSubmitted: (_) => _submit(),
+          ),
+          if (_errorText != null) ...[
+            const SizedBox(height: AppTheme.spacingXs),
+            Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+          ],
+          const SizedBox(height: AppTheme.spacingMd),
+          ElevatedButton(
+            onPressed: _submit,
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}

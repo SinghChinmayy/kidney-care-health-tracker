@@ -22,6 +22,29 @@ const sexOptions = [
   'Prefer not to say',
 ];
 
+String formatWeightUnitLabel(String? value) {
+  return switch (value) {
+    'kg' => 'kg',
+    'lb' => 'lb',
+    null || '' => 'kg',
+    _ => value,
+  };
+}
+
+String formatBloodGlucoseUnitLabel(String? value) {
+  return switch (value) {
+    'mg_dl' => 'mg/dL',
+    'mmol_l' => 'mmol/L',
+    null || '' => 'mg/dL',
+    _ => value,
+  };
+}
+
+String formatDailyWaterGoalLabel(int? value) {
+  final ml = value ?? 1200;
+  return '$ml ml';
+}
+
 String formatCkdStageLabel(String? value) {
   if (value == null || value.isEmpty) {
     return 'Not set';

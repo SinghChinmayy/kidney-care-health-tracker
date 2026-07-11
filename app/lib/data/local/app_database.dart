@@ -1,12 +1,14 @@
 import 'package:app/data/local/daos/blood_glucose_dao.dart';
 import 'package:app/data/local/daos/blood_pressure_dao.dart';
 import 'package:app/data/local/daos/fluid_intake_dao.dart';
+import 'package:app/data/local/daos/patient_preferences_dao.dart';
 import 'package:app/data/local/daos/patients_dao.dart';
 import 'package:app/data/local/daos/sync_state_dao.dart';
 import 'package:app/data/local/daos/weight_dao.dart';
 import 'package:app/data/local/tables/blood_glucose_readings.dart';
 import 'package:app/data/local/tables/blood_pressure_readings.dart';
 import 'package:app/data/local/tables/fluid_intake_logs.dart';
+import 'package:app/data/local/tables/patient_preferences.dart';
 import 'package:app/data/local/tables/patients.dart';
 import 'package:app/data/local/tables/sync_state.dart';
 import 'package:app/data/local/tables/weight_readings.dart';
@@ -16,6 +18,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 export 'package:app/data/local/daos/blood_glucose_dao.dart';
 export 'package:app/data/local/daos/blood_pressure_dao.dart';
 export 'package:app/data/local/daos/fluid_intake_dao.dart';
+export 'package:app/data/local/daos/patient_preferences_dao.dart';
 export 'package:app/data/local/daos/patients_dao.dart';
 export 'package:app/data/local/daos/sync_state_dao.dart';
 export 'package:app/data/local/daos/weight_dao.dart';
@@ -25,6 +28,7 @@ part 'app_database.g.dart';
 @DriftDatabase(
   tables: [
     Patients,
+    PatientPrefs,
     BloodPressureReadings,
     BloodGlucoseReadings,
     WeightReadings,
@@ -33,6 +37,7 @@ part 'app_database.g.dart';
   ],
   daos: [
     PatientsDao,
+    PatientPreferencesDao,
     BloodPressureDao,
     BloodGlucoseDao,
     WeightDao,
@@ -46,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -68,6 +73,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await migrator.createTable(fluidIntakeLogs);
           }
+          if (from < 4) {
+            await migrator.createTable(patientPrefs);
+          }
         },
       );
 
@@ -81,6 +89,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(bloodGlucoseReadings).go();
       await delete(weightReadings).go();
       await delete(fluidIntakeLogs).go();
+      await delete(patientPrefs).go();
       await delete(patients).go();
       await delete(syncState).go();
     });
@@ -100,6 +109,10 @@ class AppDatabase extends _$AppDatabase {
       await bloodGlucoseDao.reassignPatientId(oldPatientId, newPatientId);
       await weightDao.reassignPatientId(oldPatientId, newPatientId);
       await fluidIntakeDao.reassignPatientId(oldPatientId, newPatientId);
+      await patientPreferencesDao.reassignPatientId(
+        oldPatientId,
+        newPatientId,
+      );
 
       final localRow = await patientsDao.getRowById(oldPatientId);
       if (localRow == null) {

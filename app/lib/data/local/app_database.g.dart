@@ -773,6 +773,578 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
   }
 }
 
+class $PatientPrefsTable extends PatientPrefs
+    with TableInfo<$PatientPrefsTable, PatientPreferencesRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PatientPrefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _patientIdMeta = const VerificationMeta(
+    'patientId',
+  );
+  @override
+  late final GeneratedColumn<String> patientId = GeneratedColumn<String>(
+    'patient_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES patients (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _weightUnitMeta = const VerificationMeta(
+    'weightUnit',
+  );
+  @override
+  late final GeneratedColumn<String> weightUnit = GeneratedColumn<String>(
+    'weight_unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('kg'),
+  );
+  static const VerificationMeta _bloodGlucoseUnitMeta = const VerificationMeta(
+    'bloodGlucoseUnit',
+  );
+  @override
+  late final GeneratedColumn<String> bloodGlucoseUnit = GeneratedColumn<String>(
+    'blood_glucose_unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('mg_dl'),
+  );
+  static const VerificationMeta _dailyWaterGoalMlMeta = const VerificationMeta(
+    'dailyWaterGoalMl',
+  );
+  @override
+  late final GeneratedColumn<int> dailyWaterGoalMl = GeneratedColumn<int>(
+    'daily_water_goal_ml',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1200),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    patientId,
+    weightUnit,
+    bloodGlucoseUnit,
+    dailyWaterGoalMl,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isDirty,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'patient_prefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PatientPreferencesRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('patient_id')) {
+      context.handle(
+        _patientIdMeta,
+        patientId.isAcceptableOrUnknown(data['patient_id']!, _patientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patientIdMeta);
+    }
+    if (data.containsKey('weight_unit')) {
+      context.handle(
+        _weightUnitMeta,
+        weightUnit.isAcceptableOrUnknown(data['weight_unit']!, _weightUnitMeta),
+      );
+    }
+    if (data.containsKey('blood_glucose_unit')) {
+      context.handle(
+        _bloodGlucoseUnitMeta,
+        bloodGlucoseUnit.isAcceptableOrUnknown(
+          data['blood_glucose_unit']!,
+          _bloodGlucoseUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('daily_water_goal_ml')) {
+      context.handle(
+        _dailyWaterGoalMlMeta,
+        dailyWaterGoalMl.isAcceptableOrUnknown(
+          data['daily_water_goal_ml']!,
+          _dailyWaterGoalMlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PatientPreferencesRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PatientPreferencesRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      patientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}patient_id'],
+      )!,
+      weightUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}weight_unit'],
+      )!,
+      bloodGlucoseUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blood_glucose_unit'],
+      )!,
+      dailyWaterGoalMl: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_water_goal_ml'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+    );
+  }
+
+  @override
+  $PatientPrefsTable createAlias(String alias) {
+    return $PatientPrefsTable(attachedDatabase, alias);
+  }
+}
+
+class PatientPreferencesRow extends DataClass
+    implements Insertable<PatientPreferencesRow> {
+  final String id;
+  final String patientId;
+  final String weightUnit;
+  final String bloodGlucoseUnit;
+  final int dailyWaterGoalMl;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool isDirty;
+  const PatientPreferencesRow({
+    required this.id,
+    required this.patientId,
+    required this.weightUnit,
+    required this.bloodGlucoseUnit,
+    required this.dailyWaterGoalMl,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.isDirty,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['patient_id'] = Variable<String>(patientId);
+    map['weight_unit'] = Variable<String>(weightUnit);
+    map['blood_glucose_unit'] = Variable<String>(bloodGlucoseUnit);
+    map['daily_water_goal_ml'] = Variable<int>(dailyWaterGoalMl);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    return map;
+  }
+
+  PatientPrefsCompanion toCompanion(bool nullToAbsent) {
+    return PatientPrefsCompanion(
+      id: Value(id),
+      patientId: Value(patientId),
+      weightUnit: Value(weightUnit),
+      bloodGlucoseUnit: Value(bloodGlucoseUnit),
+      dailyWaterGoalMl: Value(dailyWaterGoalMl),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      isDirty: Value(isDirty),
+    );
+  }
+
+  factory PatientPreferencesRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PatientPreferencesRow(
+      id: serializer.fromJson<String>(json['id']),
+      patientId: serializer.fromJson<String>(json['patientId']),
+      weightUnit: serializer.fromJson<String>(json['weightUnit']),
+      bloodGlucoseUnit: serializer.fromJson<String>(json['bloodGlucoseUnit']),
+      dailyWaterGoalMl: serializer.fromJson<int>(json['dailyWaterGoalMl']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'patientId': serializer.toJson<String>(patientId),
+      'weightUnit': serializer.toJson<String>(weightUnit),
+      'bloodGlucoseUnit': serializer.toJson<String>(bloodGlucoseUnit),
+      'dailyWaterGoalMl': serializer.toJson<int>(dailyWaterGoalMl),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+    };
+  }
+
+  PatientPreferencesRow copyWith({
+    String? id,
+    String? patientId,
+    String? weightUnit,
+    String? bloodGlucoseUnit,
+    int? dailyWaterGoalMl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? isDirty,
+  }) => PatientPreferencesRow(
+    id: id ?? this.id,
+    patientId: patientId ?? this.patientId,
+    weightUnit: weightUnit ?? this.weightUnit,
+    bloodGlucoseUnit: bloodGlucoseUnit ?? this.bloodGlucoseUnit,
+    dailyWaterGoalMl: dailyWaterGoalMl ?? this.dailyWaterGoalMl,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    isDirty: isDirty ?? this.isDirty,
+  );
+  PatientPreferencesRow copyWithCompanion(PatientPrefsCompanion data) {
+    return PatientPreferencesRow(
+      id: data.id.present ? data.id.value : this.id,
+      patientId: data.patientId.present ? data.patientId.value : this.patientId,
+      weightUnit: data.weightUnit.present
+          ? data.weightUnit.value
+          : this.weightUnit,
+      bloodGlucoseUnit: data.bloodGlucoseUnit.present
+          ? data.bloodGlucoseUnit.value
+          : this.bloodGlucoseUnit,
+      dailyWaterGoalMl: data.dailyWaterGoalMl.present
+          ? data.dailyWaterGoalMl.value
+          : this.dailyWaterGoalMl,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientPreferencesRow(')
+          ..write('id: $id, ')
+          ..write('patientId: $patientId, ')
+          ..write('weightUnit: $weightUnit, ')
+          ..write('bloodGlucoseUnit: $bloodGlucoseUnit, ')
+          ..write('dailyWaterGoalMl: $dailyWaterGoalMl, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isDirty: $isDirty')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    patientId,
+    weightUnit,
+    bloodGlucoseUnit,
+    dailyWaterGoalMl,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isDirty,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PatientPreferencesRow &&
+          other.id == this.id &&
+          other.patientId == this.patientId &&
+          other.weightUnit == this.weightUnit &&
+          other.bloodGlucoseUnit == this.bloodGlucoseUnit &&
+          other.dailyWaterGoalMl == this.dailyWaterGoalMl &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.isDirty == this.isDirty);
+}
+
+class PatientPrefsCompanion extends UpdateCompanion<PatientPreferencesRow> {
+  final Value<String> id;
+  final Value<String> patientId;
+  final Value<String> weightUnit;
+  final Value<String> bloodGlucoseUnit;
+  final Value<int> dailyWaterGoalMl;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> isDirty;
+  final Value<int> rowid;
+  const PatientPrefsCompanion({
+    this.id = const Value.absent(),
+    this.patientId = const Value.absent(),
+    this.weightUnit = const Value.absent(),
+    this.bloodGlucoseUnit = const Value.absent(),
+    this.dailyWaterGoalMl = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PatientPrefsCompanion.insert({
+    required String id,
+    required String patientId,
+    this.weightUnit = const Value.absent(),
+    this.bloodGlucoseUnit = const Value.absent(),
+    this.dailyWaterGoalMl = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       patientId = Value(patientId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<PatientPreferencesRow> custom({
+    Expression<String>? id,
+    Expression<String>? patientId,
+    Expression<String>? weightUnit,
+    Expression<String>? bloodGlucoseUnit,
+    Expression<int>? dailyWaterGoalMl,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? isDirty,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (patientId != null) 'patient_id': patientId,
+      if (weightUnit != null) 'weight_unit': weightUnit,
+      if (bloodGlucoseUnit != null) 'blood_glucose_unit': bloodGlucoseUnit,
+      if (dailyWaterGoalMl != null) 'daily_water_goal_ml': dailyWaterGoalMl,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PatientPrefsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? patientId,
+    Value<String>? weightUnit,
+    Value<String>? bloodGlucoseUnit,
+    Value<int>? dailyWaterGoalMl,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? isDirty,
+    Value<int>? rowid,
+  }) {
+    return PatientPrefsCompanion(
+      id: id ?? this.id,
+      patientId: patientId ?? this.patientId,
+      weightUnit: weightUnit ?? this.weightUnit,
+      bloodGlucoseUnit: bloodGlucoseUnit ?? this.bloodGlucoseUnit,
+      dailyWaterGoalMl: dailyWaterGoalMl ?? this.dailyWaterGoalMl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isDirty: isDirty ?? this.isDirty,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (patientId.present) {
+      map['patient_id'] = Variable<String>(patientId.value);
+    }
+    if (weightUnit.present) {
+      map['weight_unit'] = Variable<String>(weightUnit.value);
+    }
+    if (bloodGlucoseUnit.present) {
+      map['blood_glucose_unit'] = Variable<String>(bloodGlucoseUnit.value);
+    }
+    if (dailyWaterGoalMl.present) {
+      map['daily_water_goal_ml'] = Variable<int>(dailyWaterGoalMl.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientPrefsCompanion(')
+          ..write('id: $id, ')
+          ..write('patientId: $patientId, ')
+          ..write('weightUnit: $weightUnit, ')
+          ..write('bloodGlucoseUnit: $bloodGlucoseUnit, ')
+          ..write('dailyWaterGoalMl: $dailyWaterGoalMl, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $BloodPressureReadingsTable extends BloodPressureReadings
     with TableInfo<$BloodPressureReadingsTable, BloodPressureRow> {
   @override
@@ -3722,6 +4294,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $PatientsTable patients = $PatientsTable(this);
+  late final $PatientPrefsTable patientPrefs = $PatientPrefsTable(this);
   late final $BloodPressureReadingsTable bloodPressureReadings =
       $BloodPressureReadingsTable(this);
   late final $BloodGlucoseReadingsTable bloodGlucoseReadings =
@@ -3732,6 +4305,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SyncStateTable syncState = $SyncStateTable(this);
   late final PatientsDao patientsDao = PatientsDao(this as AppDatabase);
+  late final PatientPreferencesDao patientPreferencesDao =
+      PatientPreferencesDao(this as AppDatabase);
   late final BloodPressureDao bloodPressureDao = BloodPressureDao(
     this as AppDatabase,
   );
@@ -3749,6 +4324,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     patients,
+    patientPrefs,
     bloodPressureReadings,
     bloodGlucoseReadings,
     weightReadings,
@@ -3757,6 +4333,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'patients',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('patient_prefs', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'patients',
@@ -3826,6 +4409,24 @@ typedef $$PatientsTableUpdateCompanionBuilder =
 final class $$PatientsTableReferences
     extends BaseReferences<_$AppDatabase, $PatientsTable, PatientRow> {
   $$PatientsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$PatientPrefsTable, List<PatientPreferencesRow>>
+  _patientPrefsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.patientPrefs,
+    aliasName: 'patients__id__patient_prefs__patient_id',
+  );
+
+  $$PatientPrefsTableProcessedTableManager get patientPrefsRefs {
+    final manager = $$PatientPrefsTableTableManager(
+      $_db,
+      $_db.patientPrefs,
+    ).filter((f) => f.patientId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_patientPrefsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 
   static MultiTypedResultKey<
     $BloodPressureReadingsTable,
@@ -3986,6 +4587,31 @@ class $$PatientsTableFilterComposer
     column: $table.isDirty,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> patientPrefsRefs(
+    Expression<bool> Function($$PatientPrefsTableFilterComposer f) f,
+  ) {
+    final $$PatientPrefsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.patientPrefs,
+      getReferencedColumn: (t) => t.patientId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientPrefsTableFilterComposer(
+            $db: $db,
+            $table: $db.patientPrefs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> bloodPressureReadingsRefs(
     Expression<bool> Function($$BloodPressureReadingsTableFilterComposer f) f,
@@ -4218,6 +4844,31 @@ class $$PatientsTableAnnotationComposer
   GeneratedColumn<bool> get isDirty =>
       $composableBuilder(column: $table.isDirty, builder: (column) => column);
 
+  Expression<T> patientPrefsRefs<T extends Object>(
+    Expression<T> Function($$PatientPrefsTableAnnotationComposer a) f,
+  ) {
+    final $$PatientPrefsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.patientPrefs,
+      getReferencedColumn: (t) => t.patientId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientPrefsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.patientPrefs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> bloodPressureReadingsRefs<T extends Object>(
     Expression<T> Function($$BloodPressureReadingsTableAnnotationComposer a) f,
   ) {
@@ -4335,6 +4986,7 @@ class $$PatientsTableTableManager
           (PatientRow, $$PatientsTableReferences),
           PatientRow,
           PrefetchHooks Function({
+            bool patientPrefsRefs,
             bool bloodPressureReadingsRefs,
             bool bloodGlucoseReadingsRefs,
             bool weightReadingsRefs,
@@ -4426,6 +5078,7 @@ class $$PatientsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                patientPrefsRefs = false,
                 bloodPressureReadingsRefs = false,
                 bloodGlucoseReadingsRefs = false,
                 weightReadingsRefs = false,
@@ -4434,6 +5087,7 @@ class $$PatientsTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (patientPrefsRefs) db.patientPrefs,
                     if (bloodPressureReadingsRefs) db.bloodPressureReadings,
                     if (bloodGlucoseReadingsRefs) db.bloodGlucoseReadings,
                     if (weightReadingsRefs) db.weightReadings,
@@ -4442,6 +5096,27 @@ class $$PatientsTableTableManager
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (patientPrefsRefs)
+                        await $_getPrefetchedData<
+                          PatientRow,
+                          $PatientsTable,
+                          PatientPreferencesRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PatientsTableReferences
+                              ._patientPrefsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PatientsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).patientPrefsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.patientId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (bloodPressureReadingsRefs)
                         await $_getPrefetchedData<
                           PatientRow,
@@ -4547,11 +5222,416 @@ typedef $$PatientsTableProcessedTableManager =
       (PatientRow, $$PatientsTableReferences),
       PatientRow,
       PrefetchHooks Function({
+        bool patientPrefsRefs,
         bool bloodPressureReadingsRefs,
         bool bloodGlucoseReadingsRefs,
         bool weightReadingsRefs,
         bool fluidIntakeLogsRefs,
       })
+    >;
+typedef $$PatientPrefsTableCreateCompanionBuilder =
+    PatientPrefsCompanion Function({
+      required String id,
+      required String patientId,
+      Value<String> weightUnit,
+      Value<String> bloodGlucoseUnit,
+      Value<int> dailyWaterGoalMl,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isDirty,
+      Value<int> rowid,
+    });
+typedef $$PatientPrefsTableUpdateCompanionBuilder =
+    PatientPrefsCompanion Function({
+      Value<String> id,
+      Value<String> patientId,
+      Value<String> weightUnit,
+      Value<String> bloodGlucoseUnit,
+      Value<int> dailyWaterGoalMl,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isDirty,
+      Value<int> rowid,
+    });
+
+final class $$PatientPrefsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PatientPrefsTable,
+          PatientPreferencesRow
+        > {
+  $$PatientPrefsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PatientsTable _patientIdTable(_$AppDatabase db) =>
+      db.patients.createAlias('patient_prefs__patient_id__patients__id');
+
+  $$PatientsTableProcessedTableManager get patientId {
+    final $_column = $_itemColumn<String>('patient_id')!;
+
+    final manager = $$PatientsTableTableManager(
+      $_db,
+      $_db.patients,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_patientIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PatientPrefsTableFilterComposer
+    extends Composer<_$AppDatabase, $PatientPrefsTable> {
+  $$PatientPrefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weightUnit => $composableBuilder(
+    column: $table.weightUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bloodGlucoseUnit => $composableBuilder(
+    column: $table.bloodGlucoseUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyWaterGoalMl => $composableBuilder(
+    column: $table.dailyWaterGoalMl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PatientsTableFilterComposer get patientId {
+    final $$PatientsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableFilterComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientPrefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PatientPrefsTable> {
+  $$PatientPrefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weightUnit => $composableBuilder(
+    column: $table.weightUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bloodGlucoseUnit => $composableBuilder(
+    column: $table.bloodGlucoseUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyWaterGoalMl => $composableBuilder(
+    column: $table.dailyWaterGoalMl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PatientsTableOrderingComposer get patientId {
+    final $$PatientsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableOrderingComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientPrefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PatientPrefsTable> {
+  $$PatientPrefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get weightUnit => $composableBuilder(
+    column: $table.weightUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bloodGlucoseUnit => $composableBuilder(
+    column: $table.bloodGlucoseUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dailyWaterGoalMl => $composableBuilder(
+    column: $table.dailyWaterGoalMl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  $$PatientsTableAnnotationComposer get patientId {
+    final $$PatientsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientPrefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PatientPrefsTable,
+          PatientPreferencesRow,
+          $$PatientPrefsTableFilterComposer,
+          $$PatientPrefsTableOrderingComposer,
+          $$PatientPrefsTableAnnotationComposer,
+          $$PatientPrefsTableCreateCompanionBuilder,
+          $$PatientPrefsTableUpdateCompanionBuilder,
+          (PatientPreferencesRow, $$PatientPrefsTableReferences),
+          PatientPreferencesRow,
+          PrefetchHooks Function({bool patientId})
+        > {
+  $$PatientPrefsTableTableManager(_$AppDatabase db, $PatientPrefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PatientPrefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PatientPrefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PatientPrefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> patientId = const Value.absent(),
+                Value<String> weightUnit = const Value.absent(),
+                Value<String> bloodGlucoseUnit = const Value.absent(),
+                Value<int> dailyWaterGoalMl = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientPrefsCompanion(
+                id: id,
+                patientId: patientId,
+                weightUnit: weightUnit,
+                bloodGlucoseUnit: bloodGlucoseUnit,
+                dailyWaterGoalMl: dailyWaterGoalMl,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isDirty: isDirty,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String patientId,
+                Value<String> weightUnit = const Value.absent(),
+                Value<String> bloodGlucoseUnit = const Value.absent(),
+                Value<int> dailyWaterGoalMl = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientPrefsCompanion.insert(
+                id: id,
+                patientId: patientId,
+                weightUnit: weightUnit,
+                bloodGlucoseUnit: bloodGlucoseUnit,
+                dailyWaterGoalMl: dailyWaterGoalMl,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isDirty: isDirty,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PatientPrefsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({patientId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (patientId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.patientId,
+                                referencedTable: $$PatientPrefsTableReferences
+                                    ._patientIdTable(db),
+                                referencedColumn: $$PatientPrefsTableReferences
+                                    ._patientIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PatientPrefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PatientPrefsTable,
+      PatientPreferencesRow,
+      $$PatientPrefsTableFilterComposer,
+      $$PatientPrefsTableOrderingComposer,
+      $$PatientPrefsTableAnnotationComposer,
+      $$PatientPrefsTableCreateCompanionBuilder,
+      $$PatientPrefsTableUpdateCompanionBuilder,
+      (PatientPreferencesRow, $$PatientPrefsTableReferences),
+      PatientPreferencesRow,
+      PrefetchHooks Function({bool patientId})
     >;
 typedef $$BloodPressureReadingsTableCreateCompanionBuilder =
     BloodPressureReadingsCompanion Function({
@@ -6520,6 +7600,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$PatientsTableTableManager get patients =>
       $$PatientsTableTableManager(_db, _db.patients);
+  $$PatientPrefsTableTableManager get patientPrefs =>
+      $$PatientPrefsTableTableManager(_db, _db.patientPrefs);
   $$BloodPressureReadingsTableTableManager get bloodPressureReadings =>
       $$BloodPressureReadingsTableTableManager(_db, _db.bloodPressureReadings);
   $$BloodGlucoseReadingsTableTableManager get bloodGlucoseReadings =>

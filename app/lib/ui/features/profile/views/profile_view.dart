@@ -1,3 +1,4 @@
+import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
@@ -111,12 +112,70 @@ class _ProfileViewState extends State<ProfileView> {
     _showSaveFeedback(saved, viewModel);
   }
 
-  void _showSaveFeedback(bool saved, ProfileViewModel viewModel) {
+  Future<void> _pickWeightUnit(ProfileViewModel viewModel) async {
+    final selected = await showProfileOptionPickerSheet(
+      context,
+      title: 'Weight unit',
+      selectedValue: viewModel.preferences?.weightUnit ??
+          PatientPreferences.defaultWeightUnit,
+      options: [
+        for (final value in weightUnitOptions)
+          ProfilePickerOption(
+            value: value,
+            label: formatWeightUnitLabel(value),
+          ),
+      ],
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateWeightUnit(selected);
+    _showSaveFeedback(saved, viewModel, successMessage: 'Preferences updated');
+  }
+
+  Future<void> _pickBloodGlucoseUnit(ProfileViewModel viewModel) async {
+    final selected = await showProfileOptionPickerSheet(
+      context,
+      title: 'Glucose unit',
+      selectedValue: viewModel.preferences?.bloodGlucoseUnit ??
+          PatientPreferences.defaultBloodGlucoseUnit,
+      options: [
+        for (final value in bloodGlucoseUnitOptions)
+          ProfilePickerOption(
+            value: value,
+            label: formatBloodGlucoseUnitLabel(value),
+          ),
+      ],
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateBloodGlucoseUnit(selected);
+    _showSaveFeedback(saved, viewModel, successMessage: 'Preferences updated');
+  }
+
+  Future<void> _pickDailyWaterGoal(ProfileViewModel viewModel) async {
+    final selected = await showProfileWaterGoalPickerSheet(
+      context,
+      initialGoalMl: viewModel.preferences?.dailyWaterGoalMl,
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateDailyWaterGoalMl(selected);
+    _showSaveFeedback(saved, viewModel, successMessage: 'Preferences updated');
+  }
+
+  void _showSaveFeedback(
+    bool saved,
+    ProfileViewModel viewModel, {
+    String successMessage = 'Profile updated',
+  }) {
     if (!mounted) {
       return;
     }
     final message = saved
-        ? 'Profile updated'
+        ? successMessage
         : (viewModel.errorMessage ?? 'Could not update profile.');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -127,10 +186,12 @@ class _ProfileViewState extends State<ProfileView> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<ProfileViewModel>();
     final patient = viewModel.patient;
+    final preferences = viewModel.preferences;
     final displayName = patient?.displayName?.isNotEmpty == true
         ? patient!.displayName!
         : 'Patient';
     final canEdit = patient != null && !viewModel.isSaving;
+    final canEditPreferences = preferences != null && !viewModel.isSaving;
 
     return SafeArea(
       child: Center(
@@ -195,6 +256,38 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Height',
                         value: formatHeightLabel(patient?.heightCm),
                         onTap: canEdit ? () => _pickHeight(viewModel) : null,
+                        isLast: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
+                  _ProfileSection(
+                    title: 'Preferences',
+                    children: [
+                      _ProfileDetailRow(
+                        label: 'Weight unit',
+                        value: formatWeightUnitLabel(preferences?.weightUnit),
+                        onTap: canEditPreferences
+                            ? () => _pickWeightUnit(viewModel)
+                            : null,
+                      ),
+                      _ProfileDetailRow(
+                        label: 'Glucose unit',
+                        value: formatBloodGlucoseUnitLabel(
+                          preferences?.bloodGlucoseUnit,
+                        ),
+                        onTap: canEditPreferences
+                            ? () => _pickBloodGlucoseUnit(viewModel)
+                            : null,
+                      ),
+                      _ProfileDetailRow(
+                        label: 'Daily water goal',
+                        value: formatDailyWaterGoalLabel(
+                          preferences?.dailyWaterGoalMl,
+                        ),
+                        onTap: canEditPreferences
+                            ? () => _pickDailyWaterGoal(viewModel)
+                            : null,
                         isLast: true,
                       ),
                     ],

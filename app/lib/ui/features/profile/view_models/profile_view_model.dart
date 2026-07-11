@@ -2,6 +2,7 @@ import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/domain/errors/profile_update_requires_network.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/patient_preferences.dart';
 import 'package:flutter/material.dart';
 
 class ProfileViewModel extends ChangeNotifier {
@@ -17,6 +18,7 @@ class ProfileViewModel extends ChangeNotifier {
   final PatientRepository _patientRepository;
 
   Patient? _patient;
+  PatientPreferences? _preferences;
   String? _email;
   bool _isLoading = true;
   bool _isSigningOut = false;
@@ -24,6 +26,7 @@ class ProfileViewModel extends ChangeNotifier {
   String? _errorMessage;
 
   Patient? get patient => _patient;
+  PatientPreferences? get preferences => _preferences;
   String? get email => _email;
   bool get isLoading => _isLoading;
   bool get isSigningOut => _isSigningOut;
@@ -40,12 +43,16 @@ class ProfileViewModel extends ChangeNotifier {
 
     if (authUserId == null) {
       _patient = null;
+      _preferences = null;
       _isLoading = false;
       notifyListeners();
       return;
     }
 
     _patient = await _patientRepository.getPatientForAuthUser(authUserId);
+    _preferences = await _patientRepository.getOrCreatePreferencesForAuthUser(
+      authUserId,
+    );
     _isLoading = false;
     notifyListeners();
   }
@@ -135,6 +142,24 @@ class ProfileViewModel extends ChangeNotifier {
         ));
   }
 
+  Future<bool> updateWeightUnit(String weightUnit) {
+    return _updatePreferences(
+      (prefs) => prefs.copyWith(weightUnit: weightUnit),
+    );
+  }
+
+  Future<bool> updateBloodGlucoseUnit(String bloodGlucoseUnit) {
+    return _updatePreferences(
+      (prefs) => prefs.copyWith(bloodGlucoseUnit: bloodGlucoseUnit),
+    );
+  }
+
+  Future<bool> updateDailyWaterGoalMl(int dailyWaterGoalMl) {
+    return _updatePreferences(
+      (prefs) => prefs.copyWith(dailyWaterGoalMl: dailyWaterGoalMl),
+    );
+  }
+
   Future<bool> _updatePatient(Patient Function(Patient current) build) async {
     final current = _patient;
     if (current == null || _isSaving) {
@@ -155,6 +180,35 @@ class ProfileViewModel extends ChangeNotifier {
       return false;
     } catch (error) {
       _errorMessage = 'Could not update profile. Please try again.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> _updatePreferences(
+    PatientPreferences Function(PatientPreferences current) build,
+  ) async {
+    final current = _preferences;
+    if (current == null || _isSaving) {
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = build(current);
+      await _patientRepository.updatePreferences(updated);
+      _preferences = updated;
+      return true;
+    } on ProfileUpdateRequiresNetworkException catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } catch (error) {
+      _errorMessage = 'Could not update preferences. Please try again.';
       return false;
     } finally {
       _isSaving = false;

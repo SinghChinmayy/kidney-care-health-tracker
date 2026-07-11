@@ -161,3 +161,34 @@ FluidIntakeRow fluidIntakeRowFromRemoteJson(Map<String, dynamic> json) {
     isDirty: false,
   );
 }
+
+Map<String, dynamic> patientPreferencesRowToRemoteJson(
+  PatientPreferencesRow row,
+) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'weight_unit': row.weightUnit,
+    'blood_glucose_unit': row.bloodGlucoseUnit,
+    'daily_water_goal_ml': row.dailyWaterGoalMl,
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+PatientPreferencesRow patientPreferencesRowFromRemoteJson(
+  Map<String, dynamic> json,
+) {
+  return PatientPreferencesRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    weightUnit: json['weight_unit'] as String? ?? 'kg',
+    bloodGlucoseUnit: json['blood_glucose_unit'] as String? ?? 'mg_dl',
+    dailyWaterGoalMl: parseRemoteInt(json['daily_water_goal_ml']) ?? 1200,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}
