@@ -1,3 +1,4 @@
+import 'package:app/debug/agent_debug_log.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -19,68 +20,75 @@ Future<String?> showProfileOptionPickerSheet(
 }) {
   return showModalBottomSheet<String?>(
     context: context,
+    isScrollControlled: true,
+    sheetAnimationStyle: AnimationStyle.noAnimation,
     backgroundColor: AppTheme.background,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
     builder: (sheetContext) {
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppTheme.spacingSm,
-            AppTheme.spacingXs,
-            AppTheme.spacingSm,
-            AppTheme.spacingMd,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.muted.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spacingSm,
+              AppTheme.spacingXs,
+              AppTheme.spacingSm,
+              AppTheme.spacingMd,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.muted.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              Text(title, style: Theme.of(sheetContext).textTheme.titleMedium),
-              const SizedBox(height: AppTheme.spacingSm),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.5,
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  separatorBuilder: (_, _) => Divider(
-                    height: 1,
-                    color: AppTheme.muted.withValues(alpha: 0.2),
+                const SizedBox(height: AppTheme.spacingMd),
+                Text(title, style: Theme.of(sheetContext).textTheme.titleMedium),
+                const SizedBox(height: AppTheme.spacingSm),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      color: AppTheme.muted.withValues(alpha: 0.2),
+                    ),
+                    itemBuilder: (context, index) {
+                      final option = options[index];
+                      final isSelected = option.value == selectedValue;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          option.label,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check, color: AppTheme.ink)
+                            : null,
+                        onTap: () =>
+                            Navigator.of(sheetContext).pop(option.value),
+                      );
+                    },
                   ),
-                  itemBuilder: (context, index) {
-                    final option = options[index];
-                    final isSelected = option.value == selectedValue;
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        option.label,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check, color: AppTheme.ink)
-                          : null,
-                      onTap: () => Navigator.of(sheetContext).pop(option.value),
-                    );
-                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -95,6 +103,7 @@ Future<double?> showProfileHeightPickerSheet(
   return showModalBottomSheet<double>(
     context: context,
     isScrollControlled: true,
+    sheetAnimationStyle: AnimationStyle.noAnimation,
     backgroundColor: AppTheme.background,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
@@ -103,6 +112,210 @@ Future<double?> showProfileHeightPickerSheet(
       return _HeightPickerSheet(initialHeightCm: initialHeightCm);
     },
   );
+}
+
+class ProfileNameEditResult {
+  const ProfileNameEditResult({
+    required this.firstName,
+    required this.lastName,
+  });
+
+  final String? firstName;
+  final String? lastName;
+}
+
+Future<ProfileNameEditResult?> showProfileNamePickerSheet(
+  BuildContext context, {
+  String? initialFirstName,
+  String? initialLastName,
+  int? debugTapAt,
+}) {
+  // #region agent log
+  agentDebugLog(
+    hypothesisId: 'F',
+    location: 'profile_option_picker_sheet.dart:showProfileNamePickerSheet',
+    message: 'name_sheet_show_called',
+    data: {
+      'debugTapAt': debugTapAt,
+      'sinceTapMs': debugTapAt == null
+          ? null
+          : DateTime.now().millisecondsSinceEpoch - debugTapAt,
+      'sheetAnimationStyle': 'noAnimation',
+      'autofocus': true,
+    },
+    runId: 'snap-fix',
+  );
+  // #endregion
+  var builderCallCount = 0;
+  return showModalBottomSheet<ProfileNameEditResult>(
+    context: context,
+    isScrollControlled: true,
+    sheetAnimationStyle: AnimationStyle.noAnimation,
+    backgroundColor: AppTheme.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: AppTheme.sheetTopRadius,
+    ),
+    builder: (sheetContext) {
+      builderCallCount += 1;
+      // #region agent log
+      agentDebugLog(
+        hypothesisId: 'F',
+        location: 'profile_option_picker_sheet.dart:name_sheet_builder',
+        message: 'name_sheet_builder',
+        data: {
+          'builderCallCount': builderCallCount,
+          'sinceTapMs': debugTapAt == null
+              ? null
+              : DateTime.now().millisecondsSinceEpoch - debugTapAt,
+          'viewInsetsBottom': MediaQuery.viewInsetsOf(sheetContext).bottom,
+        },
+        runId: 'snap-fix',
+      );
+      // #endregion
+      return _NamePickerSheet(
+        initialFirstName: initialFirstName,
+        initialLastName: initialLastName,
+        debugTapAt: debugTapAt,
+      );
+    },
+  );
+}
+
+class _NamePickerSheet extends StatefulWidget {
+  const _NamePickerSheet({
+    this.initialFirstName,
+    this.initialLastName,
+    this.debugTapAt,
+  });
+
+  final String? initialFirstName;
+  final String? initialLastName;
+  final int? debugTapAt;
+
+  @override
+  State<_NamePickerSheet> createState() => _NamePickerSheetState();
+}
+
+class _NamePickerSheetState extends State<_NamePickerSheet> {
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _lastNameController;
+  String? _errorText;
+  int _buildCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(
+      text: widget.initialFirstName ?? '',
+    );
+    _lastNameController = TextEditingController(
+      text: widget.initialLastName ?? '',
+    );
+    // #region agent log
+    agentDebugLog(
+      hypothesisId: 'F',
+      location: 'profile_option_picker_sheet.dart:_NamePickerSheetState.initState',
+      message: 'name_sheet_init_autofocus',
+      data: {
+        'autofocus': true,
+        'sheetAnimationStyle': 'noAnimation',
+        'sinceTapMs': widget.debugTapAt == null
+            ? null
+            : DateTime.now().millisecondsSinceEpoch - widget.debugTapAt!,
+      },
+      runId: 'snap-fix',
+    );
+    // #endregion
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    if (firstName.isEmpty) {
+      setState(() => _errorText = 'Enter a first name.');
+      return;
+    }
+    Navigator.of(context).pop(
+      ProfileNameEditResult(
+        firstName: firstName,
+        lastName: lastName.isEmpty ? null : lastName,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final insetsBottom = MediaQuery.viewInsetsOf(context).bottom;
+    _buildCount += 1;
+    // #region agent log
+    agentDebugLog(
+      hypothesisId: 'F',
+      location: 'profile_option_picker_sheet.dart:_NamePickerSheetState.build',
+      message: 'name_sheet_build',
+      data: {
+        'buildCount': _buildCount,
+        'viewInsetsBottom': insetsBottom,
+        'sinceTapMs': widget.debugTapAt == null
+            ? null
+            : DateTime.now().millisecondsSinceEpoch - widget.debugTapAt!,
+      },
+      runId: 'snap-fix',
+    );
+    // #endregion
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppTheme.spacingSm,
+        right: AppTheme.spacingSm,
+        top: AppTheme.spacingSm,
+        bottom: insetsBottom + AppTheme.spacingSm,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Name', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppTheme.spacingSm),
+            TextFormField(
+              controller: _firstNameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'First name',
+              ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            TextFormField(
+              controller: _lastNameController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Last name',
+              ),
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submit(),
+            ),
+            if (_errorText != null) ...[
+              const SizedBox(height: AppTheme.spacingXs),
+              Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+            ],
+            const SizedBox(height: AppTheme.spacingMd),
+            ElevatedButton(
+              onPressed: _submit,
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HeightPickerSheet extends StatefulWidget {
@@ -153,33 +366,35 @@ class _HeightPickerSheetState extends State<_HeightPickerSheet> {
         left: AppTheme.spacingSm,
         right: AppTheme.spacingSm,
         top: AppTheme.spacingSm,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingSm,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.spacingSm,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Height', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppTheme.spacingSm),
-          TextFormField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Height (cm)',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Height', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppTheme.spacingSm),
+            TextFormField(
+              controller: _controller,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Height (cm)',
+              ),
+              onFieldSubmitted: (_) => _submit(),
             ),
-            onFieldSubmitted: (_) => _submit(),
-          ),
-          if (_errorText != null) ...[
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+            if (_errorText != null) ...[
+              const SizedBox(height: AppTheme.spacingXs),
+              Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+            ],
+            const SizedBox(height: AppTheme.spacingMd),
+            ElevatedButton(
+              onPressed: _submit,
+              child: const Text('Save'),
+            ),
           ],
-          const SizedBox(height: AppTheme.spacingMd),
-          ElevatedButton(
-            onPressed: _submit,
-            child: const Text('Save'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -192,6 +407,7 @@ Future<int?> showProfileWaterGoalPickerSheet(
   return showModalBottomSheet<int>(
     context: context,
     isScrollControlled: true,
+    sheetAnimationStyle: AnimationStyle.noAnimation,
     backgroundColor: AppTheme.background,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
@@ -232,7 +448,7 @@ class _WaterGoalPickerSheetState extends State<_WaterGoalPickerSheet> {
   void _submit() {
     final value = int.tryParse(_controller.text.trim());
     if (value == null || value < 100 || value > 5000) {
-      setState(() => _errorText = 'Enter a goal between 100 and 5000 ml.');
+      setState(() => _errorText = 'Enter a limit between 100 and 5000 ml.');
       return;
     }
     Navigator.of(context).pop(value);
@@ -245,36 +461,155 @@ class _WaterGoalPickerSheetState extends State<_WaterGoalPickerSheet> {
         left: AppTheme.spacingSm,
         right: AppTheme.spacingSm,
         top: AppTheme.spacingSm,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingSm,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.spacingSm,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Daily water goal',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
-          TextFormField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Goal (ml)',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Daily fluid limit',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            onFieldSubmitted: (_) => _submit(),
-          ),
-          if (_errorText != null) ...[
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+            const SizedBox(height: AppTheme.spacingSm),
+            TextFormField(
+              controller: _controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Limit (ml)',
+              ),
+              onFieldSubmitted: (_) => _submit(),
+            ),
+            if (_errorText != null) ...[
+              const SizedBox(height: AppTheme.spacingXs),
+              Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+            ],
+            const SizedBox(height: AppTheme.spacingMd),
+            ElevatedButton(
+              onPressed: _submit,
+              child: const Text('Save'),
+            ),
           ],
-          const SizedBox(height: AppTheme.spacingMd),
-          ElevatedButton(
-            onPressed: _submit,
-            child: const Text('Save'),
+        ),
+      ),
+    );
+  }
+}
+
+Future<List<int>?> showProfileDialysisDaysPickerSheet(
+  BuildContext context, {
+  List<int>? initialDays,
+}) {
+  return showModalBottomSheet<List<int>>(
+    context: context,
+    isScrollControlled: true,
+    sheetAnimationStyle: AnimationStyle.noAnimation,
+    backgroundColor: AppTheme.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: AppTheme.sheetTopRadius,
+    ),
+    builder: (sheetContext) {
+      return _DialysisDaysPickerSheet(initialDays: initialDays);
+    },
+  );
+}
+
+class _DialysisDaysPickerSheet extends StatefulWidget {
+  const _DialysisDaysPickerSheet({this.initialDays});
+
+  final List<int>? initialDays;
+
+  @override
+  State<_DialysisDaysPickerSheet> createState() =>
+      _DialysisDaysPickerSheetState();
+}
+
+class _DialysisDaysPickerSheetState extends State<_DialysisDaysPickerSheet> {
+  static const _dayOptions = <(int, String)>[
+    (1, 'Monday'),
+    (2, 'Tuesday'),
+    (3, 'Wednesday'),
+    (4, 'Thursday'),
+    (5, 'Friday'),
+    (6, 'Saturday'),
+    (7, 'Sunday'),
+  ];
+
+  late final Set<int> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = {...?widget.initialDays};
+  }
+
+  void _toggle(int day) {
+    setState(() {
+      if (_selected.contains(day)) {
+        _selected.remove(day);
+      } else {
+        _selected.add(day);
+      }
+    });
+  }
+
+  void _submit() {
+    final days = _selected.toList()..sort();
+    Navigator.of(context).pop(days);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.spacingSm,
+            AppTheme.spacingXs,
+            AppTheme.spacingSm,
+            AppTheme.spacingMd,
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.muted.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                'Dialysis days',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppTheme.spacingSm),
+              for (final (day, label) in _dayOptions)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _selected.contains(day),
+                  title: Text(label),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (_) => _toggle(day),
+                ),
+              const SizedBox(height: AppTheme.spacingSm),
+              ElevatedButton(
+                onPressed: _submit,
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

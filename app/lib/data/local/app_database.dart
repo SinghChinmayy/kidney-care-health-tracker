@@ -1,3 +1,4 @@
+import 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
 import 'package:app/data/local/daos/blood_glucose_dao.dart';
 import 'package:app/data/local/daos/blood_pressure_dao.dart';
 import 'package:app/data/local/daos/fluid_intake_dao.dart';
@@ -15,6 +16,7 @@ import 'package:app/data/local/tables/weight_readings.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+export 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
 export 'package:app/data/local/daos/blood_glucose_dao.dart';
 export 'package:app/data/local/daos/blood_pressure_dao.dart';
 export 'package:app/data/local/daos/fluid_intake_dao.dart';
@@ -51,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +77,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await migrator.createTable(patientPrefs);
+          }
+          if (from < 5) {
+            await migrator.addColumn(
+              patients,
+              patients.dialysisDaysOfWeek,
+            );
           }
         },
       );
@@ -130,6 +138,7 @@ class AppDatabase extends _$AppDatabase {
           sex: localRow.sex,
           ckdStage: localRow.ckdStage,
           dialysisType: localRow.dialysisType,
+          dialysisDaysOfWeek: localRow.dialysisDaysOfWeek,
           heightCm: localRow.heightCm,
           createdAt: localRow.createdAt,
           updatedAt: localRow.updatedAt,

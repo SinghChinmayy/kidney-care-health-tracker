@@ -26,6 +26,7 @@ void main() {
         sex: null,
         ckdStage: null,
         dialysisType: 'none',
+        dialysisDaysOfWeek: null,
         heightCm: null,
         createdAt: DateTime.utc(2026, 7, 8, 9),
         updatedAt: DateTime.utc(2026, 7, 8, 9),

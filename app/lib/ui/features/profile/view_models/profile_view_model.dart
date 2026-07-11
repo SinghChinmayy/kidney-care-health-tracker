@@ -57,89 +57,87 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Patient _withPatient(
+    Patient patient, {
+    String? Function()? firstName,
+    String? Function()? lastName,
+    String? Function()? ckdStage,
+    String? Function()? dialysisType,
+    List<int>? Function()? dialysisDaysOfWeek,
+    String? Function()? sex,
+    DateTime? Function()? dateOfBirth,
+    double? Function()? heightCm,
+  }) {
+    return Patient(
+      id: patient.id,
+      authUserId: patient.authUserId,
+      firstName: firstName != null ? firstName() : patient.firstName,
+      lastName: lastName != null ? lastName() : patient.lastName,
+      dateOfBirth: dateOfBirth != null ? dateOfBirth() : patient.dateOfBirth,
+      sex: sex != null ? sex() : patient.sex,
+      ckdStage: ckdStage != null ? ckdStage() : patient.ckdStage,
+      dialysisType:
+          dialysisType != null ? dialysisType()! : patient.dialysisType,
+      dialysisDaysOfWeek: dialysisDaysOfWeek != null
+          ? dialysisDaysOfWeek()
+          : patient.dialysisDaysOfWeek,
+      heightCm: heightCm != null ? heightCm() : patient.heightCm,
+      createdAt: patient.createdAt,
+      updatedAt: patient.updatedAt,
+      deletedAt: patient.deletedAt,
+    );
+  }
+
+  Future<bool> updateName({
+    required String? firstName,
+    required String? lastName,
+  }) {
+    return _updatePatient(
+      (patient) => _withPatient(
+        patient,
+        firstName: () => firstName,
+        lastName: () => lastName,
+      ),
+    );
+  }
+
   Future<bool> updateCkdStage(String? ckdStage) {
-    return _updatePatient((patient) => Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          dateOfBirth: patient.dateOfBirth,
-          sex: patient.sex,
-          ckdStage: ckdStage,
-          dialysisType: patient.dialysisType,
-          heightCm: patient.heightCm,
-          createdAt: patient.createdAt,
-          updatedAt: patient.updatedAt,
-          deletedAt: patient.deletedAt,
-        ));
+    return _updatePatient(
+      (patient) => _withPatient(patient, ckdStage: () => ckdStage),
+    );
   }
 
   Future<bool> updateDialysisType(String dialysisType) {
-    return _updatePatient((patient) => Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          dateOfBirth: patient.dateOfBirth,
-          sex: patient.sex,
-          ckdStage: patient.ckdStage,
-          dialysisType: dialysisType,
-          heightCm: patient.heightCm,
-          createdAt: patient.createdAt,
-          updatedAt: patient.updatedAt,
-          deletedAt: patient.deletedAt,
-        ));
+    return _updatePatient(
+      (patient) => _withPatient(patient, dialysisType: () => dialysisType),
+    );
+  }
+
+  Future<bool> updateDialysisDaysOfWeek(List<int>? dialysisDaysOfWeek) {
+    return _updatePatient(
+      (patient) => _withPatient(
+        patient,
+        dialysisDaysOfWeek: () => dialysisDaysOfWeek,
+      ),
+    );
   }
 
   Future<bool> updateSex(String? sex) {
-    return _updatePatient((patient) => Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          dateOfBirth: patient.dateOfBirth,
-          sex: sex,
-          ckdStage: patient.ckdStage,
-          dialysisType: patient.dialysisType,
-          heightCm: patient.heightCm,
-          createdAt: patient.createdAt,
-          updatedAt: patient.updatedAt,
-          deletedAt: patient.deletedAt,
-        ));
+    return _updatePatient(
+      (patient) => _withPatient(patient, sex: () => sex),
+    );
   }
 
   Future<bool> updateDateOfBirth(DateTime? dateOfBirth) {
-    return _updatePatient((patient) => Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          dateOfBirth: dateOfBirth,
-          sex: patient.sex,
-          ckdStage: patient.ckdStage,
-          dialysisType: patient.dialysisType,
-          heightCm: patient.heightCm,
-          createdAt: patient.createdAt,
-          updatedAt: patient.updatedAt,
-          deletedAt: patient.deletedAt,
-        ));
+    return _updatePatient(
+      (patient) => _withPatient(patient, dateOfBirth: () => dateOfBirth),
+    );
   }
 
   Future<bool> updateHeightCm(double? heightCm) {
-    return _updatePatient((patient) => Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          dateOfBirth: patient.dateOfBirth,
-          sex: patient.sex,
-          ckdStage: patient.ckdStage,
-          dialysisType: patient.dialysisType,
-          heightCm: heightCm,
-          createdAt: patient.createdAt,
-          updatedAt: patient.updatedAt,
-          deletedAt: patient.deletedAt,
-        ));
+    return _updatePatient(
+      (patient) => _withPatient(patient, heightCm: () => heightCm),
+    );
   }
 
   Future<bool> updateWeightUnit(String weightUnit) {

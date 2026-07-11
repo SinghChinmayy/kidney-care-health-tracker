@@ -8,6 +8,7 @@ class Patient {
     this.sex,
     this.ckdStage,
     this.dialysisType = 'none',
+    this.dialysisDaysOfWeek,
     this.heightCm,
     this.createdAt,
     this.updatedAt,
@@ -22,6 +23,9 @@ class Patient {
   final String? sex;
   final String? ckdStage;
   final String dialysisType;
+
+  /// ISO weekdays 1=Mon … 7=Sun. null = unset; empty = no days.
+  final List<int>? dialysisDaysOfWeek;
   final double? heightCm;
   final DateTime? createdAt;
   final DateTime? updatedAt;

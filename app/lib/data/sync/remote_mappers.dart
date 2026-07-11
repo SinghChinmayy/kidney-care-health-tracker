@@ -1,4 +1,5 @@
 import 'package:app/data/local/app_database.dart';
+import 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
 import 'package:app/data/sync/sync_utils.dart';
 import 'package:app/domain/models/weight_reading_options.dart';
 
@@ -12,6 +13,7 @@ Map<String, dynamic> patientRowToRemoteJson(PatientRow row) {
     'sex': row.sex,
     'ckd_stage': row.ckdStage,
     'dialysis_type': row.dialysisType,
+    'dialysis_days_of_week': row.dialysisDaysOfWeek,
     'height_cm': row.heightCm,
     'created_at': remoteIsoDateTime(row.createdAt),
     'updated_at': remoteIsoDateTime(row.updatedAt),
@@ -29,6 +31,7 @@ PatientRow patientRowFromRemoteJson(Map<String, dynamic> json) {
     sex: json['sex'] as String?,
     ckdStage: json['ckd_stage'] as String?,
     dialysisType: json['dialysis_type'] as String? ?? 'none',
+    dialysisDaysOfWeek: parseDialysisDaysOfWeek(json['dialysis_days_of_week']),
     heightCm: parseRemoteDouble(json['height_cm']),
     createdAt: parseRemoteDateTime(json['created_at']),
     updatedAt: parseRemoteDateTime(json['updated_at']),

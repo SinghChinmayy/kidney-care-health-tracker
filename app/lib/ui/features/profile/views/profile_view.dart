@@ -1,3 +1,4 @@
+import 'package:app/debug/agent_debug_log.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 const double _profileContentMaxWidth = 600;
+const Color _profileAccent = Color(0xFFE57373);
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -62,6 +64,45 @@ class _ProfileViewState extends State<ProfileView> {
       return;
     }
     final saved = await viewModel.updateDialysisType(selected);
+    _showSaveFeedback(saved, viewModel);
+  }
+
+  Future<void> _pickDialysisDays(ProfileViewModel viewModel) async {
+    final selected = await showProfileDialysisDaysPickerSheet(
+      context,
+      initialDays: viewModel.patient?.dialysisDaysOfWeek,
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateDialysisDaysOfWeek(selected);
+    _showSaveFeedback(saved, viewModel);
+  }
+
+  Future<void> _pickName(ProfileViewModel viewModel) async {
+    // #region agent log
+    final tapAt = DateTime.now().millisecondsSinceEpoch;
+    agentDebugLog(
+      hypothesisId: 'F',
+      location: 'profile_view.dart:_pickName',
+      message: 'edit_profile_tap',
+      data: {'tapAt': tapAt},
+      runId: 'snap-fix',
+    );
+    // #endregion
+    final selected = await showProfileNamePickerSheet(
+      context,
+      initialFirstName: viewModel.patient?.firstName,
+      initialLastName: viewModel.patient?.lastName,
+      debugTapAt: tapAt,
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateName(
+      firstName: selected.firstName,
+      lastName: selected.lastName,
+    );
     _showSaveFeedback(saved, viewModel);
   }
 
@@ -200,20 +241,21 @@ class _ProfileViewState extends State<ProfileView> {
           child: RefreshIndicator(
             onRefresh: viewModel.refresh,
             child: ListView(
-              padding: const EdgeInsets.all(AppTheme.spacingSm),
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacingMd,
+                AppTheme.spacingSm,
+                AppTheme.spacingMd,
+                AppTheme.spacingLg,
+              ),
               children: [
                 Text(
-                  'Profile',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: AppTheme.spacingXs),
-                Text(
-                  'Your account and kidney care details.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.muted,
+                  'My Profile',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacingLg),
                 if (viewModel.isLoading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
@@ -223,17 +265,53 @@ class _ProfileViewState extends State<ProfileView> {
                   _ProfileHeader(
                     name: displayName,
                     email: viewModel.email,
+                    onEditProfile:
+                        canEdit ? () => _pickName(viewModel) : null,
                   ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                  const SizedBox(height: AppTheme.spacingLg),
                   _ProfileSection(
-                    title: 'Health details',
+                    title: 'Personal',
                     children: [
                       _ProfileDetailRow(
+                        icon: Icons.person_outline,
+                        label: 'Name',
+                        value: displayName,
+                        onTap: canEdit ? () => _pickName(viewModel) : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.cake_outlined,
+                        label: 'Date of birth',
+                        value: formatDateOfBirthLabel(patient?.dateOfBirth),
+                        onTap:
+                            canEdit ? () => _pickDateOfBirth(viewModel) : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.wc_outlined,
+                        label: 'Sex',
+                        value: formatSexLabel(patient?.sex),
+                        onTap: canEdit ? () => _pickSex(viewModel) : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.height_outlined,
+                        label: 'Height',
+                        value: formatHeightLabel(patient?.heightCm),
+                        onTap: canEdit ? () => _pickHeight(viewModel) : null,
+                        isLast: true,
+                      ),
+                    ],
+                  ),
+                  const _ProfileSectionDivider(),
+                  _ProfileSection(
+                    title: 'Kidney care',
+                    children: [
+                      _ProfileDetailRow(
+                        icon: Icons.monitor_heart_outlined,
                         label: 'CKD stage',
                         value: formatCkdStageLabel(patient?.ckdStage),
                         onTap: canEdit ? () => _pickCkdStage(viewModel) : null,
                       ),
                       _ProfileDetailRow(
+                        icon: Icons.local_hospital_outlined,
                         label: 'Dialysis',
                         value: formatDialysisTypeLabel(
                           patient?.dialysisType ?? 'none',
@@ -242,46 +320,17 @@ class _ProfileViewState extends State<ProfileView> {
                             canEdit ? () => _pickDialysisType(viewModel) : null,
                       ),
                       _ProfileDetailRow(
-                        label: 'Date of birth',
-                        value: formatDateOfBirthLabel(patient?.dateOfBirth),
-                        onTap:
-                            canEdit ? () => _pickDateOfBirth(viewModel) : null,
-                      ),
-                      _ProfileDetailRow(
-                        label: 'Sex',
-                        value: formatSexLabel(patient?.sex),
-                        onTap: canEdit ? () => _pickSex(viewModel) : null,
-                      ),
-                      _ProfileDetailRow(
-                        label: 'Height',
-                        value: formatHeightLabel(patient?.heightCm),
-                        onTap: canEdit ? () => _pickHeight(viewModel) : null,
-                        isLast: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
-                  _ProfileSection(
-                    title: 'Preferences',
-                    children: [
-                      _ProfileDetailRow(
-                        label: 'Weight unit',
-                        value: formatWeightUnitLabel(preferences?.weightUnit),
-                        onTap: canEditPreferences
-                            ? () => _pickWeightUnit(viewModel)
-                            : null,
-                      ),
-                      _ProfileDetailRow(
-                        label: 'Glucose unit',
-                        value: formatBloodGlucoseUnitLabel(
-                          preferences?.bloodGlucoseUnit,
+                        icon: Icons.calendar_today_outlined,
+                        label: 'Dialysis days',
+                        value: formatDialysisDaysOfWeekLabel(
+                          patient?.dialysisDaysOfWeek,
                         ),
-                        onTap: canEditPreferences
-                            ? () => _pickBloodGlucoseUnit(viewModel)
-                            : null,
+                        onTap:
+                            canEdit ? () => _pickDialysisDays(viewModel) : null,
                       ),
                       _ProfileDetailRow(
-                        label: 'Daily water goal',
+                        icon: Icons.water_drop_outlined,
+                        label: 'Daily fluid limit',
                         value: formatDailyWaterGoalLabel(
                           preferences?.dailyWaterGoalMl,
                         ),
@@ -292,26 +341,41 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                     ],
                   ),
+                  const _ProfileSectionDivider(),
+                  _ProfileSection(
+                    title: 'Preferences',
+                    children: [
+                      _ProfileDetailRow(
+                        icon: Icons.monitor_weight_outlined,
+                        label: 'Weight unit',
+                        value: formatWeightUnitLabel(preferences?.weightUnit),
+                        onTap: canEditPreferences
+                            ? () => _pickWeightUnit(viewModel)
+                            : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.bloodtype_outlined,
+                        label: 'Glucose unit',
+                        value: formatBloodGlucoseUnitLabel(
+                          preferences?.bloodGlucoseUnit,
+                        ),
+                        onTap: canEditPreferences
+                            ? () => _pickBloodGlucoseUnit(viewModel)
+                            : null,
+                        isLast: true,
+                      ),
+                    ],
+                  ),
                   if (viewModel.isSaving) ...[
                     const SizedBox(height: AppTheme.spacingSm),
                     const LinearProgressIndicator(minHeight: 2),
                   ],
-                  const SizedBox(height: AppTheme.spacingLg),
-                  OutlinedButton.icon(
-                    onPressed: viewModel.isSigningOut
+                  const _ProfileSectionDivider(),
+                  _LogoutRow(
+                    isSigningOut: viewModel.isSigningOut,
+                    onTap: viewModel.isSigningOut
                         ? null
                         : () => viewModel.signOut(),
-                    style: AppTheme.secondaryButtonStyle(),
-                    icon: viewModel.isSigningOut
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.logout_outlined),
-                    label: Text(
-                      viewModel.isSigningOut ? 'Signing out…' : 'Sign out',
-                    ),
                   ),
                 ],
               ],
@@ -327,55 +391,78 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.name,
     required this.email,
+    this.onEditProfile,
   });
 
   final String name;
   final String? email;
+  final VoidCallback? onEditProfile;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingSm),
-      decoration: AppTheme.readingCardDecoration,
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceMuted,
-              borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-              border: Border.all(color: AppTheme.ink),
-            ),
-            child: Text(
-              _initials(name),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 76,
+          height: 76,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppTheme.surfaceMuted,
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: AppTheme.spacingSm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: Theme.of(context).textTheme.titleMedium,
+          child: Text(
+            _initials(name),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                if (email != null && email!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    email!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.muted,
-                        ),
-                  ),
-                ],
-              ],
-            ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: AppTheme.spacingSm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              if (email != null && email!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  email!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.muted,
+                      ),
+                ),
+              ],
+              if (onEditProfile != null) ...[
+                const SizedBox(height: AppTheme.spacingXs),
+                SizedBox(
+                  height: 36,
+                  child: FilledButton(
+                    onPressed: onEditProfile,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _profileAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingSm,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.cornerRadius),
+                      ),
+                    ),
+                    child: const Text('Edit Profile'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -396,6 +483,22 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+class _ProfileSectionDivider extends StatelessWidget {
+  const _ProfileSectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: AppTheme.muted.withValues(alpha: 0.2),
+      ),
+    );
+  }
+}
+
 class _ProfileSection extends StatelessWidget {
   const _ProfileSection({
     required this.title,
@@ -411,14 +514,15 @@ class _ProfileSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium,
+          title.toUpperCase(),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppTheme.muted,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w600,
+              ),
         ),
         const SizedBox(height: AppTheme.spacingXs),
-        Container(
-          decoration: AppTheme.readingCardDecoration,
-          child: Column(children: children),
-        ),
+        ...children,
       ],
     );
   }
@@ -426,12 +530,14 @@ class _ProfileSection extends StatelessWidget {
 
 class _ProfileDetailRow extends StatelessWidget {
   const _ProfileDetailRow({
+    required this.icon,
     required this.label,
     required this.value,
     this.onTap,
     this.isLast = false,
   });
 
+  final IconData icon;
   final String label;
   final String value;
   final VoidCallback? onTap;
@@ -439,28 +545,21 @@ class _ProfileDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingSm,
-        vertical: AppTheme.spacingSm,
-      ),
-      decoration: BoxDecoration(
-        border: isLast
-            ? null
-            : Border(
-                bottom: BorderSide(
-                  color: AppTheme.muted.withValues(alpha: 0.25),
-                ),
-              ),
+    final content = Padding(
+      padding: EdgeInsets.only(
+        top: AppTheme.spacingSm,
+        bottom: isLast ? AppTheme.spacingXs : AppTheme.spacingSm,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          Icon(icon, size: 22, color: AppTheme.muted),
+          const SizedBox(width: AppTheme.spacingSm),
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.muted,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
                   ),
             ),
           ),
@@ -469,15 +568,17 @@ class _ProfileDetailRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.muted,
+                  ),
             ),
           ),
           if (onTap != null) ...[
-            const SizedBox(width: AppTheme.spacingXs),
+            const SizedBox(width: 4),
             Icon(
               Icons.chevron_right,
               size: 20,
-              color: AppTheme.muted.withValues(alpha: 0.8),
+              color: AppTheme.muted.withValues(alpha: 0.55),
             ),
           ],
         ],
@@ -492,7 +593,59 @@ class _ProfileDetailRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
         child: content,
+      ),
+    );
+  }
+}
+
+class _LogoutRow extends StatelessWidget {
+  const _LogoutRow({
+    required this.isSigningOut,
+    this.onTap,
+  });
+
+  final bool isSigningOut;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+          child: Row(
+            children: [
+              if (isSigningOut)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _profileAccent,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.logout_outlined,
+                  size: 22,
+                  color: _profileAccent,
+                ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Text(
+                isSigningOut ? 'Signing out…' : 'Log out',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: _profileAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -45,6 +45,26 @@ String formatDailyWaterGoalLabel(int? value) {
   return '$ml ml';
 }
 
+String formatDialysisDaysOfWeekLabel(List<int>? days) {
+  if (days == null) {
+    return 'Not set';
+  }
+  if (days.isEmpty) {
+    return 'None';
+  }
+  const labels = {
+    1: 'Mon',
+    2: 'Tue',
+    3: 'Wed',
+    4: 'Thu',
+    5: 'Fri',
+    6: 'Sat',
+    7: 'Sun',
+  };
+  final sorted = [...days]..sort();
+  return sorted.map((day) => labels[day] ?? '$day').join(', ');
+}
+
 String formatCkdStageLabel(String? value) {
   if (value == null || value.isEmpty) {
     return 'Not set';

@@ -95,6 +95,15 @@ class $PatientsTable extends Patients
     requiredDuringInsert: false,
     defaultValue: const Constant('none'),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<int>?, String>
+  dialysisDaysOfWeek = GeneratedColumn<String>(
+    'dialysis_days_of_week',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<List<int>?>($PatientsTable.$converterdialysisDaysOfWeekn);
   static const VerificationMeta _heightCmMeta = const VerificationMeta(
     'heightCm',
   );
@@ -164,6 +173,7 @@ class $PatientsTable extends Patients
     sex,
     ckdStage,
     dialysisType,
+    dialysisDaysOfWeek,
     heightCm,
     createdAt,
     updatedAt,
@@ -315,6 +325,12 @@ class $PatientsTable extends Patients
         DriftSqlType.string,
         data['${effectivePrefix}dialysis_type'],
       )!,
+      dialysisDaysOfWeek: $PatientsTable.$converterdialysisDaysOfWeekn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}dialysis_days_of_week'],
+        ),
+      ),
       heightCm: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}height_cm'],
@@ -342,6 +358,11 @@ class $PatientsTable extends Patients
   $PatientsTable createAlias(String alias) {
     return $PatientsTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<List<int>, String> $converterdialysisDaysOfWeek =
+      const DialysisDaysOfWeekConverter();
+  static TypeConverter<List<int>?, String?> $converterdialysisDaysOfWeekn =
+      NullAwareTypeConverter.wrap($converterdialysisDaysOfWeek);
 }
 
 class PatientRow extends DataClass implements Insertable<PatientRow> {
@@ -353,6 +374,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   final String? sex;
   final String? ckdStage;
   final String dialysisType;
+  final List<int>? dialysisDaysOfWeek;
   final double? heightCm;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -367,6 +389,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     this.sex,
     this.ckdStage,
     required this.dialysisType,
+    this.dialysisDaysOfWeek,
     this.heightCm,
     required this.createdAt,
     required this.updatedAt,
@@ -394,6 +417,11 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       map['ckd_stage'] = Variable<String>(ckdStage);
     }
     map['dialysis_type'] = Variable<String>(dialysisType);
+    if (!nullToAbsent || dialysisDaysOfWeek != null) {
+      map['dialysis_days_of_week'] = Variable<String>(
+        $PatientsTable.$converterdialysisDaysOfWeekn.toSql(dialysisDaysOfWeek),
+      );
+    }
     if (!nullToAbsent || heightCm != null) {
       map['height_cm'] = Variable<double>(heightCm);
     }
@@ -424,6 +452,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           ? const Value.absent()
           : Value(ckdStage),
       dialysisType: Value(dialysisType),
+      dialysisDaysOfWeek: dialysisDaysOfWeek == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialysisDaysOfWeek),
       heightCm: heightCm == null && nullToAbsent
           ? const Value.absent()
           : Value(heightCm),
@@ -450,6 +481,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       sex: serializer.fromJson<String?>(json['sex']),
       ckdStage: serializer.fromJson<String?>(json['ckdStage']),
       dialysisType: serializer.fromJson<String>(json['dialysisType']),
+      dialysisDaysOfWeek: serializer.fromJson<List<int>?>(
+        json['dialysisDaysOfWeek'],
+      ),
       heightCm: serializer.fromJson<double?>(json['heightCm']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -469,6 +503,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       'sex': serializer.toJson<String?>(sex),
       'ckdStage': serializer.toJson<String?>(ckdStage),
       'dialysisType': serializer.toJson<String>(dialysisType),
+      'dialysisDaysOfWeek': serializer.toJson<List<int>?>(dialysisDaysOfWeek),
       'heightCm': serializer.toJson<double?>(heightCm),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -486,6 +521,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     Value<String?> sex = const Value.absent(),
     Value<String?> ckdStage = const Value.absent(),
     String? dialysisType,
+    Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
     Value<double?> heightCm = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -500,6 +536,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     sex: sex.present ? sex.value : this.sex,
     ckdStage: ckdStage.present ? ckdStage.value : this.ckdStage,
     dialysisType: dialysisType ?? this.dialysisType,
+    dialysisDaysOfWeek: dialysisDaysOfWeek.present
+        ? dialysisDaysOfWeek.value
+        : this.dialysisDaysOfWeek,
     heightCm: heightCm.present ? heightCm.value : this.heightCm,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -522,6 +561,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       dialysisType: data.dialysisType.present
           ? data.dialysisType.value
           : this.dialysisType,
+      dialysisDaysOfWeek: data.dialysisDaysOfWeek.present
+          ? data.dialysisDaysOfWeek.value
+          : this.dialysisDaysOfWeek,
       heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -541,6 +583,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           ..write('sex: $sex, ')
           ..write('ckdStage: $ckdStage, ')
           ..write('dialysisType: $dialysisType, ')
+          ..write('dialysisDaysOfWeek: $dialysisDaysOfWeek, ')
           ..write('heightCm: $heightCm, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -560,6 +603,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     sex,
     ckdStage,
     dialysisType,
+    dialysisDaysOfWeek,
     heightCm,
     createdAt,
     updatedAt,
@@ -578,6 +622,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           other.sex == this.sex &&
           other.ckdStage == this.ckdStage &&
           other.dialysisType == this.dialysisType &&
+          other.dialysisDaysOfWeek == this.dialysisDaysOfWeek &&
           other.heightCm == this.heightCm &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -594,6 +639,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
   final Value<String?> sex;
   final Value<String?> ckdStage;
   final Value<String> dialysisType;
+  final Value<List<int>?> dialysisDaysOfWeek;
   final Value<double?> heightCm;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -609,6 +655,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     this.sex = const Value.absent(),
     this.ckdStage = const Value.absent(),
     this.dialysisType = const Value.absent(),
+    this.dialysisDaysOfWeek = const Value.absent(),
     this.heightCm = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -625,6 +672,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     this.sex = const Value.absent(),
     this.ckdStage = const Value.absent(),
     this.dialysisType = const Value.absent(),
+    this.dialysisDaysOfWeek = const Value.absent(),
     this.heightCm = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -644,6 +692,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     Expression<String>? sex,
     Expression<String>? ckdStage,
     Expression<String>? dialysisType,
+    Expression<String>? dialysisDaysOfWeek,
     Expression<double>? heightCm,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -660,6 +709,8 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
       if (sex != null) 'sex': sex,
       if (ckdStage != null) 'ckd_stage': ckdStage,
       if (dialysisType != null) 'dialysis_type': dialysisType,
+      if (dialysisDaysOfWeek != null)
+        'dialysis_days_of_week': dialysisDaysOfWeek,
       if (heightCm != null) 'height_cm': heightCm,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -678,6 +729,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     Value<String?>? sex,
     Value<String?>? ckdStage,
     Value<String>? dialysisType,
+    Value<List<int>?>? dialysisDaysOfWeek,
     Value<double?>? heightCm,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -694,6 +746,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
       sex: sex ?? this.sex,
       ckdStage: ckdStage ?? this.ckdStage,
       dialysisType: dialysisType ?? this.dialysisType,
+      dialysisDaysOfWeek: dialysisDaysOfWeek ?? this.dialysisDaysOfWeek,
       heightCm: heightCm ?? this.heightCm,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -730,6 +783,13 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     if (dialysisType.present) {
       map['dialysis_type'] = Variable<String>(dialysisType.value);
     }
+    if (dialysisDaysOfWeek.present) {
+      map['dialysis_days_of_week'] = Variable<String>(
+        $PatientsTable.$converterdialysisDaysOfWeekn.toSql(
+          dialysisDaysOfWeek.value,
+        ),
+      );
+    }
     if (heightCm.present) {
       map['height_cm'] = Variable<double>(heightCm.value);
     }
@@ -762,6 +822,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
           ..write('sex: $sex, ')
           ..write('ckdStage: $ckdStage, ')
           ..write('dialysisType: $dialysisType, ')
+          ..write('dialysisDaysOfWeek: $dialysisDaysOfWeek, ')
           ..write('heightCm: $heightCm, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4381,6 +4442,7 @@ typedef $$PatientsTableCreateCompanionBuilder =
       Value<String?> sex,
       Value<String?> ckdStage,
       Value<String> dialysisType,
+      Value<List<int>?> dialysisDaysOfWeek,
       Value<double?> heightCm,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -4398,6 +4460,7 @@ typedef $$PatientsTableUpdateCompanionBuilder =
       Value<String?> sex,
       Value<String?> ckdStage,
       Value<String> dialysisType,
+      Value<List<int>?> dialysisDaysOfWeek,
       Value<double?> heightCm,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -4561,6 +4624,12 @@ class $$PatientsTableFilterComposer
   ColumnFilters<String> get dialysisType => $composableBuilder(
     column: $table.dialysisType,
     builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<int>?, List<int>, String>
+  get dialysisDaysOfWeek => $composableBuilder(
+    column: $table.dialysisDaysOfWeek,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnFilters<double> get heightCm => $composableBuilder(
@@ -4764,6 +4833,11 @@ class $$PatientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dialysisDaysOfWeek => $composableBuilder(
+    column: $table.dialysisDaysOfWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get heightCm => $composableBuilder(
     column: $table.heightCm,
     builder: (column) => ColumnOrderings(column),
@@ -4828,6 +4902,12 @@ class $$PatientsTableAnnotationComposer
     column: $table.dialysisType,
     builder: (column) => column,
   );
+
+  GeneratedColumnWithTypeConverter<List<int>?, String> get dialysisDaysOfWeek =>
+      $composableBuilder(
+        column: $table.dialysisDaysOfWeek,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<double> get heightCm =>
       $composableBuilder(column: $table.heightCm, builder: (column) => column);
@@ -5014,6 +5094,7 @@ class $$PatientsTableTableManager
                 Value<String?> sex = const Value.absent(),
                 Value<String?> ckdStage = const Value.absent(),
                 Value<String> dialysisType = const Value.absent(),
+                Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -5029,6 +5110,7 @@ class $$PatientsTableTableManager
                 sex: sex,
                 ckdStage: ckdStage,
                 dialysisType: dialysisType,
+                dialysisDaysOfWeek: dialysisDaysOfWeek,
                 heightCm: heightCm,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -5046,6 +5128,7 @@ class $$PatientsTableTableManager
                 Value<String?> sex = const Value.absent(),
                 Value<String?> ckdStage = const Value.absent(),
                 Value<String> dialysisType = const Value.absent(),
+                Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -5061,6 +5144,7 @@ class $$PatientsTableTableManager
                 sex: sex,
                 ckdStage: ckdStage,
                 dialysisType: dialysisType,
+                dialysisDaysOfWeek: dialysisDaysOfWeek,
                 heightCm: heightCm,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

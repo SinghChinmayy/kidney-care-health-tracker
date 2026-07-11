@@ -72,6 +72,7 @@ class PatientRepository {
         sex: patient.sex,
         ckdStage: patient.ckdStage,
         dialysisType: patient.dialysisType,
+        dialysisDaysOfWeek: patient.dialysisDaysOfWeek,
         heightCm: patient.heightCm,
         createdAt: patient.createdAt ?? now,
         updatedAt: now,
