@@ -1,5 +1,4 @@
 import 'package:app/data/local/app_database.dart';
-import 'package:app/domain/errors/profile_update_requires_network.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -7,14 +6,11 @@ import 'package:uuid/uuid.dart';
 class PatientRepository {
   PatientRepository({
     required AppDatabase db,
-    required Future<bool> Function() isOnline,
     void Function()? onWrite,
   })  : _db = db,
-        _isOnline = isOnline,
         _onWrite = onWrite ?? (() {});
 
   final AppDatabase _db;
-  final Future<bool> Function() _isOnline;
   final void Function() _onWrite;
 
   Future<Patient?> getPatientForAuthUser(String authUserId) {
@@ -57,10 +53,6 @@ class PatientRepository {
   }
 
   Future<void> updateProfile(Patient patient) async {
-    if (!await _isOnline()) {
-      throw const ProfileUpdateRequiresNetworkException();
-    }
-
     final now = DateTime.now().toUtc();
     await _db.patientsDao.updatePatient(
       Patient(
@@ -84,10 +76,6 @@ class PatientRepository {
   }
 
   Future<void> updatePreferences(PatientPreferences preferences) async {
-    if (!await _isOnline()) {
-      throw const ProfileUpdateRequiresNetworkException();
-    }
-
     final now = DateTime.now().toUtc();
     await _db.patientPreferencesDao.updatePreferences(
       preferences.copyWith(updatedAt: now),

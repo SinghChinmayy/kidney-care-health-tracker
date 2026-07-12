@@ -1,9 +1,9 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
-import 'package:app/domain/errors/profile_update_requires_network.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/patient_preferences.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -35,7 +35,6 @@ void main() {
     writeCount = 0;
     patientRepository = PatientRepository(
       db: db,
-      isOnline: () async => false,
       onWrite: () => writeCount++,
     );
     vitalsRepository = VitalsRepository(
@@ -115,44 +114,57 @@ void main() {
     expect(dirty.first.deletedAt, isNotNull);
   });
 
-  test('updateProfile throws when offline', () async {
+  test('updateProfile persists locally when offline', () async {
     final patient = await seedPatient(db, authUserId: 'auth-user-2', id: 'p-2');
+    writeCount = 0;
 
-    expect(
-      () => patientRepository.updateProfile(
-        Patient(
-          id: patient.id,
-          authUserId: patient.authUserId,
-          firstName: 'Grace',
-          lastName: 'Hopper',
-        ),
-      ),
-      throwsA(isA<ProfileUpdateRequiresNetworkException>()),
-    );
-  });
-
-  test('updateProfile succeeds when online', () async {
-    final onlinePatients = PatientRepository(
-      db: db,
-      isOnline: () async => true,
-      onWrite: () => writeCount++,
-    );
-
-    final patient = await seedPatient(db, authUserId: 'auth-user-3', id: 'p-3');
-
-    await onlinePatients.updateProfile(
+    await patientRepository.updateProfile(
       Patient(
         id: patient.id,
         authUserId: patient.authUserId,
-        firstName: 'Ada',
-        lastName: 'Lovelace',
+        firstName: 'Grace',
+        lastName: 'Hopper',
         createdAt: patient.createdAt,
       ),
     );
 
-    final loaded = await onlinePatients.getPatientForAuthUser('auth-user-3');
-    expect(loaded?.firstName, 'Ada');
-    expect(loaded?.lastName, 'Lovelace');
+    final loaded = await patientRepository.getPatientForAuthUser('auth-user-2');
+    expect(loaded?.firstName, 'Grace');
+    expect(loaded?.lastName, 'Hopper');
+    expect(writeCount, 1);
+
+    final dirty = await db.patientsDao.getDirtyRows();
+    expect(dirty, hasLength(1));
+    expect(dirty.first.id, 'p-2');
+    expect(dirty.first.isDirty, isTrue);
+  });
+
+  test('updatePreferences persists locally when offline', () async {
+    final patient = await seedPatient(db, authUserId: 'auth-user-3', id: 'p-3');
+    final now = DateTime.utc(2026, 7, 8, 8);
+    final prefs = PatientPreferences(
+      id: 'prefs-3',
+      patientId: patient.id,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await db.patientPreferencesDao.insertPreferences(prefs, isDirty: false);
+    writeCount = 0;
+
+    await patientRepository.updatePreferences(
+      prefs.copyWith(weightUnit: 'lb', dailyWaterGoalMl: 1500),
+    );
+
+    final loaded =
+        await patientRepository.getPreferencesForAuthUser('auth-user-3');
+    expect(loaded?.weightUnit, 'lb');
+    expect(loaded?.dailyWaterGoalMl, 1500);
+    expect(writeCount, 1);
+
+    final dirty = await db.patientPreferencesDao.getDirtyRows();
+    expect(dirty, hasLength(1));
+    expect(dirty.first.id, 'prefs-3');
+    expect(dirty.first.isDirty, isTrue);
   });
 
   test('getPatientForAuthUser reads profile offline', () async {

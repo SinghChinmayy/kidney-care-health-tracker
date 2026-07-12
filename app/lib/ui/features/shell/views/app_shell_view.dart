@@ -17,6 +17,10 @@ class AppShellView extends StatefulWidget {
 class _AppShellViewState extends State<AppShellView> {
   int _selectedIndex = 0;
 
+  void _openProfile() {
+    setState(() => _selectedIndex = 1);
+  }
+
   Future<void> _openLogMenu() async {
     final viewModel = context.read<HomeViewModel>();
     final type = await showVitalLogMenuSheet(context);
@@ -36,9 +40,9 @@ class _AppShellViewState extends State<AppShellView> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [
-          HomeView(),
-          ProfileView(),
+        children: [
+          HomeView(onOpenProfile: _openProfile),
+          const ProfileView(),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
@@ -53,7 +57,9 @@ class _AppShellViewState extends State<AppShellView> {
         indicatorColor: AppTheme.logWeight.withValues(alpha: 0.2),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
+          setState(() {
+            _selectedIndex = index;
+          });
         },
         destinations: const [
           NavigationDestination(

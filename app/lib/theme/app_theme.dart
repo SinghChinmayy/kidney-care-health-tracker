@@ -19,6 +19,8 @@ class AppTheme {
   static const Color background = Colors.white;
   static const Color ink = Colors.black;
   static const Color surfaceMuted = Color(0xFFF9FAFB);
+  /// Soft fill for home summary cards (modern rounded tiles).
+  static const Color cardSurface = Color(0xFFF2F2F2);
   static const Color muted = Color(0xFF6B7280);
   static const Color logBloodPressure = Color(0xFFE57373);
   static const Color logBloodGlucose = Color(0xFF64B5F6);
@@ -34,6 +36,8 @@ class AppTheme {
 
   static const double formMaxWidth = 400;
   static const double cornerRadius = 8;
+  /// Large radius for soft home / dashboard cards.
+  static const double cardCornerRadius = 24;
 
   static const TextStyle optionCardTitle = TextStyle(
     fontSize: 18,

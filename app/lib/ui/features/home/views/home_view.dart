@@ -1,20 +1,30 @@
+import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
-import 'package:app/ui/features/home/widgets/home_date_header.dart';
+import 'package:app/ui/features/home/widgets/home_check_in_header.dart';
+import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
+import 'package:app/ui/features/home/widgets/home_week_strip.dart';
 import 'package:app/ui/features/home/widgets/weight_gain_card.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
 import 'package:app/ui/features/vitals/views/fluid_intake_view.dart';
 import 'package:app/ui/features/vitals/views/weight_view.dart';
+import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
+import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 const double _homeContentMaxWidth = 600;
-const double _vitalGridGap = AppTheme.spacingXs;
+const double _vitalGridGap = 12;
 
 class HomeView extends StatefulWidget {
-  const HomeView({super.key});
+  const HomeView({
+    super.key,
+    this.onOpenProfile,
+  });
+
+  final VoidCallback? onOpenProfile;
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -37,94 +47,171 @@ class _HomeViewState extends State<HomeView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const HomeDateHeader(),
+        SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _homeContentMaxWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  HomeGreetingHeader(onOpenProfile: widget.onOpenProfile),
+                  const HomeWeekStrip(),
+                ],
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: viewModel.refresh,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppTheme.spacingSm,
-                    AppTheme.spacingSm,
-                    AppTheme.spacingSm,
-                    80,
-                  ),
-                  children: [
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: _homeContentMaxWidth,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacingSm,
+                AppTheme.spacingXs,
+                AppTheme.spacingSm,
+                80,
+              ),
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _homeContentMaxWidth,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        WeightGainCard(
+                          snapshot: viewModel.weightGainForSelectedDate,
+                          chart: viewModel.weightGainChartForSelectedDate,
+                          onTap: () => _openLog(
+                            context,
+                            VitalLogType.weight,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        const SizedBox(height: AppTheme.spacingSm),
+                        HomeCheckInHeader(
+                          completed: viewModel.checkInCompletedCount,
+                          total: HomeViewModel.checkInTotal,
+                        ),
+                        const SizedBox(height: AppTheme.spacingXs),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: _vitalGridGap,
+                          crossAxisSpacing: _vitalGridGap,
+                          childAspectRatio: 1.15,
                           children: [
-                            WeightGainCard(
-                              weightGain: viewModel.weightGainForSelectedDate,
-                              onTap: () => _open(context, const WeightView()),
+                            HomeVitalTile(
+                              title: 'Blood pressure',
+                              value: viewModel.bloodPressureForSelectedDate ==
+                                      null
+                                  ? 'No readings yet'
+                                  : _bloodPressureValue(
+                                      viewModel.bloodPressureForSelectedDate!,
+                                    ),
+                              unit: viewModel.bloodPressureForSelectedDate ==
+                                      null
+                                  ? null
+                                  : (viewModel.bloodPressureForSelectedDate!
+                                                  .systolic !=
+                                              null &&
+                                          viewModel.bloodPressureForSelectedDate!
+                                                  .diastolic !=
+                                              null
+                                      ? 'mmHg'
+                                      : 'bpm'),
+                              icon: Icons.monitor_heart_outlined,
+                              accentColor: AppTheme.logBloodPressure,
+                              isLogged:
+                                  viewModel.bloodPressureForSelectedDate !=
+                                      null,
+                              onTap: () => _openLog(
+                                context,
+                                VitalLogType.bloodPressure,
+                              ),
+                              onHistoryTap: () => _openHistory(
+                                context,
+                                const BloodPressureView(),
+                              ),
                             ),
-                            const SizedBox(height: AppTheme.spacingSm),
-                            GridView.count(
-                              crossAxisCount: 2,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              mainAxisSpacing: _vitalGridGap,
-                              crossAxisSpacing: _vitalGridGap,
-                              childAspectRatio: 1.45,
-                              children: [
-                                HomeVitalTile(
-                                  title: 'Blood pressure',
-                                  value: viewModel
-                                          .bloodPressureForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                                  icon: Icons.monitor_heart_outlined,
-                                  onTap: () => _open(
-                                    context,
-                                    const BloodPressureView(),
-                                  ),
-                                ),
-                                HomeVitalTile(
-                                  title: 'Blood glucose',
-                                  value: viewModel
-                                          .bloodGlucoseForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                                  icon: Icons.water_drop_outlined,
-                                  onTap: () => _open(
-                                    context,
-                                    const BloodGlucoseView(),
-                                  ),
-                                ),
-                                HomeVitalTile(
-                                  title: 'Weight',
-                                  value: viewModel.weightForSelectedDate
-                                          ?.displayValue ??
-                                      'No readings yet',
-                                  icon: Icons.scale_outlined,
-                                  onTap: () =>
-                                      _open(context, const WeightView()),
-                                ),
-                                HomeVitalTile(
-                                  title: 'Water intake',
-                                  value: viewModel
-                                          .fluidIntakeForSelectedDateLabel ??
-                                      'No intake logged',
-                                  icon: Icons.local_drink_outlined,
-                                  onTap: () => _open(
-                                    context,
-                                    const FluidIntakeView(),
-                                  ),
-                                ),
-                              ],
+                            HomeVitalTile(
+                              title: 'Blood glucose',
+                              value: viewModel.bloodGlucoseForSelectedDate ==
+                                      null
+                                  ? 'No readings yet'
+                                  : viewModel
+                                      .bloodGlucoseForSelectedDate!
+                                      .valueMgDl
+                                      .toStringAsFixed(0),
+                              unit: viewModel.bloodGlucoseForSelectedDate ==
+                                      null
+                                  ? null
+                                  : 'mg/dL',
+                              icon: Icons.water_drop_outlined,
+                              accentColor: AppTheme.logBloodGlucose,
+                              isLogged:
+                                  viewModel.bloodGlucoseForSelectedDate != null,
+                              onTap: () => _openLog(
+                                context,
+                                VitalLogType.bloodGlucose,
+                              ),
+                              onHistoryTap: () => _openHistory(
+                                context,
+                                const BloodGlucoseView(),
+                              ),
+                            ),
+                            HomeVitalTile(
+                              title: 'Weight',
+                              value: viewModel.weightForSelectedDate == null
+                                  ? 'No readings yet'
+                                  : viewModel.weightForSelectedDate!.valueKg
+                                      .toStringAsFixed(1),
+                              unit: viewModel.weightForSelectedDate == null
+                                  ? null
+                                  : 'kg',
+                              icon: Icons.scale_outlined,
+                              accentColor: AppTheme.logWeight,
+                              isLogged: viewModel.weightForSelectedDate != null,
+                              onTap: () => _openLog(
+                                context,
+                                VitalLogType.weight,
+                              ),
+                              onHistoryTap: () => _openHistory(
+                                context,
+                                const WeightView(),
+                              ),
+                            ),
+                            HomeVitalTile(
+                              title: 'Water intake',
+                              value: viewModel
+                                  .fluidIntakeTotalMlForSelectedDate
+                                  .toStringAsFixed(0),
+                              unit: '/ ${viewModel.dailyWaterGoalMl} ml',
+                              icon: Icons.local_drink_outlined,
+                              accentColor: AppTheme.logFluidIntake,
+                              isLogged:
+                                  viewModel.fluidIntakeTotalMlForSelectedDate >
+                                      0,
+                              progress: viewModel.fluidIntakeProgress,
+                              progressOverGoal: viewModel.isFluidOverGoal,
+                              onTap: () => _openLog(
+                                context,
+                                VitalLogType.fluidIntake,
+                              ),
+                              onHistoryTap: () => _openHistory(
+                                context,
+                                const FluidIntakeView(),
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -132,10 +219,30 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Future<void> _open(BuildContext context, Widget page) {
+  Future<void> _openLog(BuildContext context, VitalLogType type) {
+    final homeViewModel = context.read<HomeViewModel>();
+    return showVitalLogSheet(
+      context,
+      type,
+      initialRecordedAt: homeViewModel.logRecordedAt,
+      onSaved: homeViewModel.refresh,
+    );
+  }
+
+  Future<void> _openHistory(BuildContext context, Widget page) {
     final homeViewModel = context.read<HomeViewModel>();
     return Navigator.of(context)
         .push<void>(MaterialPageRoute<void>(builder: (_) => page))
         .then((_) => homeViewModel.refresh());
+  }
+
+  String _bloodPressureValue(BloodPressureReading reading) {
+    if (reading.systolic != null && reading.diastolic != null) {
+      return '${reading.systolic}/${reading.diastolic}';
+    }
+    if (reading.heartRateBpm != null) {
+      return '${reading.heartRateBpm}';
+    }
+    return '—';
   }
 }

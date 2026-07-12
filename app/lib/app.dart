@@ -48,11 +48,9 @@ class KidneyCareApp extends StatelessWidget {
         ProxyProvider<SyncEngine, SyncCoordinator>(
           update: (_, engine, _) => SyncCoordinator(engine: engine),
         ),
-        ProxyProvider3<AppDatabase, ConnectivityService, SyncCoordinator,
-            PatientRepository>(
-          update: (_, db, connectivity, coordinator, _) => PatientRepository(
+        ProxyProvider2<AppDatabase, SyncCoordinator, PatientRepository>(
+          update: (_, db, coordinator, _) => PatientRepository(
             db: db,
-            isOnline: connectivity.isOnline,
             onWrite: coordinator.onDriftWrite,
           ),
         ),
@@ -77,6 +75,8 @@ class KidneyCareApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => HomeViewModel(
+            authRepository: context.read<AuthRepository>(),
+            patientRepository: context.read<PatientRepository>(),
             vitalsRepository: context.read<VitalsRepository>(),
           ),
         ),

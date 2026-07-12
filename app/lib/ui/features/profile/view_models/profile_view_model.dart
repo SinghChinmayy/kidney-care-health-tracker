@@ -1,6 +1,5 @@
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
-import 'package:app/domain/errors/profile_update_requires_network.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:flutter/material.dart';
@@ -173,9 +172,6 @@ class ProfileViewModel extends ChangeNotifier {
       await _patientRepository.updateProfile(updated);
       _patient = updated;
       return true;
-    } on ProfileUpdateRequiresNetworkException catch (error) {
-      _errorMessage = error.toString();
-      return false;
     } catch (error) {
       _errorMessage = 'Could not update profile. Please try again.';
       return false;
@@ -202,9 +198,6 @@ class ProfileViewModel extends ChangeNotifier {
       await _patientRepository.updatePreferences(updated);
       _preferences = updated;
       return true;
-    } on ProfileUpdateRequiresNetworkException catch (error) {
-      _errorMessage = error.toString();
-      return false;
     } catch (error) {
       _errorMessage = 'Could not update preferences. Please try again.';
       return false;

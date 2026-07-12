@@ -149,6 +149,23 @@ String formatTrackRecordedAt(DateTime recordedAt) {
   return '$weekday, $month ${local.day}, ${local.year} · $time';
 }
 
+/// Compact caption for weight-gain hero nodes (e.g. `Mon 8` / `Today · 09:00`).
+String formatWeightNodeCaption(DateTime recordedAt, {bool includeTime = false}) {
+  final local = recordedAt.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final date = DateTime(local.year, local.month, local.day);
+  final weekday = _shortWeekdays[local.weekday - 1];
+
+  if (date == today) {
+    return includeTime ? 'Today · ${formatHistoryTime(recordedAt)}' : 'Today';
+  }
+
+  final dayLabel = '$weekday ${local.day}';
+  if (!includeTime) return dayLabel;
+  return '$dayLabel · ${formatHistoryTime(recordedAt)}';
+}
+
 Map<DateTime, List<T>> groupReadingsByLocalDate<T>(
   List<T> readings,
   DateTime Function(T reading) recordedAt,

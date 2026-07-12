@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:app/core/supabase_config.dart';
 
-/// Lightweight online probe for profile-write gating (no connectivity_plus).
+/// Lightweight online probe used by the initial sync gate (no connectivity_plus).
 class ConnectivityService {
   ConnectivityService({String? probeUrl}) : _probeUrl = probeUrl;
 

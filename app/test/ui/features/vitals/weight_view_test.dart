@@ -49,7 +49,6 @@ void main() {
       db: db,
       patientRepository: PatientRepository(
         db: db,
-        isOnline: () async => false,
       ),
       currentAuthUserId: () => 'auth-1',
     );
