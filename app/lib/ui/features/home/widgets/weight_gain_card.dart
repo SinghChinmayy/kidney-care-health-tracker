@@ -15,6 +15,8 @@ class WeightGainCard extends StatelessWidget {
 
   final WeightGainSnapshot snapshot;
   final WeightGainChartData chart;
+
+  /// Opens weight tracking when the card is tapped.
   final VoidCallback? onTap;
 
   static const double _radius = AppTheme.cardCornerRadius;

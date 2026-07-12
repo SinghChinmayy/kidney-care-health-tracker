@@ -166,9 +166,11 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
           children: [
             Text(
               'Edit weight',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacingSm),
             WeightReadingForm(
               valueKg: _valueKg,
               dialysisTiming: _dialysisTiming,
@@ -183,7 +185,7 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
               onRecordedAtChanged: (value) =>
                   setState(() => _recordedAt = value),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacingSm),
             ElevatedButton(
               onPressed: _isBusy ? null : _save,
               style: ElevatedButton.styleFrom(
@@ -191,7 +193,7 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
                 foregroundColor: AppTheme.background,
                 disabledBackgroundColor:
                     AppTheme.logWeight.withValues(alpha: 0.5),
-                minimumSize: const Size.fromHeight(52),
+                minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
                 ),
@@ -206,14 +208,11 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
                       ),
                     )
                   : const Text(
-                      'SAVE CHANGES',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
+                      'Save',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: 4),
             TextButton(
               onPressed: _isBusy ? null : _delete,
               style: TextButton.styleFrom(foregroundColor: AppTheme.error),

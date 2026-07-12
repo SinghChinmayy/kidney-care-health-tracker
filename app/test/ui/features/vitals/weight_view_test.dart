@@ -29,11 +29,11 @@ Future<void> seedWeightPatient(AppDatabase db) async {
 Widget buildWeightView({
   required VitalsRepository vitalsRepository,
 }) {
-  return MaterialApp(
-    theme: AppTheme.light,
-    home: ChangeNotifierProvider(
-      create: (_) => WeightViewModel(vitalsRepository: vitalsRepository),
-      child: const WeightView(),
+  return ChangeNotifierProvider(
+    create: (_) => WeightViewModel(vitalsRepository: vitalsRepository),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: const WeightView(),
     ),
   );
 }
@@ -58,128 +58,73 @@ void main() {
     await db.close();
   });
 
-  testWidgets('renders Track and History tabs', (tester) async {
+  testWidgets('renders activity-style weight page', (tester) async {
     await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
     await tester.pumpAndSettle();
 
-    expect(find.text('TRACK'), findsOneWidget);
-    expect(find.text('HISTORY'), findsOneWidget);
-    expect(find.text('WEIGHT (KG)'), findsOneWidget);
-    expect(find.text('DIALYSIS TIMING'), findsNothing);
+    expect(find.text('Weight'), findsOneWidget);
+    expect(find.text('W'), findsOneWidget);
+    expect(find.text('M'), findsOneWidget);
+    expect(find.text('Y'), findsOneWidget);
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('This Week'), findsOneWidget);
+    expect(find.text('Recent'), findsOneWidget);
+    expect(find.text('TRACK'), findsNothing);
+    expect(find.text('HISTORY'), findsNothing);
+    expect(find.byTooltip('Log weight'), findsOneWidget);
+  });
+
+  testWidgets('add opens log sheet and save persists reading', (tester) async {
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Log weight'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log weight'), findsWidgets);
     expect(find.text('DAY TYPE'), findsOneWidget);
-    expect(find.text('WHEN'), findsOneWidget);
-  });
 
-  testWidgets('Save persists typed weight without pressing enter', (tester) async {
-    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField), '85');
-    await tester.tap(find.text('SAVE'));
-    await tester.pumpAndSettle();
-
-    final readings = await vitalsRepository.getWeightReadings();
-    expect(readings, hasLength(1));
-    expect(readings.first.valueKg, 85.0);
-  });
-
-  testWidgets('Save persists a reading from Track tab', (tester) async {
-    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
-    await tester.pumpAndSettle();
-
-    expect(find.text('70.0'), findsOneWidget);
-
-    await tester.tap(find.text('SAVE'));
+    final fields = find.byType(TextField);
+    expect(fields, findsWidgets);
+    await tester.enterText(fields.first, '85');
+    await tester.ensureVisible(find.text('Save reading'));
+    await tester.tap(find.text('Save reading'));
     await tester.pumpAndSettle();
 
     expect(find.text('Weight saved'), findsOneWidget);
 
     final readings = await vitalsRepository.getWeightReadings();
     expect(readings, hasLength(1));
-    expect(readings.first.valueKg, 70.0);
+    expect(readings.first.valueKg, 85.0);
     expect(readings.first.dialysisTiming, dialysisTimingNonDialysis);
   });
 
-  testWidgets('can save pre-dialysis reading from timing picker', (tester) async {
-    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
-    await tester.pumpAndSettle();
-
-    expect(find.text('DAY TYPE'), findsOneWidget);
-    expect(find.text('Pre-dialysis'), findsNothing);
-
-    await tester.tap(find.text('Dialysis day'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('TIMING'), findsOneWidget);
-    expect(find.text('Pre-dialysis'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('SAVE'));
-    await tester.tap(find.text('SAVE'));
-    await tester.pumpAndSettle();
-
-    final readings = await vitalsRepository.getWeightReadings();
-    expect(readings, hasLength(1));
-    expect(readings.first.dialysisTiming, dialysisTimingPreDialysis);
-  });
-
-  testWidgets('History shows grouped date headers', (tester) async {
-    await vitalsRepository.addWeightReading(
-      WeightReading(
-        id: const Uuid().v4(),
-        patientId: 'patient-1',
-        recordedAt: DateTime.utc(2026, 7, 7, 10),
-        valueKg: 72.5,
-        dialysisTiming: dialysisTimingPreDialysis,
-        weightContext: 'morning',
-      ),
-    );
-    await vitalsRepository.addWeightReading(
-      WeightReading(
-        id: const Uuid().v4(),
-        patientId: 'patient-1',
-        recordedAt: DateTime.utc(2026, 7, 6, 18),
-        valueKg: 71.0,
-      ),
-    );
-
-    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('HISTORY'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('TUESDAY, JULY 7'), findsOneWidget);
-    expect(find.text('MONDAY, JULY 6'), findsOneWidget);
-    expect(find.text('72.5 kg'), findsOneWidget);
-    expect(find.text('71.0 kg'), findsOneWidget);
-    expect(find.text('Morning'), findsOneWidget);
-    expect(find.text('Pre-dialysis'), findsOneWidget);
-    expect(find.byIcon(Icons.more_vert), findsNothing);
-  });
-
-  testWidgets('Edit updates reading when tapping history row', (tester) async {
+  testWidgets('Recent shows readings and opens edit sheet', (tester) async {
     const readingId = 'weight-edit-1';
     await vitalsRepository.addWeightReading(
       WeightReading(
         id: readingId,
         patientId: 'patient-1',
-        recordedAt: DateTime.utc(2026, 7, 7, 10),
+        recordedAt: DateTime.now().toUtc(),
         valueKg: 72.5,
+        dialysisTiming: dialysisTimingPreDialysis,
+        weightContext: weightContextMorning,
       ),
     );
 
     await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.ensureVisible(find.text('Today'));
     await tester.pumpAndSettle();
+    expect(find.textContaining('Morning'), findsOneWidget);
 
-    await tester.tap(find.text('72.5 kg'));
+    await tester.tap(find.text('Today'));
     await tester.pumpAndSettle();
 
     expect(find.text('Edit weight'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('SAVE CHANGES'));
@@ -200,7 +145,7 @@ void main() {
       WeightReading(
         id: readingId,
         patientId: 'patient-1',
-        recordedAt: DateTime.utc(2026, 7, 7, 10),
+        recordedAt: DateTime.now().toUtc(),
         valueKg: 72.5,
       ),
     );
@@ -208,10 +153,9 @@ void main() {
     await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('HISTORY'));
+    await tester.ensureVisible(find.text('Today'));
     await tester.pumpAndSettle();
-
-    await tester.tap(find.text('72.5 kg'));
+    await tester.tap(find.text('Today'));
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Delete reading'));
@@ -223,9 +167,90 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Weight deleted'), findsOneWidget);
-    expect(find.text('72.5 kg'), findsNothing);
 
     final readings = await vitalsRepository.getWeightReadings();
     expect(readings, isEmpty);
+  });
+
+  testWidgets('period chips switch labels', (tester) async {
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('M'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Month'), findsOneWidget);
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(find.text('All Time'), findsOneWidget);
+  });
+
+  testWidgets('week chevrons move between weeks', (tester) async {
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This Week'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Previous week'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This Week'), findsNothing);
+
+    await tester.tap(find.byTooltip('Next week'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Week'), findsOneWidget);
+  });
+
+  testWidgets('month chevrons move between months', (tester) async {
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('M'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Month'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Previous month'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Month'), findsNothing);
+
+    await tester.tap(find.byTooltip('Next month'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Month'), findsOneWidget);
+  });
+
+  testWidgets('year chevrons move between years', (tester) async {
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Y'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Year'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Previous year'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Year'), findsNothing);
+
+    await tester.tap(find.byTooltip('Next year'));
+    await tester.pumpAndSettle();
+    expect(find.text('This Year'), findsOneWidget);
+  });
+
+  testWidgets('seeded history appears in Recent without tabs', (tester) async {
+    await vitalsRepository.addWeightReading(
+      WeightReading(
+        id: const Uuid().v4(),
+        patientId: 'patient-1',
+        recordedAt: DateTime.now().toUtc().subtract(const Duration(days: 1)),
+        valueKg: 71.0,
+      ),
+    );
+
+    await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Yesterday'));
+    await tester.pumpAndSettle();
+    expect(find.text('71.0'), findsWidgets);
+    expect(find.text('Yesterday'), findsOneWidget);
   });
 }

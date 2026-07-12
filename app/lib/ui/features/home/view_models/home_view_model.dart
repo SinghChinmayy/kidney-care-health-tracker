@@ -23,7 +23,7 @@ class HomeViewModel extends ChangeNotifier {
     refresh();
   }
 
-  static const int checkInTotal = 4;
+  static const int checkInTotal = 3;
 
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
@@ -107,12 +107,6 @@ class HomeViewModel extends ChangeNotifier {
         (reading) => reading.recordedAt,
       );
 
-  WeightReading? get weightForSelectedDate => latestReadingOnLocalDate(
-        _weightReadings,
-        _selectedDate,
-        (reading) => reading.recordedAt,
-      );
-
   /// Interdialytic weight state as of the selected date (carry-forward).
   WeightGainSnapshot get weightGainForSelectedDate =>
       weightGainSnapshotOnLocalDate(_weightReadings, _selectedDate);
@@ -162,7 +156,6 @@ class HomeViewModel extends ChangeNotifier {
     var count = 0;
     if (bloodPressureForSelectedDate != null) count++;
     if (bloodGlucoseForSelectedDate != null) count++;
-    if (weightForSelectedDate != null) count++;
     if (fluidIntakeTotalMlForSelectedDate > 0) count++;
     return count;
   }

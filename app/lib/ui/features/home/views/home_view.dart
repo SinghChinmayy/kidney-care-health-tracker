@@ -84,9 +84,9 @@ class _HomeViewState extends State<HomeView> {
                         WeightGainCard(
                           snapshot: viewModel.weightGainForSelectedDate,
                           chart: viewModel.weightGainChartForSelectedDate,
-                          onTap: () => _openLog(
+                          onTap: () => _openHistory(
                             context,
-                            VitalLogType.weight,
+                            const WeightView(),
                           ),
                         ),
                         const SizedBox(height: AppTheme.spacingSm),
@@ -160,27 +160,6 @@ class _HomeViewState extends State<HomeView> {
                               onHistoryTap: () => _openHistory(
                                 context,
                                 const BloodGlucoseView(),
-                              ),
-                            ),
-                            HomeVitalTile(
-                              title: 'Weight',
-                              value: viewModel.weightForSelectedDate == null
-                                  ? 'No readings yet'
-                                  : viewModel.weightForSelectedDate!.valueKg
-                                      .toStringAsFixed(1),
-                              unit: viewModel.weightForSelectedDate == null
-                                  ? null
-                                  : 'kg',
-                              icon: Icons.scale_outlined,
-                              accentColor: AppTheme.logWeight,
-                              isLogged: viewModel.weightForSelectedDate != null,
-                              onTap: () => _openLog(
-                                context,
-                                VitalLogType.weight,
-                              ),
-                              onHistoryTap: () => _openHistory(
-                                context,
-                                const WeightView(),
                               ),
                             ),
                             HomeVitalTile(

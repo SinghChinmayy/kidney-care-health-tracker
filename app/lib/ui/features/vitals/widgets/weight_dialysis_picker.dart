@@ -27,128 +27,146 @@ class WeightDialysisPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
           color: AppTheme.muted,
-          letterSpacing: 0.8,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('DAY TYPE', style: labelStyle),
-        const SizedBox(height: AppTheme.spacingXs),
-        _OptionRow(
-          options: const [
-            _PickerOption(
+        Text('Day type', style: labelStyle),
+        const SizedBox(height: 6),
+        SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(
               value: dialysisTimingNonDialysis,
-              label: 'Non-dialysis day',
+              label: Text('Non-dialysis'),
             ),
-            _PickerOption(value: _dialysisDayMode, label: 'Dialysis day'),
+            ButtonSegment(
+              value: _dialysisDayMode,
+              label: Text('Dialysis'),
+            ),
           ],
-          selectedValue:
-              _isDialysisDay ? _dialysisDayMode : dialysisTimingNonDialysis,
-          accentColor: accentColor,
-          onSelected: (value) {
+          selected: {
+            _isDialysisDay ? _dialysisDayMode : dialysisTimingNonDialysis,
+          },
+          showSelectedIcon: false,
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) return accentColor;
+              return AppTheme.ink;
+            }),
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return accentColor.withValues(alpha: 0.12);
+              }
+              return Colors.transparent;
+            }),
+          ),
+          onSelectionChanged: (selected) {
+            final value = selected.first;
             if (value == dialysisTimingNonDialysis) {
               onDialysisTimingChanged(dialysisTimingNonDialysis);
-            } else if (value == _dialysisDayMode) {
+            } else {
               onDialysisTimingChanged(dialysisTimingPreDialysis);
             }
           },
         ),
         if (_isDialysisDay) ...[
-          const SizedBox(height: AppTheme.spacingMd),
-          Text('TIMING', style: labelStyle),
-          const SizedBox(height: AppTheme.spacingXs),
-          _OptionRow(
-            options: const [
-              _PickerOption(
+          const SizedBox(height: AppTheme.spacingSm),
+          Text('Timing', style: labelStyle),
+          const SizedBox(height: 6),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
                 value: dialysisTimingPreDialysis,
-                label: 'Pre-dialysis',
+                label: Text('Pre'),
               ),
-              _PickerOption(
+              ButtonSegment(
                 value: dialysisTimingPostDialysis,
-                label: 'Post-dialysis',
+                label: Text('Post'),
               ),
             ],
-            selectedValue: dialysisTiming,
-            accentColor: accentColor,
-            onSelected: (value) {
-              if (value != null) {
-                onDialysisTimingChanged(value);
-              }
+            selected: {dialysisTiming},
+            showSelectedIcon: false,
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) return accentColor;
+                return AppTheme.ink;
+              }),
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return accentColor.withValues(alpha: 0.12);
+                }
+                return Colors.transparent;
+              }),
+            ),
+            onSelectionChanged: (selected) {
+              onDialysisTimingChanged(selected.first);
             },
           ),
         ],
-        const SizedBox(height: AppTheme.spacingMd),
-        Text('CONTEXT (OPTIONAL)', style: labelStyle),
-        const SizedBox(height: AppTheme.spacingXs),
-        _OptionRow(
-          options: [
-            const _PickerOption(value: null, label: 'None'),
+        const SizedBox(height: AppTheme.spacingSm),
+        Text('Context', style: labelStyle),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _ContextChip(
+              label: 'None',
+              selected: weightContext == null,
+              accentColor: accentColor,
+              onTap: () => onWeightContextChanged(null),
+            ),
             ...weightContextOptions.map(
-              (option) => _PickerOption(
-                value: option,
+              (option) => _ContextChip(
                 label: formatWeightContextLabel(option),
+                selected: weightContext == option,
+                accentColor: accentColor,
+                onTap: () => onWeightContextChanged(option),
               ),
             ),
           ],
-          selectedValue: weightContext,
-          accentColor: accentColor,
-          onSelected: onWeightContextChanged,
         ),
       ],
     );
   }
 }
 
-class _PickerOption {
-  const _PickerOption({required this.value, required this.label});
-
-  final String? value;
-  final String label;
-}
-
-class _OptionRow extends StatelessWidget {
-  const _OptionRow({
-    required this.options,
-    required this.selectedValue,
+class _ContextChip extends StatelessWidget {
+  const _ContextChip({
+    required this.label,
+    required this.selected,
     required this.accentColor,
-    required this.onSelected,
+    required this.onTap,
   });
 
-  final List<_PickerOption> options;
-  final String? selectedValue;
+  final String label;
+  final bool selected;
   final Color accentColor;
-  final ValueChanged<String?> onSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppTheme.spacingXs,
-      runSpacing: AppTheme.spacingXs,
-      children: options.map((option) {
-        final isSelected = selectedValue == option.value;
-        return OutlinedButton(
-          onPressed: () => onSelected(option.value),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: isSelected ? accentColor : AppTheme.ink,
-            backgroundColor: isSelected
-                ? accentColor.withValues(alpha: 0.12)
-                : Colors.transparent,
-            side: BorderSide(
-              color: isSelected ? accentColor : AppTheme.muted.withValues(alpha: 0.4),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingSm,
-              vertical: AppTheme.spacingXs,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-            ),
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      selectedColor: accentColor.withValues(alpha: 0.14),
+      side: BorderSide(
+        color: selected
+            ? accentColor.withValues(alpha: 0.55)
+            : AppTheme.muted.withValues(alpha: 0.28),
+      ),
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: selected ? accentColor : AppTheme.ink,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),
-          child: Text(option.label),
-        );
-      }).toList(),
+      onSelected: (_) => onTap(),
     );
   }
 }

@@ -15,6 +15,7 @@ class NumericStepperInput extends StatefulWidget {
     this.accentColor = AppTheme.logWeight,
     this.unitSuffix,
     this.allowDirectInput = false,
+    this.compact = false,
   });
 
   final String label;
@@ -27,6 +28,7 @@ class NumericStepperInput extends StatefulWidget {
   final Color accentColor;
   final String? unitSuffix;
   final bool allowDirectInput;
+  final bool compact;
 
   @override
   State<NumericStepperInput> createState() => _NumericStepperInputState();
@@ -120,34 +122,46 @@ class _NumericStepperInputState extends State<NumericStepperInput> {
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
+          fontSize: widget.compact ? 36 : 48,
+          fontWeight: FontWeight.w700,
+          height: 1.0,
+          letterSpacing: -0.6,
+        );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          widget.label.toUpperCase(),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          widget.compact ? widget.label : widget.label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppTheme.muted,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
+                letterSpacing: widget.compact ? 0 : 0.6,
               ),
         ),
-        const SizedBox(height: AppTheme.spacingXs),
-        Container(
-          height: 2,
-          color: widget.accentColor,
-        ),
-        const SizedBox(height: AppTheme.spacingLg),
+        if (!widget.compact) ...[
+          const SizedBox(height: AppTheme.spacingXs),
+          Container(
+            height: 2,
+            color: widget.accentColor,
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+        ] else
+          const SizedBox(height: AppTheme.spacingSm),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _StepperButton(
               icon: Icons.remove,
+              compact: widget.compact,
               onPressed: widget.value - widget.step >= widget.min
                   ? () => widget.onChanged(_round(widget.value - widget.step))
                   : null,
             ),
-            const SizedBox(width: AppTheme.spacingMd),
+            SizedBox(width: widget.compact ? AppTheme.spacingSm : AppTheme.spacingMd),
             SizedBox(
-              width: 140,
+              width: widget.compact ? 120 : 140,
               child: widget.allowDirectInput
                   ? TextField(
                       controller: _controller,
@@ -161,10 +175,7 @@ class _NumericStepperInputState extends State<NumericStepperInput> {
                         ),
                       ],
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: valueStyle,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
@@ -182,15 +193,13 @@ class _NumericStepperInputState extends State<NumericStepperInput> {
                           ? _formatValue(widget.value)
                           : '${_formatValue(widget.value)} ${widget.unitSuffix}',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: valueStyle,
                     ),
             ),
-            const SizedBox(width: AppTheme.spacingMd),
+            SizedBox(width: widget.compact ? AppTheme.spacingSm : AppTheme.spacingMd),
             _StepperButton(
               icon: Icons.add,
+              compact: widget.compact,
               onPressed: widget.value + widget.step <= widget.max
                   ? () => widget.onChanged(_round(widget.value + widget.step))
                   : null,
@@ -206,16 +215,19 @@ class _StepperButton extends StatelessWidget {
   const _StepperButton({
     required this.icon,
     required this.onPressed,
+    this.compact = false,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final size = compact ? 40.0 : 56.0;
     return SizedBox(
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
@@ -223,14 +235,14 @@ class _StepperButton extends StatelessWidget {
           side: BorderSide(
             color: onPressed == null
                 ? AppTheme.muted.withValues(alpha: 0.4)
-                : AppTheme.ink,
+                : AppTheme.muted.withValues(alpha: compact ? 0.35 : 1),
           ),
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
           ),
         ),
-        child: Icon(icon, size: 28),
+        child: Icon(icon, size: compact ? 20 : 28),
       ),
     );
   }

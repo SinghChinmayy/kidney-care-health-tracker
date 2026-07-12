@@ -45,9 +45,10 @@ class WeightReadingForm extends StatelessWidget {
           decimals: 1,
           accentColor: accentColor,
           allowDirectInput: true,
+          compact: true,
           onChanged: onValueKgChanged,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         WeightDialysisPicker(
           dialysisTiming: dialysisTiming,
           weightContext: weightContext,
@@ -55,17 +56,22 @@ class WeightReadingForm extends StatelessWidget {
           onDialysisTimingChanged: onDialysisTimingChanged,
           onWeightContextChanged: onWeightContextChanged,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         VitalRecordedAtPicker(
           recordedAt: recordedAt,
           accentColor: accentColor,
+          compact: true,
           onChanged: onRecordedAtChanged,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         TextFormField(
           controller: notesController,
-          decoration: const InputDecoration(labelText: 'Notes (optional)'),
-          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: 'Notes (optional)',
+            isDense: true,
+          ),
+          maxLines: 1,
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
     );

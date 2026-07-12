@@ -8,11 +8,13 @@ class VitalRecordedAtPicker extends StatelessWidget {
     required this.recordedAt,
     required this.onChanged,
     this.accentColor = AppTheme.logWeight,
+    this.compact = false,
   });
 
   final DateTime recordedAt;
   final ValueChanged<DateTime> onChanged;
   final Color accentColor;
+  final bool compact;
 
   Future<void> _pickDateTime(BuildContext context) async {
     final local = recordedAt.toLocal();
@@ -47,6 +49,64 @@ class VitalRecordedAtPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final button = OutlinedButton(
+      onPressed: () => _pickDateTime(context),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.ink,
+        side: BorderSide(
+          color: AppTheme.muted.withValues(alpha: compact ? 0.28 : 1),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingSm,
+          vertical: compact ? 12 : AppTheme.spacingSm,
+        ),
+        alignment: Alignment.centerLeft,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            color: accentColor,
+            size: compact ? 18 : 20,
+          ),
+          const SizedBox(width: AppTheme.spacingXs),
+          Expanded(
+            child: Text(
+              formatTrackRecordedAt(recordedAt),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: compact ? FontWeight.w600 : FontWeight.w500,
+                  ),
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: AppTheme.muted.withValues(alpha: 0.55),
+          ),
+        ],
+      ),
+    );
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'When',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppTheme.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 6),
+          button,
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -63,34 +123,7 @@ class VitalRecordedAtPicker extends StatelessWidget {
           color: accentColor,
         ),
         const SizedBox(height: AppTheme.spacingSm),
-        OutlinedButton(
-          onPressed: () => _pickDateTime(context),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.ink,
-            side: const BorderSide(color: AppTheme.ink),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingSm,
-              vertical: AppTheme.spacingSm,
-            ),
-            alignment: Alignment.centerLeft,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, color: accentColor, size: 20),
-              const SizedBox(width: AppTheme.spacingXs),
-              Expanded(
-                child: Text(
-                  formatTrackRecordedAt(recordedAt),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
+        button,
       ],
     );
   }
