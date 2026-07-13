@@ -1,6 +1,7 @@
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
+import 'package:app/ui/features/home/widgets/blood_glucose_card.dart';
 import 'package:app/ui/features/home/widgets/home_check_in_header.dart';
 import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
@@ -90,6 +91,16 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         const SizedBox(height: AppTheme.spacingSm),
+                        BloodGlucoseCard(
+                          reading: viewModel.bloodGlucoseForSelectedDate,
+                          chartPoints:
+                              viewModel.bloodGlucoseChartForSelectedDate,
+                          onTap: () => _openHistory(
+                            context,
+                            const BloodGlucoseView(),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
                         HomeCheckInHeader(
                           completed: viewModel.checkInCompletedCount,
                           total: HomeViewModel.checkInTotal,
@@ -134,32 +145,6 @@ class _HomeViewState extends State<HomeView> {
                               onHistoryTap: () => _openHistory(
                                 context,
                                 const BloodPressureView(),
-                              ),
-                            ),
-                            HomeVitalTile(
-                              title: 'Blood glucose',
-                              value: viewModel.bloodGlucoseForSelectedDate ==
-                                      null
-                                  ? 'No readings yet'
-                                  : viewModel
-                                      .bloodGlucoseForSelectedDate!
-                                      .valueMgDl
-                                      .toStringAsFixed(0),
-                              unit: viewModel.bloodGlucoseForSelectedDate ==
-                                      null
-                                  ? null
-                                  : 'mg/dL',
-                              icon: Icons.water_drop_outlined,
-                              accentColor: AppTheme.logBloodGlucose,
-                              isLogged:
-                                  viewModel.bloodGlucoseForSelectedDate != null,
-                              onTap: () => _openLog(
-                                context,
-                                VitalLogType.bloodGlucose,
-                              ),
-                              onHistoryTap: () => _openHistory(
-                                context,
-                                const BloodGlucoseView(),
                               ),
                             ),
                             HomeVitalTile(

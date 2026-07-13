@@ -40,18 +40,20 @@ class BloodGlucoseReadingForm extends StatelessWidget {
           decimals: 0,
           accentColor: accentColor,
           allowDirectInput: true,
+          compact: true,
           onChanged: onValueChanged,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         BloodGlucoseContextPicker(
           selectedContext: selectedContext,
           accentColor: accentColor,
           onChanged: onContextChanged,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         VitalRecordedAtPicker(
           recordedAt: recordedAt,
           accentColor: accentColor,
+          compact: true,
           onChanged: onRecordedAtChanged,
         ),
         if (errorText != null) ...[

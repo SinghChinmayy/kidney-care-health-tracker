@@ -1,9 +1,10 @@
 import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:app/theme/app_theme.dart';
-import 'package:app/ui/features/vitals/widgets/blood_glucose_reading_form.dart';
+import 'package:app/ui/features/vitals/widgets/blood_glucose_context_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/fluid_intake_reading_form.dart';
+import 'package:app/ui/features/vitals/widgets/vital_recorded_at_picker.dart';
 import 'package:app/ui/features/vitals/widgets/weight_dialysis_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -54,9 +55,11 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
       children: [
         Text(
           'Log blood pressure',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         BloodPressureReadingForm(
           logType: _logType,
           systolic: _systolic,
@@ -69,14 +72,13 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
           onHeartRateChanged: (value) => setState(() => _heartRate = value),
           onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         ElevatedButton(
           onPressed: _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.logBloodPressure,
-            foregroundColor: AppTheme.background,
+          child: const Text(
+            'Save',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          child: const Text('Save reading'),
         ),
       ],
     );
@@ -113,14 +115,21 @@ class AddBloodGlucoseForm extends StatefulWidget {
 }
 
 class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
-  double _valueMgDl = 100;
+  final _valueController = TextEditingController(text: '100');
   String? _selectedContext;
   late DateTime _recordedAt;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
     _recordedAt = widget.initialRecordedAt ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _valueController.dispose();
+    super.dispose();
   }
 
   @override
@@ -131,32 +140,58 @@ class _AddBloodGlucoseFormState extends State<AddBloodGlucoseForm> {
       children: [
         Text(
           'Log blood glucose',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
-        BloodGlucoseReadingForm(
-          valueMgDl: _valueMgDl,
+        const SizedBox(height: AppTheme.spacingXs),
+        Text(
+          'Values are stored in mg/dL.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
+        TextFormField(
+          controller: _valueController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Glucose (mg/dL)'),
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
+        BloodGlucoseContextPicker(
           selectedContext: _selectedContext,
-          recordedAt: _recordedAt,
-          onValueChanged: (value) => setState(() => _valueMgDl = value),
-          onContextChanged: (value) => setState(() => _selectedContext = value),
-          onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
+          accentColor: AppTheme.logBloodGlucose,
+          onChanged: (value) => setState(() => _selectedContext = value),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
+        VitalRecordedAtPicker(
+          recordedAt: _recordedAt,
+          accentColor: AppTheme.logBloodGlucose,
+          compact: true,
+          onChanged: (value) => setState(() => _recordedAt = value),
+        ),
+        if (_errorText != null) ...[
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(_errorText!, style: TextStyle(color: AppTheme.error)),
+        ],
+        const SizedBox(height: AppTheme.spacingSm),
         ElevatedButton(
           onPressed: _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.logBloodGlucose,
-            foregroundColor: AppTheme.background,
+          child: const Text(
+            'Save',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          child: const Text('Save reading'),
         ),
       ],
     );
   }
 
   void _submit() {
-    widget.onSubmit(_valueMgDl, _selectedContext, _recordedAt);
+    final value = double.tryParse(_valueController.text.trim());
+    if (value == null || value <= 0) {
+      setState(() => _errorText = 'Enter a valid glucose value.');
+      return;
+    }
+    setState(() => _errorText = null);
+    widget.onSubmit(value, _selectedContext, _recordedAt);
   }
 }
 
@@ -199,14 +234,16 @@ class _AddWeightFormState extends State<AddWeightForm> {
       children: [
         Text(
           'Log weight',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
         ),
         const SizedBox(height: AppTheme.spacingXs),
         Text(
           'Values are stored in kg.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         TextFormField(
           controller: _valueController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -232,10 +269,13 @@ class _AddWeightFormState extends State<AddWeightForm> {
           const SizedBox(height: AppTheme.spacingSm),
           Text(_errorText!, style: TextStyle(color: AppTheme.error)),
         ],
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         ElevatedButton(
           onPressed: _submit,
-          child: const Text('Save reading'),
+          child: const Text(
+            'Save',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
@@ -292,23 +332,24 @@ class _AddFluidIntakeFormState extends State<AddFluidIntakeForm> {
       children: [
         Text(
           'Log water intake',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         FluidIntakeReadingForm(
           fluidMl: _fluidMl,
           recordedAt: _recordedAt,
           onFluidMlChanged: (value) => setState(() => _fluidMl = value),
           onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacingSm),
         ElevatedButton(
           onPressed: () => widget.onSubmit(_fluidMl, _recordedAt),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.logFluidIntake,
-            foregroundColor: AppTheme.background,
+          child: const Text(
+            'Save',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          child: const Text('Save intake'),
         ),
       ],
     );

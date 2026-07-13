@@ -71,24 +71,25 @@ void main() {
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('TRACK'), findsNothing);
     expect(find.text('HISTORY'), findsNothing);
-    expect(find.byTooltip('Log weight'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Log'), findsOneWidget);
   });
 
   testWidgets('add opens log sheet and save persists reading', (tester) async {
     await tester.pumpWidget(buildWeightView(vitalsRepository: vitalsRepository));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Log weight'));
+    await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
 
     expect(find.text('Log weight'), findsWidgets);
-    expect(find.text('DAY TYPE'), findsOneWidget);
+    expect(find.text('Day type'), findsOneWidget);
 
     final fields = find.byType(TextField);
     expect(fields, findsWidgets);
     await tester.enterText(fields.first, '85');
-    await tester.ensureVisible(find.text('Save reading'));
-    await tester.tap(find.text('Save reading'));
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('Weight saved'), findsOneWidget);
@@ -127,8 +128,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('SAVE CHANGES'));
-    await tester.tap(find.text('SAVE CHANGES'));
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('Weight updated'), findsOneWidget);

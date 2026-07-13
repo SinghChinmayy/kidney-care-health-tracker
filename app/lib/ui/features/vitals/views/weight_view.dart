@@ -1,7 +1,6 @@
 import 'package:app/domain/models/weight_reading.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_components.dart';
-import 'package:app/ui/features/vitals/models/weight_period.dart';
 import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:app/ui/features/vitals/widgets/weight_edit_sheet.dart';
@@ -55,15 +54,15 @@ class _WeightViewState extends State<WeightView> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppScreenAppBar(
-        title: 'Weight',
-        actions: [
-          IconButton(
-            tooltip: 'Log weight',
-            onPressed: _logWeight,
-            icon: const Icon(Icons.add),
-          ),
-        ],
+      appBar: const AppScreenAppBar(title: 'Weight'),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _logWeight,
+        tooltip: 'Log weight',
+        icon: const Icon(Icons.add),
+        label: const Text(
+          'Log',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: viewModel.refresh,
@@ -183,16 +182,34 @@ class _WeightViewState extends State<WeightView> {
                   AppTheme.spacingSm,
                   AppTheme.spacingMd,
                   AppTheme.spacingSm,
-                  AppTheme.spacingLg,
+                  96,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Recent',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Recent',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _logWeight,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text(
+                            'Log',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.logWeight,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppTheme.spacingSm),
                     if (viewModel.readings.isEmpty)
@@ -201,7 +218,7 @@ class _WeightViewState extends State<WeightView> {
                           vertical: AppTheme.spacingMd,
                         ),
                         child: Text(
-                          'No weight readings yet. Tap + to log one.',
+                          'No weight readings yet. Tap Log to add one.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: AppTheme.muted,
                           ),

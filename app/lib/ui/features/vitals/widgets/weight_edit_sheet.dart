@@ -189,14 +189,7 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
             ElevatedButton(
               onPressed: _isBusy ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.logWeight,
-                foregroundColor: AppTheme.background,
-                disabledBackgroundColor:
-                    AppTheme.logWeight.withValues(alpha: 0.5),
                 minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.cornerRadius),
-                ),
               ),
               child: _isSaving
                   ? const SizedBox(

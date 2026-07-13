@@ -1,6 +1,5 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_forms.dart';
-import 'package:app/ui/features/vitals/widgets/vital_option_row.dart';
 import 'package:flutter/material.dart';
 
 String formatBloodGlucoseContextLabel(String context) {
@@ -29,30 +28,71 @@ class BloodGlucoseContextPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
           color: AppTheme.muted,
-          letterSpacing: 0.8,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('CONTEXT (OPTIONAL)', style: labelStyle),
-        const SizedBox(height: AppTheme.spacingXs),
-        VitalOptionRow(
-          options: [
-            const VitalOption(value: null, label: 'None'),
+        Text('Context', style: labelStyle),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _ContextChip(
+              label: 'None',
+              selected: selectedContext == null,
+              accentColor: accentColor,
+              onTap: () => onChanged(null),
+            ),
             ...bloodGlucoseContextOptions.map(
-              (option) => VitalOption(
-                value: option,
+              (option) => _ContextChip(
                 label: formatBloodGlucoseContextLabel(option),
+                selected: selectedContext == option,
+                accentColor: accentColor,
+                onTap: () => onChanged(option),
               ),
             ),
           ],
-          selectedValue: selectedContext,
-          accentColor: accentColor,
-          onSelected: onChanged,
         ),
       ],
+    );
+  }
+}
+
+class _ContextChip extends StatelessWidget {
+  const _ContextChip({
+    required this.label,
+    required this.selected,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      selectedColor: accentColor.withValues(alpha: 0.14),
+      side: BorderSide(
+        color: selected
+            ? accentColor.withValues(alpha: 0.55)
+            : AppTheme.muted.withValues(alpha: 0.28),
+      ),
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: selected ? accentColor : AppTheme.ink,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+      onSelected: (_) => onTap(),
     );
   }
 }

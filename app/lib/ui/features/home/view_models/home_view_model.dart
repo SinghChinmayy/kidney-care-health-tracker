@@ -11,6 +11,16 @@ import 'package:app/domain/models/weight_reading.dart';
 import 'package:app/ui/features/vitals/utils/vital_formatters.dart';
 import 'package:flutter/material.dart';
 
+class BloodGlucoseHomeChartPoint {
+  const BloodGlucoseHomeChartPoint({
+    required this.day,
+    required this.valueMgDl,
+  });
+
+  final DateTime day;
+  final double valueMgDl;
+}
+
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
     required AuthRepository authRepository,
@@ -23,7 +33,7 @@ class HomeViewModel extends ChangeNotifier {
     refresh();
   }
 
-  static const int checkInTotal = 3;
+  static const int checkInTotal = 2;
 
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
@@ -107,6 +117,40 @@ class HomeViewModel extends ChangeNotifier {
         (reading) => reading.recordedAt,
       );
 
+  /// Daily latest glucose values for the 7 local days ending on selected date.
+  List<BloodGlucoseHomeChartPoint> get bloodGlucoseChartForSelectedDate {
+    final end = _selectedDate;
+    final start = end.subtract(const Duration(days: 6));
+    final latestByDay = <DateTime, BloodGlucoseReading>{};
+
+    for (final reading in _bloodGlucoseReadings) {
+      final day = localDateOnly(reading.recordedAt);
+      if (day.isBefore(start) || day.isAfter(end)) {
+        continue;
+      }
+      final existing = latestByDay[day];
+      if (existing == null ||
+          reading.recordedAt.isAfter(existing.recordedAt)) {
+        latestByDay[day] = reading;
+      }
+    }
+
+    final points = <BloodGlucoseHomeChartPoint>[];
+    for (var i = 0; i < 7; i++) {
+      final day = start.add(Duration(days: i));
+      final reading = latestByDay[day];
+      if (reading != null) {
+        points.add(
+          BloodGlucoseHomeChartPoint(
+            day: day,
+            valueMgDl: reading.valueMgDl,
+          ),
+        );
+      }
+    }
+    return points;
+  }
+
   /// Interdialytic weight state as of the selected date (carry-forward).
   WeightGainSnapshot get weightGainForSelectedDate =>
       weightGainSnapshotOnLocalDate(_weightReadings, _selectedDate);
@@ -155,7 +199,6 @@ class HomeViewModel extends ChangeNotifier {
   int get checkInCompletedCount {
     var count = 0;
     if (bloodPressureForSelectedDate != null) count++;
-    if (bloodGlucoseForSelectedDate != null) count++;
     if (fluidIntakeTotalMlForSelectedDate > 0) count++;
     return count;
   }
