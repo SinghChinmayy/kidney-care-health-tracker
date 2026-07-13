@@ -1,9 +1,12 @@
+import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/debug/agent_debug_log.dart';
+import 'package:app/debug/synthetic_data_generator.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -369,6 +372,64 @@ class _ProfileViewState extends State<ProfileView> {
                   if (viewModel.isSaving) ...[
                     const SizedBox(height: AppTheme.spacingSm),
                     const LinearProgressIndicator(minHeight: 2),
+                  ],
+                  if (kDebugMode) ...[
+                    const _ProfileSectionDivider(),
+                    _ProfileSection(
+                      title: 'Developer tools',
+                      children: [
+                        _ProfileDetailRow(
+                          icon: Icons.analytics_outlined,
+                          label: 'Generate test data',
+                          value: '6 months',
+                          onTap: () async {
+                            showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: Card(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(AppTheme.spacingMd),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircularProgressIndicator(),
+                                        SizedBox(height: AppTheme.spacingSm),
+                                        Text('Generating 6 months of data...'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                            try {
+                              await SyntheticDataGenerator.generate6MonthsData(
+                                context.read<VitalsRepository>(),
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).pop(); // Dismiss loading
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('Test data generated successfully!'),
+                                  ),
+                                );
+                                viewModel.refresh();
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                Navigator.of(context).pop(); // Dismiss loading
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error generating data: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ],
                   const _ProfileSectionDivider(),
                   _LogoutRow(

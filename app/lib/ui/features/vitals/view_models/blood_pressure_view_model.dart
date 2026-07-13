@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/ui/features/vitals/models/blood_pressure_period.dart';
@@ -7,72 +8,55 @@ import 'package:uuid/uuid.dart';
 class BloodPressureViewModel extends ChangeNotifier {
   BloodPressureViewModel({required VitalsRepository vitalsRepository})
       : _vitalsRepository = vitalsRepository,
-        _selectedWeekStart = bloodPressureWeekStart(DateTime.now()),
-        _selectedMonthStart = bloodPressureMonthStart(DateTime.now()),
-        _selectedYearStart = bloodPressureYearStart(DateTime.now()) {
+        _selectedMonthStart = bloodPressureMonthStart(DateTime.now()) {
     refresh();
   }
 
   final VitalsRepository _vitalsRepository;
   List<BloodPressureReading> _readings = [];
-  BloodPressurePeriod _selectedPeriod = BloodPressurePeriod.week;
-  DateTime _selectedWeekStart;
+  BloodPressurePeriod _selectedPeriod = BloodPressurePeriod.last7Days;
   DateTime _selectedMonthStart;
-  DateTime _selectedYearStart;
 
   List<BloodPressureReading> get readings => _readings;
 
   BloodPressurePeriod get selectedPeriod => _selectedPeriod;
 
-  DateTime get selectedWeekStart => _selectedWeekStart;
-
   DateTime get selectedMonthStart => _selectedMonthStart;
-
-  DateTime get selectedYearStart => _selectedYearStart;
 
   String get selectedPeriodLabel => bloodPressurePeriodLabel(
         _selectedPeriod,
-        weekStart: _selectedWeekStart,
         monthStart: _selectedMonthStart,
-        yearStart: _selectedYearStart,
       );
 
   bool get showsPeriodNavigator =>
-      _selectedPeriod == BloodPressurePeriod.week ||
-      _selectedPeriod == BloodPressurePeriod.month ||
-      _selectedPeriod == BloodPressurePeriod.year;
+      _selectedPeriod == BloodPressurePeriod.month;
 
   bool get canSelectPreviousPeriod => showsPeriodNavigator;
 
   bool get canSelectNextPeriod {
     final now = DateTime.now();
     switch (_selectedPeriod) {
-      case BloodPressurePeriod.week:
-        return _selectedWeekStart.isBefore(bloodPressureWeekStart(now));
+      case BloodPressurePeriod.last7Days:
+      case BloodPressurePeriod.last30Days:
+        return false;
       case BloodPressurePeriod.month:
         final thisMonth = bloodPressureMonthStart(now);
         return _selectedMonthStart.year < thisMonth.year ||
             (_selectedMonthStart.year == thisMonth.year &&
                 _selectedMonthStart.month < thisMonth.month);
-      case BloodPressurePeriod.year:
-        return _selectedYearStart.year < bloodPressureYearStart(now).year;
-      case BloodPressurePeriod.all:
-        return false;
     }
   }
 
   String get previousPeriodTooltip => switch (_selectedPeriod) {
-        BloodPressurePeriod.week => 'Previous week',
+        BloodPressurePeriod.last7Days => 'Previous',
+        BloodPressurePeriod.last30Days => 'Previous',
         BloodPressurePeriod.month => 'Previous month',
-        BloodPressurePeriod.year => 'Previous year',
-        BloodPressurePeriod.all => 'Previous',
       };
 
   String get nextPeriodTooltip => switch (_selectedPeriod) {
-        BloodPressurePeriod.week => 'Next week',
+        BloodPressurePeriod.last7Days => 'Next',
+        BloodPressurePeriod.last30Days => 'Next',
         BloodPressurePeriod.month => 'Next month',
-        BloodPressurePeriod.year => 'Next year',
-        BloodPressurePeriod.all => 'Next',
       };
 
   BloodPressureReading? get latestReading =>
@@ -85,9 +69,7 @@ class BloodPressureViewModel extends ChangeNotifier {
       _selectedPeriod,
       DateTime.now(),
       earliestReadingAt: earliest,
-      weekStart: _selectedWeekStart,
       monthStart: _selectedMonthStart,
-      yearStart: _selectedYearStart,
     );
   }
 
@@ -133,11 +115,73 @@ class BloodPressureViewModel extends ChangeNotifier {
     return 'mmHg';
   }
 
+  /// Short date label for the hero reading (Today, Yesterday, Jul 10).
+  String? get heroDateLabel {
+    final reading = heroReading;
+    if (reading == null) {
+      return null;
+    }
+    return _heroDateLabel(reading.recordedAt);
+  }
+
+  /// Muted caption under the hero: date, heart rate, period average.
+  String? get heroSubtitle {
+    final reading = heroReading;
+    if (reading == null) {
+      return null;
+    }
+
+    final parts = <String>[_heroDateLabel(reading.recordedAt)];
+    if (reading.heartRateBpm != null) {
+      parts.add('${reading.heartRateBpm} bpm');
+    }
+    final avg = periodAverageDisplay;
+    if (avg != null) {
+      parts.add('avg $avg');
+    }
+    return parts.join(' · ');
+  }
+
+  /// Combined period average as `sys/dia`, or null when incomplete.
+  String? get periodAverageDisplay {
+    final avgSys = periodAverageSystolic;
+    final avgDia = periodAverageDiastolic;
+    if (avgSys == null || avgDia == null) {
+      return null;
+    }
+    return '${avgSys.round()}/${avgDia.round()}';
+  }
+
+  /// Compact min–max range for systolic and diastolic in the period.
+  String? get periodRangeDisplay {
+    final minSys = periodMinSystolic;
+    final maxSys = periodMaxSystolic;
+    final minDia = periodMinDiastolic;
+    final maxDia = periodMaxDiastolic;
+    if (minSys == null ||
+        maxSys == null ||
+        minDia == null ||
+        maxDia == null) {
+      return null;
+    }
+    return '$minSys–$maxSys / $minDia–$maxDia';
+  }
+
   int get periodReadingCount => periodReadings.length;
 
   List<BloodPressureReading> get _periodWithSystolic => [
         for (final reading in periodReadings)
           if (reading.systolic != null) reading,
+      ];
+
+  List<BloodPressureReading> get _periodWithDiastolic => [
+        for (final reading in periodReadings)
+          if (reading.diastolic != null) reading,
+      ];
+
+  List<BloodPressureReading> get _periodWithHr => [
+        for (final reading in periodReadings)
+          if (reading.heartRateBpm != null) reading,
       ];
 
   /// Newest minus oldest systolic in the period. Null if < 2 systolic readings.
@@ -151,25 +195,82 @@ class BloodPressureViewModel extends ChangeNotifier {
 
   double? get periodAverageSystolic {
     final withSys = _periodWithSystolic;
-    if (withSys.isEmpty) {
-      return null;
-    }
+    if (withSys.isEmpty) return null;
     var sum = 0;
-    for (final reading in withSys) {
-      sum += reading.systolic!;
-    }
+    for (final r in withSys) sum += r.systolic!;
     return sum / withSys.length;
+  }
+
+  int? get periodMinSystolic {
+    final withSys = _periodWithSystolic;
+    if (withSys.isEmpty) return null;
+    return withSys.map((r) => r.systolic!).reduce((a, b) => a < b ? a : b);
+  }
+
+  int? get periodMaxSystolic {
+    final withSys = _periodWithSystolic;
+    if (withSys.isEmpty) return null;
+    return withSys.map((r) => r.systolic!).reduce((a, b) => a > b ? a : b);
+  }
+
+  double? get periodAverageDiastolic {
+    final withDia = _periodWithDiastolic;
+    if (withDia.isEmpty) return null;
+    var sum = 0;
+    for (final r in withDia) sum += r.diastolic!;
+    return sum / withDia.length;
+  }
+
+  int? get periodMinDiastolic {
+    final withDia = _periodWithDiastolic;
+    if (withDia.isEmpty) return null;
+    return withDia.map((r) => r.diastolic!).reduce((a, b) => a < b ? a : b);
+  }
+
+  int? get periodMaxDiastolic {
+    final withDia = _periodWithDiastolic;
+    if (withDia.isEmpty) return null;
+    return withDia.map((r) => r.diastolic!).reduce((a, b) => a > b ? a : b);
+  }
+
+  double? get periodStdDevSystolic {
+    final withSys = _periodWithSystolic;
+    if (withSys.isEmpty) return null;
+    final avg = periodAverageSystolic!;
+    final variance = withSys.map((r) => pow(r.systolic! - avg, 2)).reduce((a, b) => a + b) / withSys.length;
+    return sqrt(variance);
+  }
+
+  double? get periodStdDevDiastolic {
+    final withDia = _periodWithDiastolic;
+    if (withDia.isEmpty) return null;
+    final avg = periodAverageDiastolic!;
+    final variance = withDia.map((r) => pow(r.diastolic! - avg, 2)).reduce((a, b) => a + b) / withDia.length;
+    return sqrt(variance);
+  }
+
+  double? get periodAverageHr {
+    final withHr = _periodWithHr;
+    if (withHr.isEmpty) return null;
+    var sum = 0;
+    for (final r in withHr) sum += r.heartRateBpm!;
+    return sum / withHr.length;
+  }
+
+  int? get periodMinHr {
+    final withHr = _periodWithHr;
+    if (withHr.isEmpty) return null;
+    return withHr.map((r) => r.heartRateBpm!).reduce((a, b) => a < b ? a : b);
+  }
+
+  int? get periodMaxHr {
+    final withHr = _periodWithHr;
+    if (withHr.isEmpty) return null;
+    return withHr.map((r) => r.heartRateBpm!).reduce((a, b) => a > b ? a : b);
   }
 
   List<BloodPressureChartDay> get chartDays {
     final range = _range;
-    if (_selectedPeriod == BloodPressurePeriod.year) {
-      return bloodPressureChartMonths(
-        readings: _readings,
-        start: range.start,
-        end: range.end,
-      );
-    }
     return bloodPressureChartDays(
       readings: _readings,
       start: range.start,
@@ -184,14 +285,11 @@ class BloodPressureViewModel extends ChangeNotifier {
     _selectedPeriod = period;
     final now = DateTime.now();
     switch (period) {
-      case BloodPressurePeriod.week:
-        _selectedWeekStart = bloodPressureWeekStart(now);
+      case BloodPressurePeriod.last7Days:
+      case BloodPressurePeriod.last30Days:
+        break;
       case BloodPressurePeriod.month:
         _selectedMonthStart = bloodPressureMonthStart(now);
-      case BloodPressurePeriod.year:
-        _selectedYearStart = bloodPressureYearStart(now);
-      case BloodPressurePeriod.all:
-        break;
     }
     notifyListeners();
   }
@@ -201,17 +299,12 @@ class BloodPressureViewModel extends ChangeNotifier {
       return;
     }
     switch (_selectedPeriod) {
-      case BloodPressurePeriod.week:
-        final start = bloodPressureLocalDateOnly(_selectedWeekStart);
-        _selectedWeekStart = DateTime(start.year, start.month, start.day - 7);
+      case BloodPressurePeriod.last7Days:
+      case BloodPressurePeriod.last30Days:
+        return;
       case BloodPressurePeriod.month:
         final start = bloodPressureMonthStart(_selectedMonthStart);
         _selectedMonthStart = DateTime(start.year, start.month - 1, 1);
-      case BloodPressurePeriod.year:
-        final start = bloodPressureYearStart(_selectedYearStart);
-        _selectedYearStart = DateTime(start.year - 1, 1, 1);
-      case BloodPressurePeriod.all:
-        return;
     }
     notifyListeners();
   }
@@ -221,17 +314,12 @@ class BloodPressureViewModel extends ChangeNotifier {
       return;
     }
     switch (_selectedPeriod) {
-      case BloodPressurePeriod.week:
-        final start = bloodPressureLocalDateOnly(_selectedWeekStart);
-        _selectedWeekStart = DateTime(start.year, start.month, start.day + 7);
+      case BloodPressurePeriod.last7Days:
+      case BloodPressurePeriod.last30Days:
+        return;
       case BloodPressurePeriod.month:
         final start = bloodPressureMonthStart(_selectedMonthStart);
         _selectedMonthStart = DateTime(start.year, start.month + 1, 1);
-      case BloodPressurePeriod.year:
-        final start = bloodPressureYearStart(_selectedYearStart);
-        _selectedYearStart = DateTime(start.year + 1, 1, 1);
-      case BloodPressurePeriod.all:
-        return;
     }
     notifyListeners();
   }
@@ -318,5 +406,34 @@ class BloodPressureViewModel extends ChangeNotifier {
   Future<void> deleteReading(String id) async {
     await _vitalsRepository.deleteBloodPressureReading(id);
     await refresh();
+  }
+
+  String _heroDateLabel(DateTime recordedAt) {
+    final local = recordedAt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(local.year, local.month, local.day);
+    if (date == today) {
+      return 'Today';
+    }
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (date == yesterday) {
+      return 'Yesterday';
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[local.month - 1]} ${local.day}';
   }
 }

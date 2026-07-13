@@ -13,10 +13,9 @@ class BloodPressurePeriodSelector extends StatelessWidget {
   final ValueChanged<BloodPressurePeriod> onSelected;
 
   static const _options = <(BloodPressurePeriod, String)>[
-    (BloodPressurePeriod.week, 'W'),
-    (BloodPressurePeriod.month, 'M'),
-    (BloodPressurePeriod.year, 'Y'),
-    (BloodPressurePeriod.all, 'All'),
+    (BloodPressurePeriod.last7Days, '7D'),
+    (BloodPressurePeriod.last30Days, '30D'),
+    (BloodPressurePeriod.month, 'Month'),
   ];
 
   @override

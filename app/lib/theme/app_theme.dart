@@ -19,6 +19,8 @@ class AppTheme {
   static const Color background = Colors.white;
   static const Color ink = Colors.black;
   static const Color surfaceMuted = Color(0xFFF9FAFB);
+  /// Warm cream used as background for the Blood Pressure view.
+  static const Color bpBackground = Color(0xFFF5F1EB);
   /// Soft fill for home summary cards (modern rounded tiles).
   static const Color cardSurface = Color(0xFFF2F2F2);
   static const Color muted = Color(0xFF6B7280);
