@@ -21,6 +21,16 @@ class BloodGlucoseHomeChartPoint {
   final double valueMgDl;
 }
 
+class BloodPressureHomeChartPoint {
+  const BloodPressureHomeChartPoint({
+    required this.day,
+    required this.systolic,
+  });
+
+  final DateTime day;
+  final int systolic;
+}
+
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
     required AuthRepository authRepository,
@@ -33,7 +43,7 @@ class HomeViewModel extends ChangeNotifier {
     refresh();
   }
 
-  static const int checkInTotal = 2;
+  static const int checkInTotal = 1;
 
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
@@ -151,6 +161,43 @@ class HomeViewModel extends ChangeNotifier {
     return points;
   }
 
+  /// Daily latest systolic values for the 7 local days ending on selected date.
+  List<BloodPressureHomeChartPoint> get bloodPressureChartForSelectedDate {
+    final end = _selectedDate;
+    final start = end.subtract(const Duration(days: 6));
+    final latestByDay = <DateTime, BloodPressureReading>{};
+
+    for (final reading in _bloodPressureReadings) {
+      if (reading.systolic == null) {
+        continue;
+      }
+      final day = localDateOnly(reading.recordedAt);
+      if (day.isBefore(start) || day.isAfter(end)) {
+        continue;
+      }
+      final existing = latestByDay[day];
+      if (existing == null ||
+          reading.recordedAt.isAfter(existing.recordedAt)) {
+        latestByDay[day] = reading;
+      }
+    }
+
+    final points = <BloodPressureHomeChartPoint>[];
+    for (var i = 0; i < 7; i++) {
+      final day = start.add(Duration(days: i));
+      final reading = latestByDay[day];
+      if (reading?.systolic != null) {
+        points.add(
+          BloodPressureHomeChartPoint(
+            day: day,
+            systolic: reading!.systolic!,
+          ),
+        );
+      }
+    }
+    return points;
+  }
+
   /// Interdialytic weight state as of the selected date (carry-forward).
   WeightGainSnapshot get weightGainForSelectedDate =>
       weightGainSnapshotOnLocalDate(_weightReadings, _selectedDate);
@@ -198,7 +245,6 @@ class HomeViewModel extends ChangeNotifier {
 
   int get checkInCompletedCount {
     var count = 0;
-    if (bloodPressureForSelectedDate != null) count++;
     if (fluidIntakeTotalMlForSelectedDate > 0) count++;
     return count;
   }

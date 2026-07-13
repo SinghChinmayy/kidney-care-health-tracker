@@ -45,32 +45,140 @@ class _AppShellViewState extends State<AppShellView> {
           const ProfileView(),
         ],
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-              onPressed: _openLogMenu,
-              child: const Icon(Icons.add),
-            )
-          : null,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: _AppBottomBar(
         selectedIndex: _selectedIndex,
-        backgroundColor: AppTheme.background,
-        indicatorColor: AppTheme.logWeight.withValues(alpha: 0.2),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+        onHomeTap: () => setState(() => _selectedIndex = 0),
+        onLogTap: _openLogMenu,
+        onProfileTap: () => setState(() => _selectedIndex = 1),
+      ),
+    );
+  }
+}
+
+class _AppBottomBar extends StatelessWidget {
+  const _AppBottomBar({
+    required this.selectedIndex,
+    required this.onHomeTap,
+    required this.onLogTap,
+    required this.onProfileTap,
+  });
+
+  final int selectedIndex;
+  final VoidCallback onHomeTap;
+  final VoidCallback onLogTap;
+  final VoidCallback onProfileTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.background,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home,
+                  label: 'Home',
+                  selected: selectedIndex == 0,
+                  onTap: onHomeTap,
+                ),
+              ),
+              Expanded(
+                child: _LogNavItem(onTap: onLogTap),
+              ),
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.person_outline,
+                  selectedIcon: Icons.person,
+                  label: 'Profile',
+                  selected: selectedIndex == 1,
+                  onTap: onProfileTap,
+                ),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppTheme.ink : AppTheme.muted;
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(selected ? selectedIcon : icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LogNavItem extends StatelessWidget {
+  const _LogNavItem({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppTheme.ink,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.add,
+              color: AppTheme.background,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Log',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.ink,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),

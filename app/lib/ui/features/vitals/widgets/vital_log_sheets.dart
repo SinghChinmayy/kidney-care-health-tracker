@@ -218,7 +218,9 @@ class _VitalLogSheetPadding extends StatelessWidget {
         top: AppTheme.spacingSm,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingSm,
       ),
-      child: child,
+      child: SingleChildScrollView(
+        child: child,
+      ),
     );
   }
 }
