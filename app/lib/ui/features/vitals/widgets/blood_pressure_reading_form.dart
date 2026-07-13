@@ -63,6 +63,7 @@ class BloodPressureReadingForm extends StatelessWidget {
             decimals: 0,
             accentColor: accentColor,
             allowDirectInput: true,
+            compact: true,
             onChanged: (value) => onSystolicChanged(value.round()),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -75,6 +76,7 @@ class BloodPressureReadingForm extends StatelessWidget {
             decimals: 0,
             accentColor: accentColor,
             allowDirectInput: true,
+            compact: true,
             onChanged: (value) => onDiastolicChanged(value.round()),
           ),
         ],
@@ -89,6 +91,7 @@ class BloodPressureReadingForm extends StatelessWidget {
             decimals: 0,
             accentColor: accentColor,
             allowDirectInput: true,
+            compact: true,
             onChanged: (value) => onHeartRateChanged(value.round()),
           ),
         ],
@@ -96,6 +99,7 @@ class BloodPressureReadingForm extends StatelessWidget {
         VitalRecordedAtPicker(
           recordedAt: recordedAt,
           accentColor: accentColor,
+          compact: true,
           onChanged: onRecordedAtChanged,
         ),
         if (errorText != null) ...[
