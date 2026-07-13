@@ -2,6 +2,7 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/home/widgets/blood_glucose_card.dart';
 import 'package:app/ui/features/home/widgets/blood_pressure_card.dart';
+import 'package:app/ui/features/home/widgets/blood_pressure_widget.dart';
 import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
 import 'package:app/ui/features/home/widgets/home_week_strip.dart';
@@ -122,24 +123,54 @@ class _HomeViewState extends State<HomeView> {
                             const WeightView(),
                           ),
                         ),
+                        // TODO: re-enable large cards when ready
+                        // BloodGlucoseCard(
+                        //   reading: viewModel.bloodGlucoseForSelectedDate,
+                        //   chartPoints:
+                        //       viewModel.bloodGlucoseChartForSelectedDate,
+                        //   onTap: () => _openHistory(
+                        //     context,
+                        //     const BloodGlucoseView(),
+                        //   ),
+                        // ),
+                        // const SizedBox(height: AppTheme.spacingSm),
+                        // BloodPressureCard(
+                        //   reading: viewModel.bloodPressureForSelectedDate,
+                        //   chartPoints:
+                        //       viewModel.bloodPressureChartForSelectedDate,
+                        //   onTap: () => _openHistory(
+                        //     context,
+                        //     const BloodPressureView(),
+                        //   ),
+                        // ),
                         const SizedBox(height: AppTheme.spacingSm),
-                        BloodGlucoseCard(
-                          reading: viewModel.bloodGlucoseForSelectedDate,
-                          chartPoints:
-                              viewModel.bloodGlucoseChartForSelectedDate,
-                          onTap: () => _openHistory(
-                            context,
-                            const BloodGlucoseView(),
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        BloodPressureCard(
-                          reading: viewModel.bloodPressureForSelectedDate,
-                          chartPoints:
-                              viewModel.bloodPressureChartForSelectedDate,
-                          onTap: () => _openHistory(
-                            context,
-                            const BloodPressureView(),
+                        // Compact side-by-side widget tiles
+                        SizedBox(
+                          height: 148,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: BloodGlucoseWidget(
+                                  chartPoints:
+                                      viewModel.bloodGlucoseChartForSelectedDate,
+                                  onTap: () => _openHistory(
+                                    context,
+                                    const BloodGlucoseView(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: BloodPressureWidget(
+                                  chartPoints:
+                                      viewModel.bloodPressureChartForSelectedDate,
+                                  onTap: () => _openHistory(
+                                    context,
+                                    const BloodPressureView(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

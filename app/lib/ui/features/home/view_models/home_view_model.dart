@@ -25,10 +25,12 @@ class BloodPressureHomeChartPoint {
   const BloodPressureHomeChartPoint({
     required this.day,
     required this.systolic,
+    this.diastolic,
   });
 
   final DateTime day;
   final int systolic;
+  final int? diastolic;
 }
 
 class HomeViewModel extends ChangeNotifier {
@@ -191,6 +193,7 @@ class HomeViewModel extends ChangeNotifier {
           BloodPressureHomeChartPoint(
             day: day,
             systolic: reading!.systolic!,
+            diastolic: reading.diastolic,
           ),
         );
       }
