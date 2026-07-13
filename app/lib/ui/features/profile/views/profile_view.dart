@@ -3,6 +3,10 @@ import 'package:app/debug/agent_debug_log.dart';
 import 'package:app/debug/synthetic_data_generator.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
+import 'package:app/ui/features/auth/views/login_view.dart';
+import 'package:app/ui/features/onboarding/views/caretaker_signup_view.dart';
+import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
+import 'package:app/ui/features/onboarding/views/patient_signup_view.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
@@ -28,6 +32,12 @@ class _ProfileViewState extends State<ProfileView> {
       if (!mounted) return;
       context.read<ProfileViewModel>().refresh();
     });
+  }
+
+  void _openPreview(Widget page) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => page),
+    );
   }
 
   Future<void> _pickCkdStage(ProfileViewModel viewModel) async {
@@ -427,6 +437,32 @@ class _ProfileViewState extends State<ProfileView> {
                               }
                             }
                           },
+                        ),
+                        _ProfileDetailRow(
+                          icon: Icons.login_outlined,
+                          label: 'Preview login',
+                          value: 'UI only',
+                          onTap: () => _openPreview(const LoginView()),
+                        ),
+                        _ProfileDetailRow(
+                          icon: Icons.waving_hand_outlined,
+                          label: 'Preview onboarding',
+                          value: 'UI only',
+                          onTap: () => _openPreview(const OnboardingView()),
+                        ),
+                        _ProfileDetailRow(
+                          icon: Icons.person_add_outlined,
+                          label: 'Preview patient signup',
+                          value: 'UI only',
+                          onTap: () => _openPreview(const PatientSignupView()),
+                        ),
+                        _ProfileDetailRow(
+                          icon: Icons.favorite_outline,
+                          label: 'Preview caretaker signup',
+                          value: 'UI only',
+                          onTap: () =>
+                              _openPreview(const CaretakerSignupView()),
+                          isLast: true,
                         ),
                       ],
                     ),

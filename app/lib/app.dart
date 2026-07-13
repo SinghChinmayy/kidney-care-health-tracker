@@ -1,6 +1,7 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/local/database_holder.dart';
 import 'package:app/data/repositories/auth_repository.dart';
+import 'package:app/data/repositories/medications_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
@@ -12,6 +13,8 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
 import 'package:app/ui/features/auth/views/auth_gate.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
+import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
+import 'package:app/ui/features/medications/view_models/medications_view_model.dart';
 import 'package:app/ui/features/onboarding/view_models/patient_signup_view_model.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
@@ -63,6 +66,9 @@ class KidneyCareApp extends StatelessWidget {
             onWrite: coordinator.onDriftWrite,
           ),
         ),
+        ProxyProvider<AppDatabase, MedicationsRepository>(
+          update: (_, db, _) => MedicationsRepository(db: db),
+        ),
         ChangeNotifierProvider(
           create: (context) => LoginViewModel(
             authRepository: context.read<AuthRepository>(),
@@ -71,6 +77,8 @@ class KidneyCareApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => PatientSignupViewModel(
             authRepository: context.read<AuthRepository>(),
+            patientRepository: context.read<PatientRepository>(),
+            syncCoordinator: context.read<SyncCoordinator>(),
           ),
         ),
         ChangeNotifierProvider(
@@ -120,6 +128,28 @@ class KidneyCareApp extends StatelessWidget {
           ),
           update: (_, repository, previous) =>
               previous ?? FluidIntakeViewModel(vitalsRepository: repository),
+        ),
+        ChangeNotifierProxyProvider<MedicationsRepository,
+            MedicationsViewModel>(
+          create: (context) => MedicationsViewModel(
+            medicationsRepository: context.read<MedicationsRepository>(),
+          ),
+          update: (_, repository, previous) =>
+              previous ??
+              MedicationsViewModel(medicationsRepository: repository),
+        ),
+        ChangeNotifierProxyProvider2<VitalsRepository, MedicationsRepository,
+            JournalViewModel>(
+          create: (context) => JournalViewModel(
+            vitalsRepository: context.read<VitalsRepository>(),
+            medicationsRepository: context.read<MedicationsRepository>(),
+          ),
+          update: (_, vitals, medications, previous) =>
+              previous ??
+              JournalViewModel(
+                vitalsRepository: vitals,
+                medicationsRepository: medications,
+              ),
         ),
       ],
       child: SyncLifecycleObserver(

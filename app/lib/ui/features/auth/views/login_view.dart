@@ -1,6 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/core/widgets/app_form_layout.dart';
 import 'package:app/ui/features/auth/view_models/login_view_model.dart';
+import 'package:app/ui/features/auth/widgets/google_sign_in_button.dart';
 import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -114,6 +115,35 @@ class _LoginViewState extends State<LoginView> {
                         : const Text('Sign In'),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
+                  const _OrDivider(),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  GoogleSignInButton(
+                    onPressed: viewModel.isLoading
+                        ? null
+                        : () => showPlaceholderSnackBar(
+                              context,
+                              'Google sign-in coming soon.',
+                            ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  OutlinedButton(
+                    onPressed: viewModel.isLoading
+                        ? null
+                        : () => showPlaceholderSnackBar(
+                              context,
+                              'Guest login coming soon.',
+                            ),
+                    style: AppTheme.secondaryButtonStyle(),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_outline, size: 20),
+                        SizedBox(width: AppTheme.spacingXs),
+                        Text('Continue as guest'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
                   TextButton(
                     onPressed: viewModel.isLoading
                         ? null
@@ -154,5 +184,26 @@ class _LoginViewState extends State<LoginView> {
     if (message != null) {
       showPlaceholderSnackBar(context, message);
     }
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppTheme.muted,
+        );
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: AppTheme.muted)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs),
+          child: Text('or', style: muted),
+        ),
+        const Expanded(child: Divider(color: AppTheme.muted)),
+      ],
+    );
   }
 }

@@ -7,6 +7,7 @@ import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
 import 'package:app/ui/features/home/widgets/home_week_strip.dart';
 import 'package:app/ui/features/home/widgets/weight_gain_card.dart';
+import 'package:app/ui/features/medications/views/medications_view.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
 import 'package:app/ui/features/vitals/views/fluid_intake_view.dart';
@@ -173,6 +174,71 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _openHistory(
+                              context,
+                              const MedicationsView(),
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.cardCornerRadius,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppTheme.spacingSm),
+                              decoration: AppTheme.homeCardDecoration(),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.surfaceMuted,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.medication_outlined,
+                                      color: AppTheme.ink,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppTheme.spacingSm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Medications',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Browse names, composition & info',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: AppTheme.muted,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: AppTheme.muted,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
