@@ -39,18 +39,7 @@ class WeightGainCard extends StatelessWidget {
     final showUnit = gain != null;
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: AppTheme.ink.withValues(alpha: 0.06)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: AppTheme.homeCardDecoration(color: AppTheme.background),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(_radius),

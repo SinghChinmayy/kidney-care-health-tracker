@@ -14,12 +14,14 @@ class WeekGroupedHistoryList<T> extends StatefulWidget {
     required this.recordedAt,
     required this.rowBuilder,
     this.maxPerWeek = 3,
+    this.dense = false,
   });
 
   final List<T> readings;
   final DateTime Function(T reading) recordedAt;
   final WeekHistoryRowBuilder<T> rowBuilder;
   final int maxPerWeek;
+  final bool dense;
 
   @override
   State<WeekGroupedHistoryList<T>> createState() =>
@@ -39,6 +41,8 @@ class _WeekGroupedHistoryListState<T> extends State<WeekGroupedHistoryList<T>> {
 
     final widgets = <Widget>[];
     var weekIndex = 0;
+    final weekGap = widget.dense ? 8.0 : AppTheme.spacingSm;
+    final rowGap = widget.dense ? 0.0 : AppTheme.spacingXs;
 
     for (final entry in grouped.entries) {
       final weekStart = entry.key;
@@ -50,24 +54,26 @@ class _WeekGroupedHistoryListState<T> extends State<WeekGroupedHistoryList<T>> {
       final hidden = weekReadings.length - shown.length;
 
       if (weekIndex > 0) {
-        widgets.add(const SizedBox(height: AppTheme.spacingSm));
+        widgets.add(SizedBox(height: weekGap));
       }
 
       widgets.add(
         Text(
           formatWeekGroupLabel(weekStart),
-          style: theme.textTheme.labelLarge?.copyWith(
+          style: theme.textTheme.labelMedium?.copyWith(
             color: AppTheme.muted,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
+            letterSpacing: 0.3,
           ),
         ),
       );
-      widgets.add(const SizedBox(height: AppTheme.spacingXs));
+      widgets.add(SizedBox(height: widget.dense ? 4 : AppTheme.spacingXs));
 
       for (final reading in shown) {
         widgets.add(widget.rowBuilder(context, reading));
-        widgets.add(const SizedBox(height: AppTheme.spacingXs));
+        if (rowGap > 0) {
+          widgets.add(SizedBox(height: rowGap));
+        }
       }
 
       if (hidden > 0) {
@@ -75,9 +81,12 @@ class _WeekGroupedHistoryListState<T> extends State<WeekGroupedHistoryList<T>> {
           _ShowMoreRow(
             count: hidden,
             onTap: () => setState(() => _expandedWeeks.add(weekStart)),
+            dense: widget.dense,
           ),
         );
-        widgets.add(const SizedBox(height: AppTheme.spacingXs));
+        if (rowGap > 0) {
+          widgets.add(SizedBox(height: rowGap));
+        }
       }
 
       weekIndex++;
@@ -91,10 +100,15 @@ class _WeekGroupedHistoryListState<T> extends State<WeekGroupedHistoryList<T>> {
 }
 
 class _ShowMoreRow extends StatelessWidget {
-  const _ShowMoreRow({required this.count, required this.onTap});
+  const _ShowMoreRow({
+    required this.count,
+    required this.onTap,
+    this.dense = false,
+  });
 
   final int count;
   final VoidCallback onTap;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -103,15 +117,20 @@ class _ShowMoreRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTheme.cardCornerRadius),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        padding: EdgeInsets.symmetric(
+          vertical: dense ? 6 : 10,
+          horizontal: 16,
+        ),
         decoration: BoxDecoration(
           border: Border.all(
             color: AppTheme.muted.withValues(alpha: 0.25),
           ),
-          borderRadius: BorderRadius.circular(AppTheme.cardCornerRadius),
+          borderRadius: BorderRadius.circular(
+            dense ? 10 : AppTheme.cardCornerRadius,
+          ),
         ),
         child: Text(
-          '+ $count more reading${count == 1 ? '' : 's'}',
+          '+ $count more',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppTheme.muted,

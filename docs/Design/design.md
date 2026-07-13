@@ -78,7 +78,7 @@ Shared widgets live in `app/lib/ui/core/widgets/app_components.dart` and `app_fo
 |---|---|---|
 | Primary (`ElevatedButton`) | Filled `ink` background, `background`-colored text, full-width, 8px corner radius | Main call-to-action per screen (e.g. "Sign In", "Save reading") |
 | Secondary (`OutlinedButton` via `AppTheme.secondaryButtonStyle()`) | `ink` border/text, full-width, 8px corner radius | Secondary screen actions (e.g. "View all vitals") |
-| Option card (`AppOptionCard` / `AppTheme.optionCardButtonStyle()`) | Outlined, left-aligned row: icon + title + description + chevron | Onboarding signup choices, home vital summaries, vitals hub navigation |
+| Option card (`AppOptionCard` / `AppTheme.optionCardButtonStyle()`) | Outlined, left-aligned row: icon + title + description + chevron | Onboarding signup choices, older home vital summaries |
 | Text (`TextButton`) | No fill, `ink` text | Tertiary actions (e.g. "Forgot password?", "Sign up") |
 
 **Inputs (`TextFormField`)**
@@ -164,14 +164,16 @@ Implemented at `app/lib/ui/features/home/views/home_view.dart`.
 | Layout | App bar with sign-out action, headline, three vital summary cards, "View all vitals" secondary button | Summary cards reuse `AppOptionCard`; latest value shown as card description. |
 | Navigation | Tap card → vital detail page; "View all vitals" → vitals hub; sign out → login | Returning from a vital page refreshes home summaries. |
 
-### 3.6 Vitals Hub
+### 3.6 App shell navigation
 
-Implemented at `app/lib/ui/features/vitals/views/vitals_hub_view.dart`.
+Implemented at `app/lib/ui/features/shell/views/app_shell_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Navigation only | Lists all three vital types with short descriptions. |
-| Layout | Same option-card pattern as onboarding/home | Icons: blood pressure, glucose, weight. |
+| Tabs | Home, center Log (+), Notifications, Profile | Journal tab removed; Home is the primary surface. |
+| Home button | Large 56px circle on left (same size as Log) | Filled when selected; soft fill when not. |
+| Log | Center FAB-style + opens vital log menu | Unchanged. |
+| IndexedStack | Home (0), Profile (1) | Notifications is sheet-only for now. |
 
 ### 3.7 Vital Detail Pages (Blood Pressure, Glucose, Weight)
 
@@ -199,6 +201,8 @@ Implemented at:
 
 ## 5. Change Log
 
+- **2026-07-13**: Removed Journal tab. Shell nav is Home (large left button) / Log / Notifications / Profile.
+- **2026-07-13**: Replaced Vitals Hub nav list with Journal hybrid page (period coverage, 2×2 vital snapshots, unified activity timeline). Later removed from shell.
 - **2026-07-03**: Restructured design.md into a living-document format (maintenance instructions, global foundations, page-specific section, change log). Carried over existing decisions as-is: white background, black/mono font color, no animations.
 - **2026-07-03**: Built sample Login Screen (static UI, email+password). Introduced first concrete Global Foundations: mono color palette + functional `error` red, spacing scale, headline/body type overrides, button/input component styles, and app-wide disabled route-transition animations (operationalizes the existing "no animations" principle). See Section 2 and Section 3.1.
 - **2026-07-04**: Migrated implementation path from `flutter_app/` to `app/`. Added onboarding, signup, home, vitals hub, and vital detail screens. Extended Global Foundations with `titleMedium`, `optionCardTitle`, shared components (`AppOptionCard`, `AppReadingCard`, `AppScreenAppBar`, `AppEmptyState`), secondary/outlined button styles, app bar/FAB/snackbar themes, and bottom-sheet radius. Documented all new pages in Section 3.2–3.7.

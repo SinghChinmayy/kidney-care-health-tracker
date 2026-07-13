@@ -140,16 +140,22 @@ class _VitalCompactTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(_radius),
+    return DecoratedBox(
+      decoration: AppTheme.homeCardDecoration(color: accentColor).copyWith(
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.14),
+          width: 1,
+        ),
+      ),
       child: Material(
-        color: accentColor,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(_radius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           splashColor: Colors.white24,
           highlightColor: Colors.white12,
+          borderRadius: BorderRadius.circular(_radius),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(

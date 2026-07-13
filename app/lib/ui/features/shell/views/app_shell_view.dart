@@ -2,7 +2,6 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/home/views/home_view.dart';
 import 'package:app/ui/features/profile/views/profile_view.dart';
-import 'package:app/ui/features/vitals/views/vitals_hub_view.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
@@ -16,11 +15,11 @@ class AppShellView extends StatefulWidget {
 }
 
 class _AppShellViewState extends State<AppShellView> {
-  /// 0 = Home, 1 = Journal (vitals), 2 = Profile
+  /// 0 = Home, 1 = Profile
   int _selectedIndex = 0;
 
   void _openProfile() {
-    setState(() => _selectedIndex = 2);
+    setState(() => _selectedIndex = 1);
   }
 
   Future<void> _openLogMenu() async {
@@ -85,21 +84,20 @@ class _AppShellViewState extends State<AppShellView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.bpBackground,
       body: IndexedStack(
         index: _selectedIndex,
         children: [
           HomeView(onOpenProfile: _openProfile),
-          const VitalsHubView(),
           const ProfileView(),
         ],
       ),
       bottomNavigationBar: _LightBottomNavBar(
         selectedIndex: _selectedIndex,
         onHomeTap: () => setState(() => _selectedIndex = 0),
-        onJournalTap: () => setState(() => _selectedIndex = 1),
         onLogTap: _openLogMenu,
         onNotificationsTap: _openNotifications,
-        onProfileTap: () => setState(() => _selectedIndex = 2),
+        onProfileTap: () => setState(() => _selectedIndex = 1),
       ),
     );
   }
@@ -109,7 +107,6 @@ class _LightBottomNavBar extends StatelessWidget {
   const _LightBottomNavBar({
     required this.selectedIndex,
     required this.onHomeTap,
-    required this.onJournalTap,
     required this.onLogTap,
     required this.onNotificationsTap,
     required this.onProfileTap,
@@ -117,25 +114,34 @@ class _LightBottomNavBar extends StatelessWidget {
 
   final int selectedIndex;
   final VoidCallback onHomeTap;
-  final VoidCallback onJournalTap;
   final VoidCallback onLogTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onProfileTap;
 
-  static const _barColor = Color(0xFFF3F3F3);
+  static const _barColor = Color(0xFFFFFFFF);
   static const _activeFill = Color(0xFF4A3728);
   static const _inactiveIcon = Color(0xFF6B5E54);
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.background,
+      color: AppTheme.bpBackground,
       child: SafeArea(
         top: false,
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: _barColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(
+              top: BorderSide(color: AppTheme.cardBorder),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
           padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
           child: SizedBox(
@@ -143,30 +149,10 @@ class _LightBottomNavBar extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: _NavIconButton(
-                    selected: selectedIndex == 0,
-                    onTap: onHomeTap,
-                    activeFill: _activeFill,
-                    child: Icon(
-                      Icons.home_outlined,
-                      size: 26,
-                      color: selectedIndex == 0
-                          ? AppTheme.background
-                          : _inactiveIcon,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: _NavIconButton(
-                    selected: selectedIndex == 1,
-                    onTap: onJournalTap,
-                    activeFill: _activeFill,
-                    child: Icon(
-                      Icons.pie_chart_outline_rounded,
-                      size: 26,
-                      color: selectedIndex == 1
-                          ? AppTheme.background
-                          : _inactiveIcon,
+                  child: Center(
+                    child: _HomeNavButton(
+                      selected: selectedIndex == 0,
+                      onTap: onHomeTap,
                     ),
                   ),
                 ),
@@ -189,13 +175,13 @@ class _LightBottomNavBar extends StatelessWidget {
                 ),
                 Expanded(
                   child: _NavIconButton(
-                    selected: selectedIndex == 2,
+                    selected: selectedIndex == 1,
                     onTap: onProfileTap,
                     activeFill: _activeFill,
                     child: Icon(
                       Icons.person_outline,
                       size: 26,
-                      color: selectedIndex == 2
+                      color: selectedIndex == 1
                           ? AppTheme.background
                           : _inactiveIcon,
                     ),
@@ -203,6 +189,41 @@ class _LightBottomNavBar extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeNavButton extends StatelessWidget {
+  const _HomeNavButton({
+    required this.selected,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const _fill = Color(0xFF4A3728);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? _fill : _fill.withValues(alpha: 0.12),
+      shape: const CircleBorder(),
+      elevation: selected ? 2 : 0,
+      shadowColor: Colors.black26,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 56,
+          height: 56,
+          child: Icon(
+            selected ? Icons.home_rounded : Icons.home_outlined,
+            color: selected ? AppTheme.background : _fill,
+            size: 30,
           ),
         ),
       ),

@@ -44,7 +44,9 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<HomeViewModel>();
 
-    return Column(
+    return ColoredBox(
+      color: AppTheme.bpBackground,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SafeArea(
@@ -182,6 +184,7 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
       ],
+      ),
     );
   }
 

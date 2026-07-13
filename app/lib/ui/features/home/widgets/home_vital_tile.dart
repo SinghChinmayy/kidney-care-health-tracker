@@ -40,90 +40,93 @@ class HomeVitalTile extends StatelessWidget {
     final accent = accentColor ?? AppTheme.ink;
     final hasReading = value != 'No readings yet';
 
-    return Material(
-      color: AppTheme.cardSurface,
-      borderRadius: BorderRadius.circular(_radius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
+    return DecoratedBox(
+      decoration: AppTheme.homeCardDecoration(color: AppTheme.background),
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(_radius),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 18, color: accent),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.ink,
-                      ),
-                    ),
-                  ),
-                  if (isLogged)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 2),
-                      child: Icon(Icons.check_circle, size: 16, color: accent),
-                    ),
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      tooltip: 'History',
-                      onPressed: onHistoryTap,
-                      icon: Icon(
-                        Icons.chevron_right,
-                        size: 20,
-                        color: AppTheme.muted.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (progress != null)
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_radius),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    Icon(icon, size: 18, color: accent),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: _ValueBlock(
-                        theme: theme,
-                        value: value,
-                        unit: unit,
-                        hasReading: hasReading,
-                        emphasizeError: progressOverGoal,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.ink,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    if (isLogged)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Icon(Icons.check_circle, size: 16, color: accent),
+                      ),
                     SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 5,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: AppTheme.ink.withValues(alpha: 0.08),
-                        color: progressOverGoal ? AppTheme.error : accent,
+                      width: 32,
+                      height: 32,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        tooltip: 'History',
+                        onPressed: onHistoryTap,
+                        icon: Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: AppTheme.muted.withValues(alpha: 0.55),
+                        ),
                       ),
                     ),
                   ],
-                )
-              else
-                _ValueBlock(
-                  theme: theme,
-                  value: value,
-                  unit: unit,
-                  hasReading: hasReading,
                 ),
-            ],
+                const Spacer(),
+                if (progress != null)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: _ValueBlock(
+                          theme: theme,
+                          value: value,
+                          unit: unit,
+                          hasReading: hasReading,
+                          emphasizeError: progressOverGoal,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 5,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: AppTheme.ink.withValues(alpha: 0.08),
+                          color: progressOverGoal ? AppTheme.error : accent,
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  _ValueBlock(
+                    theme: theme,
+                    value: value,
+                    unit: unit,
+                    hasReading: hasReading,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

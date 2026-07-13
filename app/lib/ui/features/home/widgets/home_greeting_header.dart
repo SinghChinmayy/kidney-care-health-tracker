@@ -44,14 +44,20 @@ class HomeGreetingHeader extends StatelessWidget {
           InkWell(
             onTap: onOpenProfile,
             customBorder: const CircleBorder(),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: AppTheme.logWeight.withValues(alpha: 0.25),
-              foregroundColor: AppTheme.ink,
-              child: Text(
-                viewModel.patientInitials,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.cardBorder),
+              ),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: AppTheme.logWeight.withValues(alpha: 0.25),
+                foregroundColor: AppTheme.ink,
+                child: Text(
+                  viewModel.patientInitials,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

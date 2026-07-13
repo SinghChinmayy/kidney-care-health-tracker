@@ -4,6 +4,7 @@ import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/fluid_intake_log.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/domain/models/weight_reading.dart';
 
 class VitalsRepository {
@@ -37,6 +38,14 @@ class VitalsRepository {
       return null;
     }
     return _patientRepository.getPatientForAuthUser(authUserId);
+  }
+
+  Future<PatientPreferences?> getCurrentPreferences() async {
+    final authUserId = _currentAuthUserId();
+    if (authUserId == null) {
+      return null;
+    }
+    return _patientRepository.getPreferencesForAuthUser(authUserId);
   }
 
   Future<String> _requirePatientId() async {

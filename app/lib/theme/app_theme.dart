@@ -22,13 +22,37 @@ class AppTheme {
   /// Warm cream used as background for the Blood Pressure view.
   static const Color bpBackground = Color(0xFFF5F1EB);
   /// Soft fill for home summary cards (modern rounded tiles).
-  static const Color cardSurface = Color(0xFFF2F2F2);
+  static const Color cardSurface = Color(0xFFFFFFFF);
   static const Color muted = Color(0xFF6B7280);
   static const Color logBloodPressure = Color(0xFFE57373);
   static const Color logBloodGlucose = Color(0xFF64B5F6);
   static const Color logWeight = Color(0xFF4DB6AC);
   static const Color logFluidIntake = Color(0xFF4FC3F7);
   static Color get error => Colors.red.shade700;
+
+  /// Hairline border that reads on cream / off-white backgrounds.
+  static Color get cardBorder => ink.withValues(alpha: 0.12);
+
+  static BoxDecoration homeCardDecoration({
+    Color? color,
+    double radius = cardCornerRadius,
+    bool elevated = true,
+  }) {
+    return BoxDecoration(
+      color: color ?? background,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: cardBorder),
+      boxShadow: elevated
+          ? [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ]
+          : null,
+    );
+  }
 
   static const double spacingXs = 8;
   static const double spacingSm = 16;
@@ -86,7 +110,7 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: bpBackground,
       colorScheme: const ColorScheme.light(
         surface: background,
         onSurface: ink,

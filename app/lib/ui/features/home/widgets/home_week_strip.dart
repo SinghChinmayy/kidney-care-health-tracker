@@ -256,10 +256,10 @@ class _DayChip extends StatelessWidget {
             : AppTheme.ink;
 
     final circleFill = !enabled
-        ? AppTheme.cardSurface.withValues(alpha: 0.5)
+        ? AppTheme.background.withValues(alpha: 0.5)
         : isSelected
             ? AppTheme.ink
-            : AppTheme.cardSurface;
+            : AppTheme.background;
 
     final showTodayRing = isToday && !isSelected && enabled;
 
@@ -288,7 +288,9 @@ class _DayChip extends StatelessWidget {
                 color: circleFill,
                 border: showTodayRing
                     ? Border.all(color: AppTheme.logWeight, width: 2)
-                    : null,
+                    : (!isSelected && enabled
+                        ? Border.all(color: AppTheme.cardBorder)
+                        : null),
               ),
               child: Text(
                 dayNumber,
