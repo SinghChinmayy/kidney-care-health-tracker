@@ -4,41 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('weightPeriodRange', () {
-    final today = DateTime(2026, 7, 10); // Friday
+    final today = DateTime(2026, 7, 10);
 
-    test('week starts on Monday of current week', () {
-      final range = weightPeriodRange(WeightPeriod.week, today);
-      expect(range.start, DateTime(2026, 7, 6));
-      expect(range.end, DateTime(2026, 7, 10));
+    test('last7Days covers rolling 7-day window', () {
+      final range = weightPeriodRange(WeightPeriod.last7Days, today);
+      expect(range.start, DateTime(2026, 7, 4));
+      expect(range.end, today);
     });
 
-    test('past week uses full Monday–Sunday range', () {
-      final range = weightPeriodRange(
-        WeightPeriod.week,
-        today,
-        weekStart: DateTime(2026, 6, 29),
-      );
-      expect(range.start, DateTime(2026, 6, 29));
-      expect(range.end, DateTime(2026, 7, 5));
-    });
-
-    test('week label shows range for past weeks', () {
-      expect(
-        weightPeriodLabel(
-          WeightPeriod.week,
-          weekStart: DateTime(2026, 6, 29),
-          today: today,
-        ),
-        'Jun 29 – Jul 5',
-      );
-      expect(
-        weightPeriodLabel(
-          WeightPeriod.week,
-          weekStart: DateTime(2026, 7, 6),
-          today: today,
-        ),
-        'This Week',
-      );
+    test('last30Days covers rolling 30-day window', () {
+      final range = weightPeriodRange(WeightPeriod.last30Days, today);
+      expect(range.start, DateTime(2026, 6, 11));
+      expect(range.end, today);
     });
 
     test('current month starts on the 1st and ends today', () {
@@ -47,78 +24,19 @@ void main() {
       expect(range.end, today);
     });
 
-    test('past month uses full calendar month', () {
-      final range = weightPeriodRange(
-        WeightPeriod.month,
-        today,
-        monthStart: DateTime(2026, 6, 1),
-      );
-      expect(range.start, DateTime(2026, 6, 1));
-      expect(range.end, DateTime(2026, 6, 30));
-    });
-
-    test('month label shows This Month or month name', () {
+    test('period labels match BP-style wording', () {
       expect(
-        weightPeriodLabel(
-          WeightPeriod.month,
-          monthStart: DateTime(2026, 7, 1),
-          today: today,
-        ),
+        weightPeriodLabel(WeightPeriod.last7Days, today: today),
+        'Last 7 Days',
+      );
+      expect(
+        weightPeriodLabel(WeightPeriod.last30Days, today: today),
+        'Last 30 Days',
+      );
+      expect(
+        weightPeriodLabel(WeightPeriod.month, today: today),
         'This Month',
       );
-      expect(
-        weightPeriodLabel(
-          WeightPeriod.month,
-          monthStart: DateTime(2026, 6, 1),
-          today: today,
-        ),
-        'Jun',
-      );
-    });
-
-    test('current year starts Jan 1 and ends today', () {
-      final range = weightPeriodRange(WeightPeriod.year, today);
-      expect(range.start, DateTime(2026, 1, 1));
-      expect(range.end, today);
-    });
-
-    test('past year uses full calendar year', () {
-      final range = weightPeriodRange(
-        WeightPeriod.year,
-        today,
-        yearStart: DateTime(2025, 1, 1),
-      );
-      expect(range.start, DateTime(2025, 1, 1));
-      expect(range.end, DateTime(2025, 12, 31));
-    });
-
-    test('year label shows This Year or year number', () {
-      expect(
-        weightPeriodLabel(
-          WeightPeriod.year,
-          yearStart: DateTime(2026, 1, 1),
-          today: today,
-        ),
-        'This Year',
-      );
-      expect(
-        weightPeriodLabel(
-          WeightPeriod.year,
-          yearStart: DateTime(2025, 1, 1),
-          today: today,
-        ),
-        '2025',
-      );
-    });
-
-    test('all uses earliest reading through today', () {
-      final range = weightPeriodRange(
-        WeightPeriod.all,
-        today,
-        earliestReadingAt: DateTime(2026, 7, 1, 8),
-      );
-      expect(range.start, DateTime(2026, 7, 1));
-      expect(range.end, today);
     });
   });
 
@@ -152,37 +70,16 @@ void main() {
       expect(days[1].valueKg, 72.5);
       expect(days[2].valueKg, isNull);
     });
-  });
 
-  group('weightChartMonths', () {
-    test('buckets latest reading per calendar month with month letters', () {
-      final months = weightChartMonths(
-        readings: [
-          WeightReading(
-            id: 'jan',
-            recordedAt: DateTime(2026, 1, 5),
-            valueKg: 70,
-          ),
-          WeightReading(
-            id: 'mar-early',
-            recordedAt: DateTime(2026, 3, 2),
-            valueKg: 71,
-          ),
-          WeightReading(
-            id: 'mar-late',
-            recordedAt: DateTime(2026, 3, 20),
-            valueKg: 72,
-          ),
-        ],
-        start: DateTime(2026, 1, 1),
-        end: DateTime(2026, 3, 31),
+    test('uses day-of-month labels for ranges longer than 7 days', () {
+      final days = weightChartDays(
+        readings: const [],
+        start: DateTime(2026, 7, 1),
+        end: DateTime(2026, 7, 10),
       );
 
-      expect(months, hasLength(3));
-      expect(months.map((m) => m.axisLabel).toList(), ['J', 'F', 'M']);
-      expect(months[0].valueKg, 70);
-      expect(months[1].valueKg, isNull);
-      expect(months[2].valueKg, 72);
+      expect(days.first.axisLabel, '1');
+      expect(days.last.axisLabel, '10');
     });
   });
 

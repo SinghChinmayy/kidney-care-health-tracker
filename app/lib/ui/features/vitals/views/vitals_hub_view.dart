@@ -12,12 +12,17 @@ class VitalsHubView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppScreenAppBar(title: 'Vitals'),
+      appBar: const AppScreenAppBar(title: 'Journal'),
       body: ListView(
-        padding: const EdgeInsets.all(AppTheme.spacingSm),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.spacingSm,
+          AppTheme.spacingSm,
+          AppTheme.spacingSm,
+          AppTheme.spacingSm,
+        ),
         children: [
           Text(
-            'Track your readings',
+            'All tracked stats',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: AppTheme.spacingXs),

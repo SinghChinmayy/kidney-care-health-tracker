@@ -13,10 +13,9 @@ class BloodGlucosePeriodSelector extends StatelessWidget {
   final ValueChanged<BloodGlucosePeriod> onSelected;
 
   static const _options = <(BloodGlucosePeriod, String)>[
-    (BloodGlucosePeriod.week, 'W'),
-    (BloodGlucosePeriod.month, 'M'),
-    (BloodGlucosePeriod.year, 'Y'),
-    (BloodGlucosePeriod.all, 'All'),
+    (BloodGlucosePeriod.last7Days, '7D'),
+    (BloodGlucosePeriod.last30Days, '30D'),
+    (BloodGlucosePeriod.month, 'Month'),
   ];
 
   @override

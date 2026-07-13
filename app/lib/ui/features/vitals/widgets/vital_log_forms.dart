@@ -199,13 +199,16 @@ class AddWeightForm extends StatefulWidget {
   const AddWeightForm({
     super.key,
     required this.onSubmit,
+    this.initialRecordedAt,
   });
 
+  final DateTime? initialRecordedAt;
   final void Function(
     double valueKg,
     String dialysisTiming,
     String? weightContext,
     String? notes,
+    DateTime recordedAt,
   ) onSubmit;
 
   @override
@@ -217,7 +220,14 @@ class _AddWeightFormState extends State<AddWeightForm> {
   final _notesController = TextEditingController();
   String _dialysisTiming = dialysisTimingNonDialysis;
   String? _weightContext;
+  late DateTime _recordedAt;
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _recordedAt = widget.initialRecordedAt ?? DateTime.now();
+  }
 
   @override
   void dispose() {
@@ -260,6 +270,13 @@ class _AddWeightFormState extends State<AddWeightForm> {
               setState(() => _weightContext = value),
         ),
         const SizedBox(height: AppTheme.spacingSm),
+        VitalRecordedAtPicker(
+          recordedAt: _recordedAt,
+          accentColor: AppTheme.logWeight,
+          compact: true,
+          onChanged: (value) => setState(() => _recordedAt = value),
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
         TextFormField(
           controller: _notesController,
           decoration: const InputDecoration(labelText: 'Notes (optional)'),
@@ -293,6 +310,7 @@ class _AddWeightFormState extends State<AddWeightForm> {
       _dialysisTiming,
       _weightContext,
       _notesController.text,
+      _recordedAt,
     );
   }
 }

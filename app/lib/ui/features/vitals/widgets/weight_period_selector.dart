@@ -13,10 +13,9 @@ class WeightPeriodSelector extends StatelessWidget {
   final ValueChanged<WeightPeriod> onSelected;
 
   static const _options = <(WeightPeriod, String)>[
-    (WeightPeriod.week, 'W'),
-    (WeightPeriod.month, 'M'),
-    (WeightPeriod.year, 'Y'),
-    (WeightPeriod.all, 'All'),
+    (WeightPeriod.last7Days, '7D'),
+    (WeightPeriod.last30Days, '30D'),
+    (WeightPeriod.month, 'Month'),
   ];
 
   @override

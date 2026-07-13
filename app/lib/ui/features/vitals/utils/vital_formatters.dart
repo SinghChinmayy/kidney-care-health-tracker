@@ -105,11 +105,29 @@ String formatDialysisTimingLabel(String dialysisTiming) {
   };
 }
 
+/// Short labels for compact hero/summary captions.
+String formatCompactDialysisTimingLabel(String dialysisTiming) {
+  return switch (dialysisTiming) {
+    'pre_dialysis' => 'Pre',
+    'post_dialysis' => 'Post',
+    _ => 'Off',
+  };
+}
+
 String formatWeightContextLabel(String context) {
   return switch (context) {
     weightContextMorning => 'Morning',
     weightContextEvening => 'Evening',
     weightContextRandom => 'Random',
+    _ => context.replaceAll('_', ' '),
+  };
+}
+
+String formatCompactWeightContextLabel(String context) {
+  return switch (context) {
+    weightContextMorning => 'AM',
+    weightContextEvening => 'PM',
+    weightContextRandom => 'Rand',
     _ => context.replaceAll('_', ' '),
   };
 }
@@ -175,6 +193,65 @@ Map<DateTime, List<T>> groupReadingsByLocalDate<T>(
   for (final reading in readings) {
     final dateKey = localDateOnly(recordedAt(reading));
     grouped.putIfAbsent(dateKey, () => []).add(reading);
+  }
+
+  final sortedKeys = grouped.keys.toList()
+    ..sort((a, b) => b.compareTo(a));
+
+  return {for (final key in sortedKeys) key: grouped[key]!};
+}
+
+/// Monday (local) of the week that contains [localDate].
+DateTime weekStartForLocalDate(DateTime localDate) {
+  final date = localDateOnly(localDate);
+  return date.subtract(Duration(days: date.weekday - 1));
+}
+
+String formatWeekGroupLabel(DateTime weekStart) {
+  final today = localDateOnly(DateTime.now());
+  final thisWeekStart = weekStartForLocalDate(today);
+  if (weekStart == thisWeekStart) {
+    return 'This Week';
+  }
+
+  final lastWeekStart = DateTime(
+    thisWeekStart.year,
+    thisWeekStart.month,
+    thisWeekStart.day - 7,
+  );
+  if (weekStart == lastWeekStart) {
+    return 'Last Week';
+  }
+
+  final weekEnd = DateTime(
+    weekStart.year,
+    weekStart.month,
+    weekStart.day + 6,
+  );
+  return _formatWeekRangeLabel(weekStart, weekEnd);
+}
+
+String _formatWeekRangeLabel(DateTime start, DateTime end) {
+  final startMonth = _shortMonths[start.month - 1];
+  final endMonth = _shortMonths[end.month - 1];
+  if (start.year == end.year && start.month == end.month) {
+    return '$startMonth ${start.day}–${end.day}';
+  }
+  if (start.year == end.year) {
+    return '$startMonth ${start.day} – $endMonth ${end.day}';
+  }
+  return '$startMonth ${start.day}, ${start.year} – $endMonth ${end.day}, ${end.year}';
+}
+
+Map<DateTime, List<T>> groupReadingsByWeekStart<T>(
+  List<T> readings,
+  DateTime Function(T reading) recordedAt,
+) {
+  final grouped = <DateTime, List<T>>{};
+
+  for (final reading in readings) {
+    final weekKey = weekStartForLocalDate(recordedAt(reading));
+    grouped.putIfAbsent(weekKey, () => []).add(reading);
   }
 
   final sortedKeys = grouped.keys.toList()

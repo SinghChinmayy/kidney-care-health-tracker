@@ -4,41 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('bloodGlucosePeriodRange', () {
-    final today = DateTime(2026, 7, 10); // Friday
+    final today = DateTime(2026, 7, 10);
 
-    test('week starts on Monday of current week', () {
-      final range = bloodGlucosePeriodRange(BloodGlucosePeriod.week, today);
-      expect(range.start, DateTime(2026, 7, 6));
-      expect(range.end, DateTime(2026, 7, 10));
+    test('last7Days covers rolling 7-day window', () {
+      final range =
+          bloodGlucosePeriodRange(BloodGlucosePeriod.last7Days, today);
+      expect(range.start, DateTime(2026, 7, 4));
+      expect(range.end, today);
     });
 
-    test('past week uses full Monday–Sunday range', () {
-      final range = bloodGlucosePeriodRange(
-        BloodGlucosePeriod.week,
-        today,
-        weekStart: DateTime(2026, 6, 29),
-      );
-      expect(range.start, DateTime(2026, 6, 29));
-      expect(range.end, DateTime(2026, 7, 5));
-    });
-
-    test('week label shows range for past weeks', () {
-      expect(
-        bloodGlucosePeriodLabel(
-          BloodGlucosePeriod.week,
-          weekStart: DateTime(2026, 6, 29),
-          today: today,
-        ),
-        'Jun 29 – Jul 5',
-      );
-      expect(
-        bloodGlucosePeriodLabel(
-          BloodGlucosePeriod.week,
-          weekStart: DateTime(2026, 7, 6),
-          today: today,
-        ),
-        'This Week',
-      );
+    test('last30Days covers rolling 30-day window', () {
+      final range =
+          bloodGlucosePeriodRange(BloodGlucosePeriod.last30Days, today);
+      expect(range.start, DateTime(2026, 6, 11));
+      expect(range.end, today);
     });
 
     test('current month starts on the 1st and ends today', () {
@@ -47,14 +26,19 @@ void main() {
       expect(range.end, today);
     });
 
-    test('all uses earliest reading through today', () {
-      final range = bloodGlucosePeriodRange(
-        BloodGlucosePeriod.all,
-        today,
-        earliestReadingAt: DateTime(2026, 7, 1, 8),
+    test('period labels match BP-style wording', () {
+      expect(
+        bloodGlucosePeriodLabel(BloodGlucosePeriod.last7Days, today: today),
+        'Last 7 Days',
       );
-      expect(range.start, DateTime(2026, 7, 1));
-      expect(range.end, today);
+      expect(
+        bloodGlucosePeriodLabel(BloodGlucosePeriod.last30Days, today: today),
+        'Last 30 Days',
+      );
+      expect(
+        bloodGlucosePeriodLabel(BloodGlucosePeriod.month, today: today),
+        'This Month',
+      );
     });
   });
 
@@ -87,6 +71,17 @@ void main() {
       expect(days[0].axisLabel, 'W');
       expect(days[1].valueMgDl, 125);
       expect(days[2].valueMgDl, isNull);
+    });
+
+    test('uses day-of-month labels for ranges longer than 7 days', () {
+      final days = bloodGlucoseChartDays(
+        readings: const [],
+        start: DateTime(2026, 7, 1),
+        end: DateTime(2026, 7, 10),
+      );
+
+      expect(days.first.axisLabel, '1');
+      expect(days.last.axisLabel, '10');
     });
   });
 

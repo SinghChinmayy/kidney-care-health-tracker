@@ -53,12 +53,23 @@ void main() {
       expect(formatDialysisTimingLabel('post_dialysis'), 'Post-dialysis');
       expect(formatDialysisTimingLabel('non_dialysis'), 'Non-dialysis day');
     });
+
+    test('compact labels are short for summary captions', () {
+      expect(formatCompactDialysisTimingLabel('pre_dialysis'), 'Pre');
+      expect(formatCompactDialysisTimingLabel('post_dialysis'), 'Post');
+      expect(formatCompactDialysisTimingLabel('non_dialysis'), 'Off');
+    });
   });
 
   group('formatWeightContextLabel', () {
     test('maps known context values', () {
       expect(formatWeightContextLabel('morning'), 'Morning');
       expect(formatWeightContextLabel('evening'), 'Evening');
+    });
+
+    test('compact labels are short for summary captions', () {
+      expect(formatCompactWeightContextLabel('morning'), 'AM');
+      expect(formatCompactWeightContextLabel('evening'), 'PM');
     });
   });
 
@@ -128,6 +139,55 @@ void main() {
       expect(grouped.keys.first, localDateOnly(readings.first.recordedAt));
       expect(grouped.values.first.length, 2);
       expect(grouped.values.last.length, 1);
+    });
+  });
+
+  group('weekStartForLocalDate', () {
+    test('returns Monday for a mid-week date', () {
+      final wednesday = DateTime(2026, 7, 8);
+      expect(weekStartForLocalDate(wednesday), DateTime(2026, 7, 6));
+    });
+  });
+
+  group('formatWeekGroupLabel', () {
+    test('uses This Week and Last Week labels', () {
+      final today = localDateOnly(DateTime.now());
+      final thisWeek = weekStartForLocalDate(today);
+      final lastWeek = DateTime(
+        thisWeek.year,
+        thisWeek.month,
+        thisWeek.day - 7,
+      );
+
+      expect(formatWeekGroupLabel(thisWeek), 'This Week');
+      expect(formatWeekGroupLabel(lastWeek), 'Last Week');
+    });
+
+    test('formats older weeks as a date range', () {
+      expect(
+        formatWeekGroupLabel(DateTime(2026, 6, 2)),
+        'Jun 2–8',
+      );
+    });
+  });
+
+  group('groupReadingsByWeekStart', () {
+    test('groups readings by week newest first', () {
+      final readings = [
+        _Reading(DateTime(2026, 7, 8)),
+        _Reading(DateTime(2026, 7, 1)),
+        _Reading(DateTime(2026, 6, 30)),
+      ];
+
+      final grouped = groupReadingsByWeekStart(
+        readings,
+        (reading) => reading.recordedAt,
+      );
+
+      expect(grouped.length, 2);
+      expect(grouped.keys.first, weekStartForLocalDate(readings.first.recordedAt));
+      expect(grouped.values.first.length, 1);
+      expect(grouped.values.last.length, 2);
     });
   });
 }

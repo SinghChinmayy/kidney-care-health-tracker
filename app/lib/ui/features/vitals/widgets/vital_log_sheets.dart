@@ -108,13 +108,14 @@ Future<void> showWeightLogSheet(
       final viewModel = sheetContext.read<WeightViewModel>();
       return _VitalLogSheetPadding(
         child: AddWeightForm(
-          onSubmit: (valueKg, dialysisTiming, weightContext, notes) async {
+          initialRecordedAt: initialRecordedAt,
+          onSubmit: (valueKg, dialysisTiming, weightContext, notes, recordedAt) async {
             await viewModel.addReading(
               valueKg: valueKg,
               dialysisTiming: dialysisTiming,
               weightContext: weightContext,
               notes: notes,
-              recordedAt: initialRecordedAt,
+              recordedAt: recordedAt,
             );
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop();

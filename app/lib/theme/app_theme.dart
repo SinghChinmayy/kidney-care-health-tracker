@@ -41,6 +41,9 @@ class AppTheme {
   /// Large radius for soft home / dashboard cards.
   static const double cardCornerRadius = 24;
 
+  /// Bottom inset so scroll content clears the floating pill nav.
+  static const double floatingNavClearance = 96;
+
   static const TextStyle optionCardTitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,

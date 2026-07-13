@@ -239,7 +239,7 @@ void main() {
     expect(find.byType(BloodPressureRecentCard), findsOneWidget);
   });
 
-  testWidgets('shows max 3 readings per day and a N-more row', (tester) async {
+  testWidgets('shows max 3 readings per week and a N-more row', (tester) async {
     final now = DateTime.now().toUtc();
     for (var i = 0; i < 5; i++) {
       await vitalsRepository.addBloodPressureReading(
@@ -267,10 +267,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('+ 2 more readings'), findsOneWidget);
+    expect(find.text('This Week'), findsOneWidget);
     expect(find.text('Today'), findsNWidgets(3));
   });
 
-  testWidgets('tapping N-more row expands all readings for that day',
+  testWidgets('tapping N-more row expands all readings for that week',
       (tester) async {
     final now = DateTime.now().toUtc();
     for (var i = 0; i < 4; i++) {
@@ -309,7 +310,7 @@ void main() {
     expect(find.text('Today'), findsNWidgets(4));
   });
 
-  testWidgets('3 or fewer readings per day shows no N-more row',
+  testWidgets('3 or fewer readings per week shows no N-more row',
       (tester) async {
     final now = DateTime.now().toUtc();
     for (var i = 0; i < 3; i++) {
@@ -331,6 +332,39 @@ void main() {
 
     expect(find.textContaining('more reading'), findsNothing);
     expect(find.byType(BloodPressureRecentCard), findsNWidgets(3));
+  });
+
+  testWidgets('groups recent readings under week headers', (tester) async {
+    final now = DateTime.now();
+    final thisWeek = DateTime(now.year, now.month, now.day);
+    final lastWeek = thisWeek.subtract(const Duration(days: 7));
+
+    await vitalsRepository.addBloodPressureReading(
+      BloodPressureReading(
+        id: 'this-week',
+        patientId: 'patient-1',
+        recordedAt: thisWeek.toUtc(),
+        systolic: 120,
+        diastolic: 80,
+      ),
+    );
+    await vitalsRepository.addBloodPressureReading(
+      BloodPressureReading(
+        id: 'last-week',
+        patientId: 'patient-1',
+        recordedAt: lastWeek.toUtc(),
+        systolic: 118,
+        diastolic: 76,
+      ),
+    );
+
+    await tester.pumpWidget(
+      buildBloodPressureView(vitalsRepository: vitalsRepository),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('This Week'), findsOneWidget);
+    expect(find.text('Last Week'), findsOneWidget);
   });
 
   testWidgets('Summary/Graph toggle changes views and displays summary table',

@@ -5,8 +5,10 @@ import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart
 import 'package:app/ui/features/vitals/widgets/blood_glucose_edit_sheet.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_period_selector.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_recent_card.dart';
+import 'package:app/ui/features/vitals/widgets/blood_glucose_summary_table.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_trend_chart.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
+import 'package:app/ui/features/vitals/widgets/week_grouped_history_list.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +20,8 @@ class BloodGlucoseView extends StatefulWidget {
 }
 
 class _BloodGlucoseViewState extends State<BloodGlucoseView> {
+  bool _showSummary = false;
+
   @override
   void initState() {
     super.initState();
@@ -49,12 +53,10 @@ class _BloodGlucoseViewState extends State<BloodGlucoseView> {
     final viewModel = context.watch<BloodGlucoseViewModel>();
     final theme = Theme.of(context);
     final hero = viewModel.heroValueMgDl;
-    final change = viewModel.periodChangeMgDl;
-    final avg = viewModel.periodAverageMgDl;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: const AppScreenAppBar(title: 'Blood glucose'),
+      backgroundColor: AppTheme.bpBackground,
+      appBar: const AppScreenAppBar(title: 'Blood Glucose'),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _logGlucose,
         tooltip: 'Log blood glucose',
@@ -78,99 +80,44 @@ class _BloodGlucoseViewState extends State<BloodGlucoseView> {
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  _SummaryGraphSelector(
+                    isSummary: _showSummary,
+                    onChanged: (val) => setState(() => _showSummary = val),
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  _BgSummaryStrip(
+                    periodLabel: viewModel.selectedPeriodLabel,
+                    value: hero?.toStringAsFixed(0),
+                    unit: 'mg/dL',
+                    dateLabel: viewModel.heroDateLabel,
+                    contextLabel: viewModel.heroContextLabel,
+                    showsPeriodNavigator: viewModel.showsPeriodNavigator,
+                    canSelectPreviousPeriod: viewModel.canSelectPreviousPeriod,
+                    canSelectNextPeriod: viewModel.canSelectNextPeriod,
+                    previousPeriodTooltip: viewModel.previousPeriodTooltip,
+                    nextPeriodTooltip: viewModel.nextPeriodTooltip,
+                    onPreviousPeriod: viewModel.selectPreviousPeriod,
+                    onNextPeriod: viewModel.selectNextPeriod,
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  if (_showSummary)
+                    BloodGlucoseSummaryTable(
+                      periodLabel: viewModel.selectedPeriodLabel,
+                      avg: viewModel.periodAverageMgDl,
+                      min: viewModel.periodMinMgDl,
+                      max: viewModel.periodMaxMgDl,
+                      stdDev: viewModel.periodStdDevMgDl,
+                    )
+                  else
+                    BloodGlucoseTrendChart(
+                      days: viewModel.chartDays,
+                      compact: true,
+                    ),
+                  const SizedBox(height: AppTheme.spacingSm),
                   BloodGlucosePeriodSelector(
                     selected: viewModel.selectedPeriod,
                     onSelected: viewModel.selectPeriod,
                   ),
-                  const SizedBox(height: AppTheme.spacingMd),
-                  if (viewModel.showsPeriodNavigator)
-                    Row(
-                      children: [
-                        IconButton(
-                          tooltip: viewModel.previousPeriodTooltip,
-                          onPressed: viewModel.canSelectPreviousPeriod
-                              ? viewModel.selectPreviousPeriod
-                              : null,
-                          icon: const Icon(Icons.chevron_left),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        Expanded(
-                          child: Text(
-                            viewModel.selectedPeriodLabel,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.muted,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: viewModel.nextPeriodTooltip,
-                          onPressed: viewModel.canSelectNextPeriod
-                              ? viewModel.selectNextPeriod
-                              : null,
-                          icon: const Icon(Icons.chevron_right),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    )
-                  else
-                    Text(
-                      viewModel.selectedPeriodLabel,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.muted,
-                      ),
-                    ),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  Text(
-                    hero == null ? '—' : hero.toStringAsFixed(0),
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                      height: 1.05,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  Text(
-                    'mg/dL',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.muted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryStat(
-                          value: '${viewModel.periodReadingCount}',
-                          label: 'Readings',
-                        ),
-                      ),
-                      Expanded(
-                        child: _SummaryStat(
-                          value: change == null
-                              ? '—'
-                              : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(0)}',
-                          label: 'Change',
-                          valueColor: change == null
-                              ? null
-                              : change > 5
-                                  ? AppTheme.error
-                                  : AppTheme.ink,
-                        ),
-                      ),
-                      Expanded(
-                        child: _SummaryStat(
-                          value: avg == null ? '—' : avg.toStringAsFixed(0),
-                          label: 'Avg mg/dL',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
-                  BloodGlucoseTrendChart(days: viewModel.chartDays),
                 ]),
               ),
             ),
@@ -225,14 +172,17 @@ class _BloodGlucoseViewState extends State<BloodGlucoseView> {
                         ),
                       )
                     else
-                      for (final reading in viewModel.readings) ...[
-                        BloodGlucoseRecentCard(
-                          reading: reading,
-                          deltaMgDl: viewModel.changeVsPrevious(reading),
-                          onTap: () => _editReading(reading),
-                        ),
-                        const SizedBox(height: AppTheme.spacingXs),
-                      ],
+                      WeekGroupedHistoryList<BloodGlucoseReading>(
+                        readings: viewModel.readings,
+                        recordedAt: (reading) => reading.recordedAt,
+                        rowBuilder: (context, reading) {
+                          return BloodGlucoseRecentCard(
+                            reading: reading,
+                            deltaMgDl: viewModel.changeVsPrevious(reading),
+                            onTap: () => _editReading(reading),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -244,40 +194,242 @@ class _BloodGlucoseViewState extends State<BloodGlucoseView> {
   }
 }
 
-class _SummaryStat extends StatelessWidget {
-  const _SummaryStat({
+class _BgSummaryStrip extends StatelessWidget {
+  const _BgSummaryStrip({
+    required this.periodLabel,
     required this.value,
-    required this.label,
-    this.valueColor,
+    required this.unit,
+    required this.dateLabel,
+    required this.contextLabel,
+    required this.showsPeriodNavigator,
+    required this.canSelectPreviousPeriod,
+    required this.canSelectNextPeriod,
+    required this.previousPeriodTooltip,
+    required this.nextPeriodTooltip,
+    required this.onPreviousPeriod,
+    required this.onNextPeriod,
   });
 
-  final String value;
-  final String label;
-  final Color? valueColor;
+  static const double _periodRowHeight = 36;
+  static const double _valueRowHeight = 32;
+
+  final String periodLabel;
+  final String? value;
+  final String unit;
+  final String? dateLabel;
+  final String? contextLabel;
+  final bool showsPeriodNavigator;
+  final bool canSelectPreviousPeriod;
+  final bool canSelectNextPeriod;
+  final String previousPeriodTooltip;
+  final String nextPeriodTooltip;
+  final VoidCallback onPreviousPeriod;
+  final VoidCallback onNextPeriod;
+
+  String? get _metaCaption {
+    final parts = <String>[
+      if (dateLabel != null) dateLabel!,
+      if (contextLabel != null) contextLabel!,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? AppTheme.ink,
-            height: 1.1,
+    final periodStyle = theme.textTheme.labelMedium?.copyWith(
+      color: AppTheme.muted,
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = theme.textTheme.headlineSmall?.copyWith(
+      fontWeight: FontWeight.w800,
+      color: AppTheme.ink,
+      height: 1.0,
+      letterSpacing: -0.6,
+    );
+    final unitStyle = theme.textTheme.titleSmall?.copyWith(
+      color: AppTheme.muted,
+      fontWeight: FontWeight.w500,
+    );
+    final metaStyle = theme.textTheme.labelMedium?.copyWith(
+      color: AppTheme.muted,
+      fontWeight: FontWeight.w500,
+    );
+    final meta = _metaCaption;
+
+    return SizedBox(
+      height: _periodRowHeight + 2 + _valueRowHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: _periodRowHeight,
+            child: Row(
+              children: [
+                _PeriodNavButton(
+                  visible: showsPeriodNavigator,
+                  tooltip: previousPeriodTooltip,
+                  enabled: canSelectPreviousPeriod,
+                  icon: Icons.chevron_left,
+                  onPressed: onPreviousPeriod,
+                ),
+                Expanded(
+                  child: Text(
+                    periodLabel,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: periodStyle,
+                  ),
+                ),
+                _PeriodNavButton(
+                  visible: showsPeriodNavigator,
+                  tooltip: nextPeriodTooltip,
+                  enabled: canSelectNextPeriod,
+                  icon: Icons.chevron_right,
+                  onPressed: onNextPeriod,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          SizedBox(
+            height: _valueRowHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(value ?? '—', style: valueStyle),
+                const SizedBox(width: 4),
+                Text(unit, style: unitStyle),
+                if (meta != null) ...[
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      meta,
+                      textAlign: TextAlign.end,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: metaStyle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodNavButton extends StatelessWidget {
+  const _PeriodNavButton({
+    required this.visible,
+    required this.tooltip,
+    required this.enabled,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final bool visible;
+  final String tooltip;
+  final bool enabled;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  static const double _size = _BgSummaryStrip._periodRowHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _size,
+      height: _size,
+      child: visible
+          ? IconButton(
+              tooltip: tooltip,
+              onPressed: enabled ? onPressed : null,
+              icon: Icon(icon, size: 22),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: _size, minHeight: _size),
+            )
+          : null,
+    );
+  }
+}
+
+class _SummaryGraphSelector extends StatelessWidget {
+  const _SummaryGraphSelector({
+    required this.isSummary,
+    required this.onChanged,
+  });
+
+  final bool isSummary;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SelectorChip(
+              label: 'Summary',
+              selected: isSummary,
+              onTap: () => onChanged(true),
+            ),
+          ),
+          Expanded(
+            child: _SelectorChip(
+              label: 'Graph',
+              selected: !isSummary,
+              onTap: () => onChanged(false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectorChip extends StatelessWidget {
+  const _SelectorChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppTheme.ink : Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: selected ? AppTheme.background : AppTheme.muted,
+                ),
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: AppTheme.muted,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

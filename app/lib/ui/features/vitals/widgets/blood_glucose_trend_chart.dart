@@ -4,28 +4,36 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/models/blood_glucose_period.dart';
 import 'package:flutter/material.dart';
 
+const _glucoseLineColor = AppTheme.logBloodGlucose;
+
 class BloodGlucoseTrendChart extends StatefulWidget {
   const BloodGlucoseTrendChart({
     super.key,
     required this.days,
+    this.compact = false,
   });
 
   final List<BloodGlucoseChartDay> days;
+  final bool compact;
 
   @override
   State<BloodGlucoseTrendChart> createState() => _BloodGlucoseTrendChartState();
 }
 
 class _BloodGlucoseTrendChartState extends State<BloodGlucoseTrendChart> {
-  static const double _minBarSlot = 36;
+  static const double _minSlot = 36;
+  static const double _chartHeight = 210;
+  static const double _compactChartHeight = 132;
 
   final _scrollController = ScrollController();
+  double? _touchX;
 
   @override
   void didUpdateWidget(covariant BloodGlucoseTrendChart oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.days.length != widget.days.length ||
         oldWidget.days != widget.days) {
+      _touchX = null;
       _scrollToLatest();
     }
   }
@@ -38,23 +46,21 @@ class _BloodGlucoseTrendChartState extends State<BloodGlucoseTrendChart> {
 
   void _scrollToLatest() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) {
-        return;
-      }
+      if (!mounted || !_scrollController.hasClients) return;
       final max = _scrollController.position.maxScrollExtent;
-      if (max > 0) {
-        _scrollController.jumpTo(max);
-      }
+      if (max > 0) _scrollController.jumpTo(max);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final days = widget.days;
+    final compact = widget.compact;
+    final chartHeight = compact ? _compactChartHeight : _chartHeight;
     if (days.isEmpty) {
-      return const SizedBox(
-        height: 180,
-        child: Center(
+      return SizedBox(
+        height: compact ? 100 : 180,
+        child: const Center(
           child: Text(
             'No glucose data yet',
             style: TextStyle(color: AppTheme.muted),
@@ -63,146 +69,299 @@ class _BloodGlucoseTrendChartState extends State<BloodGlucoseTrendChart> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final contentWidth = math.max(
-          constraints.maxWidth,
-          days.length * _minBarSlot,
-        );
-        final chart = SizedBox(
-          width: contentWidth,
-          height: 200,
-          child: CustomPaint(
-            painter: _BloodGlucoseBarChartPainter(days: days),
-            child: const SizedBox.expand(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+          child: Row(
+            children: [
+              _LegendDot(compact: compact),
+            ],
           ),
-        );
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth = math.max(
+              constraints.maxWidth,
+              days.length * _minSlot,
+            );
 
-        if (contentWidth <= constraints.maxWidth + 0.5) {
-          return chart;
-        }
+            final painter = _GlucoseLineChartPainter(
+              days: days,
+              touchX: _touchX,
+              compact: compact,
+            );
 
-        _scrollToLatest();
-        return SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: chart,
-        );
-      },
+            Widget chart = SizedBox(
+              width: contentWidth,
+              height: chartHeight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: (d) {
+                  final rx = d.localPosition.dx;
+                  if (rx >= 0 && rx <= contentWidth) {
+                    setState(() => _touchX = rx);
+                  }
+                },
+                onHorizontalDragEnd: (_) => setState(() => _touchX = null),
+                onTapDown: (d) =>
+                    setState(() => _touchX = d.localPosition.dx),
+                onTapUp: (_) => setState(() => _touchX = null),
+                child: CustomPaint(
+                  painter: painter,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            );
+
+            if (contentWidth <= constraints.maxWidth + 0.5) {
+              return chart;
+            }
+            _scrollToLatest();
+            return SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: chart,
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
-class _BloodGlucoseBarChartPainter extends CustomPainter {
-  _BloodGlucoseBarChartPainter({required this.days});
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({this.compact = false});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: compact ? 8 : 10,
+          height: compact ? 8 : 10,
+          decoration: const BoxDecoration(
+            color: _glucoseLineColor,
+            shape: BoxShape.circle,
+          ),
+        ),
+        SizedBox(width: compact ? 4 : 5),
+        Text(
+          'Glucose',
+          style: TextStyle(
+            fontSize: compact ? 10 : 11,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.muted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GlucoseLineChartPainter extends CustomPainter {
+  _GlucoseLineChartPainter({
+    required this.days,
+    this.touchX,
+    this.compact = false,
+  });
 
   final List<BloodGlucoseChartDay> days;
+  final double? touchX;
+  final bool compact;
+
+  double get _topPad => compact ? 18.0 : 28.0;
+  double get _bottomPad => compact ? 20.0 : 28.0;
+  double get _leftPad => compact ? 4.0 : 8.0;
+  double get _rightPad => compact ? 34.0 : 44.0;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const topPad = 22.0;
-    const bottomPad = 28.0;
-    const rightPad = 40.0;
-    const leftPad = 8.0;
-
-    final plotWidth = size.width - leftPad - rightPad;
-    final plotBottom = size.height - bottomPad;
-    final plotHeight = plotBottom - topPad;
+    final plotLeft = _leftPad;
+    final plotRight = size.width - _rightPad;
+    final plotWidth = plotRight - plotLeft;
+    final plotBottom = size.height - _bottomPad;
+    final plotTop = _topPad;
+    final plotHeight = plotBottom - plotTop;
 
     final values = [
-      for (final day in days)
-        if (day.valueMgDl != null) day.valueMgDl!,
+      for (final d in days)
+        if (d.valueMgDl != null) d.valueMgDl!,
     ];
+    if (values.isEmpty) return;
 
-    var minV = 0.0;
-    var maxV = values.isEmpty ? 1.0 : values.reduce(math.max);
-    maxV = (maxV * 1.15).ceilToDouble();
-    if (maxV <= minV) {
-      maxV = minV + 1;
-    }
+    final rawMin = values.reduce(math.min);
+    final rawMax = values.reduce(math.max);
+    final padding = math.max(10.0, (rawMax - rawMin) * 0.15);
+    final minV = math.max(0.0, rawMin - padding);
+    final maxV = rawMax + padding;
+
+    double toY(double v) =>
+        plotBottom - plotHeight * ((v - minV) / (maxV - minV)).clamp(0.0, 1.0);
+
+    final slot = plotWidth / days.length;
+    double cx(int i) => plotLeft + slot * (i + 0.5);
 
     final gridPaint = Paint()
-      ..color = AppTheme.muted.withValues(alpha: 0.18)
+      ..color = AppTheme.muted.withValues(alpha: 0.15)
       ..strokeWidth = 1;
     final labelStyle = TextStyle(
-      color: AppTheme.muted.withValues(alpha: 0.85),
-      fontSize: 11,
+      color: AppTheme.muted.withValues(alpha: 0.8),
+      fontSize: compact ? 9.5 : 10.5,
       fontWeight: FontWeight.w500,
     );
 
-    const gridLines = 4;
-    for (var i = 0; i <= gridLines; i++) {
-      final t = i / gridLines;
-      final y = plotBottom - plotHeight * t;
+    final gridCount = compact ? 3 : 4;
+    for (var i = 0; i <= gridCount; i++) {
+      final t = i / gridCount;
+      final v = minV + (maxV - minV) * t;
+      final y = toY(v);
       canvas.drawLine(
-        Offset(leftPad, y),
-        Offset(size.width - rightPad, y),
+        Offset(plotLeft, y),
+        Offset(plotRight, y),
         gridPaint,
       );
-      final value = minV + (maxV - minV) * t;
-      final label = value.toStringAsFixed(0);
-      final tp = TextPainter(
-        text: TextSpan(text: label, style: labelStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(
+      _paintText(
         canvas,
-        Offset(size.width - rightPad + 6, y - tp.height / 2),
+        v.toStringAsFixed(0),
+        labelStyle,
+        Offset(plotRight + 6, y - 6),
       );
     }
 
-    final slot = plotWidth / days.length;
-    final barWidth = math.min(22.0, math.max(6.0, slot * 0.55));
-    final barPaint = Paint()..color = AppTheme.ink;
-
     for (var i = 0; i < days.length; i++) {
-      final day = days[i];
-      final cx = leftPad + slot * (i + 0.5);
-
-      final dayTp = TextPainter(
-        text: TextSpan(text: day.axisLabel, style: labelStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      dayTp.paint(
+      _paintText(
         canvas,
-        Offset(cx - dayTp.width / 2, plotBottom + 8),
+        days[i].axisLabel,
+        labelStyle,
+        Offset(cx(i) - 4, plotBottom + 6),
       );
+    }
 
-      final value = day.valueMgDl;
-      if (value == null) {
-        continue;
+    final points = <Offset>[];
+    for (var i = 0; i < days.length; i++) {
+      final value = days[i].valueMgDl;
+      if (value != null) {
+        points.add(Offset(cx(i), toY(value)));
       }
+    }
 
-      final t = ((value - minV) / (maxV - minV)).clamp(0.0, 1.0);
-      final barTop = plotBottom - plotHeight * t;
-      final barHeight = math.max(4.0, plotBottom - barTop);
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(cx - barWidth / 2, barTop, barWidth, barHeight),
-        const Radius.circular(6),
-      );
-      canvas.drawRRect(rect, barPaint);
+    if (points.length >= 2) {
+      final fillPath = Path();
+      fillPath.moveTo(points.first.dx, plotBottom);
+      fillPath.lineTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        final prev = points[i - 1];
+        final curr = points[i];
+        final cpX = (prev.dx + curr.dx) / 2;
+        fillPath.cubicTo(cpX, prev.dy, cpX, curr.dy, curr.dx, curr.dy);
+      }
+      fillPath.lineTo(points.last.dx, plotBottom);
+      fillPath.close();
 
-      final valueTp = TextPainter(
-        text: TextSpan(
-          text: value.toStringAsFixed(0),
-          style: labelStyle.copyWith(fontSize: 10),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      valueTp.paint(
-        canvas,
-        Offset(cx - valueTp.width / 2, barTop - valueTp.height - 2),
+      canvas.drawPath(
+        fillPath,
+        Paint()
+          ..color = _glucoseLineColor.withValues(alpha: 0.12)
+          ..style = PaintingStyle.fill,
       );
+
+      final strokePath = Path();
+      strokePath.moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        final prev = points[i - 1];
+        final curr = points[i];
+        final cpX = (prev.dx + curr.dx) / 2;
+        strokePath.cubicTo(cpX, prev.dy, cpX, curr.dy, curr.dx, curr.dy);
+      }
+      canvas.drawPath(
+        strokePath,
+        Paint()
+          ..color = _glucoseLineColor
+          ..strokeWidth = compact ? 2.0 : 2.2
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
+    } else if (points.length == 1) {
+      canvas.drawCircle(points.first, 3, Paint()..color = _glucoseLineColor);
+    }
+
+    final tx = touchX;
+    if (tx != null && tx >= plotLeft && tx <= plotRight) {
+      final idx = ((tx - plotLeft) / slot).floor().clamp(0, days.length - 1);
+      final snapX = cx(idx);
+      final day = days[idx];
+      final value = day.valueMgDl;
+
+      final cursorPaint = Paint()
+        ..color = AppTheme.muted.withValues(alpha: 0.35)
+        ..strokeWidth = 1.5;
+      canvas.drawLine(
+        Offset(snapX, plotTop),
+        Offset(snapX, plotBottom),
+        cursorPaint,
+      );
+
+      if (value != null) {
+        final dotY = toY(value);
+        canvas.drawCircle(Offset(snapX, dotY), 5, Paint()..color = Colors.white);
+        canvas.drawCircle(
+          Offset(snapX, dotY),
+          5,
+          Paint()
+            ..color = _glucoseLineColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+
+        final label = '${value.toStringAsFixed(0)} mg/dL';
+        final tp = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        const hPad = 10.0;
+        const vPad = 6.0;
+        final boxW = tp.width + hPad * 2;
+        final boxH = tp.height + vPad * 2;
+        var bx = snapX - boxW / 2;
+        bx = bx.clamp(4.0, size.width - _rightPad - boxW - 4);
+        final by = plotTop - boxH - 6;
+        final rrect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(bx, by, boxW, boxH),
+          const Radius.circular(8),
+        );
+        canvas.drawRRect(rrect, Paint()..color = const Color(0xFF1C1C1E));
+        tp.paint(canvas, Offset(bx + hPad, by + vPad));
+      }
     }
   }
 
+  void _paintText(Canvas canvas, String text, TextStyle style, Offset offset) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, offset);
+  }
+
   @override
-  bool shouldRepaint(covariant _BloodGlucoseBarChartPainter oldDelegate) {
-    if (oldDelegate.days.length != days.length) {
-      return true;
-    }
+  bool shouldRepaint(covariant _GlucoseLineChartPainter old) {
+    if (old.touchX != touchX) return true;
+    if (old.compact != compact) return true;
+    if (old.days.length != days.length) return true;
     for (var i = 0; i < days.length; i++) {
-      final a = oldDelegate.days[i];
+      final a = old.days[i];
       final b = days[i];
       if (a.day != b.day ||
           a.valueMgDl != b.valueMgDl ||

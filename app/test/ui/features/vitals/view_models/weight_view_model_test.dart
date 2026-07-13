@@ -61,7 +61,7 @@ void main() {
     // Let constructor refresh finish before asserting.
     await Future<void>.delayed(const Duration(milliseconds: 50));
     await viewModel.refresh();
-    viewModel.selectPeriod(WeightPeriod.all);
+    viewModel.selectPeriod(WeightPeriod.last30Days);
 
     expect(viewModel.readings, hasLength(2));
     expect(viewModel.periodReadingCount, 2);

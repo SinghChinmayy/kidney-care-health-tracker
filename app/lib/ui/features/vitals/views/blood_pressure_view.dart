@@ -9,6 +9,7 @@ import 'package:app/ui/features/vitals/widgets/blood_pressure_recent_card.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_summary_table.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_trend_chart.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
+import 'package:app/ui/features/vitals/widgets/week_grouped_history_list.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -206,10 +207,17 @@ class _BloodPressureViewState extends State<BloodPressureView> {
                         ),
                       )
                     else
-                      _GroupedHistoryList(
+                      WeekGroupedHistoryList<BloodPressureReading>(
                         readings: viewModel.readings,
-                        onEdit: _editReading,
-                        changeVsPrevious: viewModel.changeVsPrevious,
+                        recordedAt: (reading) => reading.recordedAt,
+                        rowBuilder: (context, reading) {
+                          return BloodPressureRecentCard(
+                            reading: reading,
+                            deltaSystolic:
+                                viewModel.changeVsPrevious(reading),
+                            onTap: () => _editReading(reading),
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -388,110 +396,6 @@ class _PeriodNavButton extends StatelessWidget {
                   const BoxConstraints(minWidth: _size, minHeight: _size),
             )
           : null,
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Grouped history list (max 3 per day, "N more" expand)
-// ---------------------------------------------------------------------------
-
-class _GroupedHistoryList extends StatefulWidget {
-  const _GroupedHistoryList({
-    required this.readings,
-    required this.onEdit,
-    required this.changeVsPrevious,
-  });
-
-  final List<BloodPressureReading> readings;
-  final void Function(BloodPressureReading) onEdit;
-  final int? Function(BloodPressureReading) changeVsPrevious;
-
-  @override
-  State<_GroupedHistoryList> createState() => _GroupedHistoryListState();
-}
-
-class _GroupedHistoryListState extends State<_GroupedHistoryList> {
-  static const int _maxPerDay = 3;
-
-  final Set<DateTime> _expandedDays = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final groups = <DateTime, List<BloodPressureReading>>{};
-    for (final r in widget.readings) {
-      final local = r.recordedAt.toLocal();
-      final day = DateTime(local.year, local.month, local.day);
-      groups.putIfAbsent(day, () => []).add(r);
-    }
-
-    final sortedDays = groups.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    final widgets = <Widget>[];
-    for (final day in sortedDays) {
-      final dayReadings = groups[day]!;
-      final expanded = _expandedDays.contains(day);
-      final shown =
-          expanded ? dayReadings : dayReadings.take(_maxPerDay).toList();
-      final hidden = dayReadings.length - shown.length;
-
-      for (final reading in shown) {
-        widgets.add(
-          BloodPressureRecentCard(
-            reading: reading,
-            deltaSystolic: widget.changeVsPrevious(reading),
-            onTap: () => widget.onEdit(reading),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppTheme.spacingXs));
-      }
-
-      if (hidden > 0) {
-        widgets.add(
-          _ShowMoreRow(
-            count: hidden,
-            onTap: () => setState(() => _expandedDays.add(day)),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppTheme.spacingXs));
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: widgets,
-    );
-  }
-}
-
-class _ShowMoreRow extends StatelessWidget {
-  const _ShowMoreRow({required this.count, required this.onTap});
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.cardCornerRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: AppTheme.muted.withValues(alpha: 0.25),
-          ),
-          borderRadius: BorderRadius.circular(AppTheme.cardCornerRadius),
-        ),
-        child: Text(
-          '+ $count more reading${count == 1 ? '' : 's'}',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppTheme.muted,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
     );
   }
 }

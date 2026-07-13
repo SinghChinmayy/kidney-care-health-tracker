@@ -1,25 +1,24 @@
+import 'dart:math';
+
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/weight_reading.dart';
 import 'package:app/ui/features/vitals/models/weight_period.dart';
+import 'package:app/ui/features/vitals/utils/vital_formatters.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 class WeightViewModel extends ChangeNotifier {
   WeightViewModel({required VitalsRepository vitalsRepository})
       : _vitalsRepository = vitalsRepository,
-        _selectedWeekStart = weightWeekStart(DateTime.now()),
-        _selectedMonthStart = weightMonthStart(DateTime.now()),
-        _selectedYearStart = weightYearStart(DateTime.now()) {
+        _selectedMonthStart = weightMonthStart(DateTime.now()) {
     refresh();
   }
 
   final VitalsRepository _vitalsRepository;
   List<WeightReading> _readings = [];
   bool _isOnDialysis = false;
-  WeightPeriod _selectedPeriod = WeightPeriod.week;
-  DateTime _selectedWeekStart;
+  WeightPeriod _selectedPeriod = WeightPeriod.last7Days;
   DateTime _selectedMonthStart;
-  DateTime _selectedYearStart;
 
   List<WeightReading> get readings => _readings;
 
@@ -27,55 +26,42 @@ class WeightViewModel extends ChangeNotifier {
 
   WeightPeriod get selectedPeriod => _selectedPeriod;
 
-  DateTime get selectedWeekStart => _selectedWeekStart;
-
   DateTime get selectedMonthStart => _selectedMonthStart;
-
-  DateTime get selectedYearStart => _selectedYearStart;
 
   String get selectedPeriodLabel => weightPeriodLabel(
         _selectedPeriod,
-        weekStart: _selectedWeekStart,
         monthStart: _selectedMonthStart,
-        yearStart: _selectedYearStart,
       );
 
   bool get showsPeriodNavigator =>
-      _selectedPeriod == WeightPeriod.week ||
-      _selectedPeriod == WeightPeriod.month ||
-      _selectedPeriod == WeightPeriod.year;
+      _selectedPeriod == WeightPeriod.month;
 
   bool get canSelectPreviousPeriod => showsPeriodNavigator;
 
   bool get canSelectNextPeriod {
     final now = DateTime.now();
     switch (_selectedPeriod) {
-      case WeightPeriod.week:
-        return _selectedWeekStart.isBefore(weightWeekStart(now));
+      case WeightPeriod.last7Days:
+      case WeightPeriod.last30Days:
+        return false;
       case WeightPeriod.month:
         final thisMonth = weightMonthStart(now);
         return _selectedMonthStart.year < thisMonth.year ||
             (_selectedMonthStart.year == thisMonth.year &&
                 _selectedMonthStart.month < thisMonth.month);
-      case WeightPeriod.year:
-        return _selectedYearStart.year < weightYearStart(now).year;
-      case WeightPeriod.all:
-        return false;
     }
   }
 
   String get previousPeriodTooltip => switch (_selectedPeriod) {
-        WeightPeriod.week => 'Previous week',
+        WeightPeriod.last7Days => 'Previous',
+        WeightPeriod.last30Days => 'Previous',
         WeightPeriod.month => 'Previous month',
-        WeightPeriod.year => 'Previous year',
-        WeightPeriod.all => 'Previous',
       };
 
   String get nextPeriodTooltip => switch (_selectedPeriod) {
-        WeightPeriod.week => 'Next week',
+        WeightPeriod.last7Days => 'Next',
+        WeightPeriod.last30Days => 'Next',
         WeightPeriod.month => 'Next month',
-        WeightPeriod.year => 'Next year',
-        WeightPeriod.all => 'Next',
       };
 
   WeightReading? get latestReading =>
@@ -83,14 +69,12 @@ class WeightViewModel extends ChangeNotifier {
 
   ({DateTime start, DateTime end}) get _range {
     final earliest =
-        _readings.isEmpty ? null : _readings.last.recordedAt; // oldest
+        _readings.isEmpty ? null : _readings.last.recordedAt;
     return weightPeriodRange(
       _selectedPeriod,
       DateTime.now(),
       earliestReadingAt: earliest,
-      weekStart: _selectedWeekStart,
       monthStart: _selectedMonthStart,
-      yearStart: _selectedYearStart,
     );
   }
 
@@ -99,7 +83,6 @@ class WeightViewModel extends ChangeNotifier {
     return weightReadingsInRange(_readings, range.start, range.end);
   }
 
-  /// Newest reading in the selected period, else overall latest.
   WeightReading? get heroReading {
     final inPeriod = periodReadings;
     if (inPeriod.isNotEmpty) {
@@ -110,9 +93,31 @@ class WeightViewModel extends ChangeNotifier {
 
   double? get heroWeightKg => heroReading?.valueKg;
 
+  String? get heroDateLabel {
+    final reading = heroReading;
+    if (reading == null) {
+      return null;
+    }
+    return _heroDateLabel(reading.recordedAt);
+  }
+
+  /// Compact caption for the summary strip, e.g. `Today · Post · PM`.
+  String? get heroMetaLabel {
+    final reading = heroReading;
+    if (reading == null) {
+      return null;
+    }
+    final parts = <String>[
+      _heroDateLabel(reading.recordedAt),
+      formatCompactDialysisTimingLabel(reading.dialysisTiming),
+      if (reading.weightContext != null && reading.weightContext!.isNotEmpty)
+        formatCompactWeightContextLabel(reading.weightContext!),
+    ];
+    return parts.join(' · ');
+  }
+
   int get periodReadingCount => periodReadings.length;
 
-  /// Newest minus oldest reading in the period (kg). Null if < 2 readings.
   double? get periodChangeKg {
     final inPeriod = periodReadings;
     if (inPeriod.length < 2) {
@@ -133,15 +138,37 @@ class WeightViewModel extends ChangeNotifier {
     return sum / inPeriod.length;
   }
 
+  double? get periodMinKg {
+    final inPeriod = periodReadings;
+    if (inPeriod.isEmpty) {
+      return null;
+    }
+    return inPeriod.map((r) => r.valueKg).reduce(min);
+  }
+
+  double? get periodMaxKg {
+    final inPeriod = periodReadings;
+    if (inPeriod.isEmpty) {
+      return null;
+    }
+    return inPeriod.map((r) => r.valueKg).reduce(max);
+  }
+
+  double? get periodStdDevKg {
+    final inPeriod = periodReadings;
+    if (inPeriod.isEmpty) {
+      return null;
+    }
+    final avg = periodAverageKg!;
+    final variance = inPeriod
+            .map((r) => pow(r.valueKg - avg, 2))
+            .reduce((a, b) => a + b) /
+        inPeriod.length;
+    return sqrt(variance);
+  }
+
   List<WeightChartDay> get chartDays {
     final range = _range;
-    if (_selectedPeriod == WeightPeriod.year) {
-      return weightChartMonths(
-        readings: _readings,
-        start: range.start,
-        end: range.end,
-      );
-    }
     return weightChartDays(
       readings: _readings,
       start: range.start,
@@ -156,14 +183,11 @@ class WeightViewModel extends ChangeNotifier {
     _selectedPeriod = period;
     final now = DateTime.now();
     switch (period) {
-      case WeightPeriod.week:
-        _selectedWeekStart = weightWeekStart(now);
+      case WeightPeriod.last7Days:
+      case WeightPeriod.last30Days:
+        break;
       case WeightPeriod.month:
         _selectedMonthStart = weightMonthStart(now);
-      case WeightPeriod.year:
-        _selectedYearStart = weightYearStart(now);
-      case WeightPeriod.all:
-        break;
     }
     notifyListeners();
   }
@@ -173,17 +197,12 @@ class WeightViewModel extends ChangeNotifier {
       return;
     }
     switch (_selectedPeriod) {
-      case WeightPeriod.week:
-        final start = weightLocalDateOnly(_selectedWeekStart);
-        _selectedWeekStart = DateTime(start.year, start.month, start.day - 7);
+      case WeightPeriod.last7Days:
+      case WeightPeriod.last30Days:
+        return;
       case WeightPeriod.month:
         final start = weightMonthStart(_selectedMonthStart);
         _selectedMonthStart = DateTime(start.year, start.month - 1, 1);
-      case WeightPeriod.year:
-        final start = weightYearStart(_selectedYearStart);
-        _selectedYearStart = DateTime(start.year - 1, 1, 1);
-      case WeightPeriod.all:
-        return;
     }
     notifyListeners();
   }
@@ -193,22 +212,16 @@ class WeightViewModel extends ChangeNotifier {
       return;
     }
     switch (_selectedPeriod) {
-      case WeightPeriod.week:
-        final start = weightLocalDateOnly(_selectedWeekStart);
-        _selectedWeekStart = DateTime(start.year, start.month, start.day + 7);
+      case WeightPeriod.last7Days:
+      case WeightPeriod.last30Days:
+        return;
       case WeightPeriod.month:
         final start = weightMonthStart(_selectedMonthStart);
         _selectedMonthStart = DateTime(start.year, start.month + 1, 1);
-      case WeightPeriod.year:
-        final start = weightYearStart(_selectedYearStart);
-        _selectedYearStart = DateTime(start.year + 1, 1, 1);
-      case WeightPeriod.all:
-        return;
     }
     notifyListeners();
   }
 
-  /// Delta vs the next-older reading (positive = gained). Null if none older.
   double? changeVsPrevious(WeightReading reading) {
     final index = _readings.indexWhere((r) => r.id == reading.id);
     if (index < 0 || index + 1 >= _readings.length) {
@@ -276,5 +289,34 @@ class WeightViewModel extends ChangeNotifier {
   Future<void> deleteReading(String id) async {
     await _vitalsRepository.deleteWeightReading(id);
     await refresh();
+  }
+
+  String _heroDateLabel(DateTime recordedAt) {
+    final local = recordedAt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(local.year, local.month, local.day);
+    if (date == today) {
+      return 'Today';
+    }
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (date == yesterday) {
+      return 'Yesterday';
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[local.month - 1]} ${local.day}';
   }
 }

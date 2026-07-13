@@ -57,13 +57,16 @@ void main() {
     final viewModel = BloodGlucoseViewModel(vitalsRepository: repo);
     await Future<void>.delayed(const Duration(milliseconds: 50));
     await viewModel.refresh();
-    viewModel.selectPeriod(BloodGlucosePeriod.all);
+    viewModel.selectPeriod(BloodGlucosePeriod.last30Days);
 
     expect(viewModel.readings, hasLength(2));
     expect(viewModel.periodReadingCount, 2);
     expect(viewModel.periodChangeMgDl, closeTo(25, 0.001));
     expect(viewModel.heroValueMgDl, 125);
     expect(viewModel.periodAverageMgDl, closeTo(112.5, 0.001));
+    expect(viewModel.periodMinMgDl, closeTo(100, 0.001));
+    expect(viewModel.periodMaxMgDl, closeTo(125, 0.001));
+    expect(viewModel.periodStdDevMgDl, isNotNull);
     expect(viewModel.chartDays, isNotEmpty);
   });
 

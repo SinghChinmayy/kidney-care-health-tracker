@@ -9,6 +9,8 @@ const _shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /// Earliest day available in the strip (inclusive).
 final _stripFirstDate = DateTime(2000, 1, 1);
 
+const _dayCircleSize = 34.0;
+
 class HomeWeekStrip extends StatefulWidget {
   const HomeWeekStrip({super.key});
 
@@ -19,6 +21,7 @@ class HomeWeekStrip extends StatefulWidget {
 class _HomeWeekStripState extends State<HomeWeekStrip> {
   final ScrollController _scrollController = ScrollController();
   double _itemWidth = 48;
+  double _viewportWidth = 0;
   DateTime? _lastSyncedSelection;
   bool _programmaticScroll = false;
 
@@ -93,10 +96,11 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
         children: [
           Expanded(
             child: SizedBox(
-              height: 64,
+              height: 72,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   _itemWidth = constraints.maxWidth / 7;
+                  _viewportWidth = constraints.maxWidth;
 
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted || !_scrollController.hasClients) return;
@@ -122,11 +126,13 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
                       final day = _dateForIndex(index);
                       final isFuture = day.isAfter(today);
                       final isSelected = day == selected;
+                      final isToday = day == today;
                       final isDialysis = viewModel.isDialysisDay(day);
                       return _DayChip(
                         weekdayLabel: _shortWeekdays[day.weekday - 1],
                         dayNumber: '${day.day}',
                         isSelected: isSelected,
+                        isToday: isToday,
                         isDialysis: isDialysis,
                         enabled: !isFuture,
                         onTap: isFuture
@@ -144,7 +150,13 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
             onPressed: () async {
               await viewModel.pickDate(context);
               if (!mounted) return;
-              // Selection sync handled in post-frame after notifyListeners.
+              if (_viewportWidth <= 0) return;
+              await _scrollToDate(
+                viewModel.selectedDate,
+                viewportWidth: _viewportWidth,
+                today: viewModel.today,
+                animate: true,
+              );
             },
             icon: const Icon(Icons.calendar_today_outlined, size: 20),
             color: AppTheme.ink,
@@ -213,6 +225,7 @@ class _DayChip extends StatelessWidget {
     required this.weekdayLabel,
     required this.dayNumber,
     required this.isSelected,
+    required this.isToday,
     required this.isDialysis,
     required this.enabled,
     required this.onTap,
@@ -221,6 +234,7 @@ class _DayChip extends StatelessWidget {
   final String weekdayLabel;
   final String dayNumber;
   final bool isSelected;
+  final bool isToday;
   final bool isDialysis;
   final bool enabled;
   final VoidCallback? onTap;
@@ -228,55 +242,74 @@ class _DayChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final foreground = !enabled
+
+    final weekdayColor = !enabled
+        ? AppTheme.muted.withValues(alpha: 0.4)
+        : isSelected
+            ? AppTheme.ink
+            : AppTheme.muted;
+
+    final dayNumberColor = !enabled
         ? AppTheme.muted.withValues(alpha: 0.4)
         : isSelected
             ? AppTheme.background
             : AppTheme.ink;
 
+    final circleFill = !enabled
+        ? AppTheme.cardSurface.withValues(alpha: 0.5)
+        : isSelected
+            ? AppTheme.ink
+            : AppTheme.cardSurface;
+
+    final showTodayRing = isToday && !isSelected && enabled;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Material(
-        color: isSelected ? AppTheme.logWeight : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  weekdayLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  dayNumber,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDialysis
-                        ? (isSelected
-                            ? AppTheme.background
-                            : AppTheme.logWeight)
-                        : Colors.transparent,
-                  ),
-                ),
-              ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_dayCircleSize),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              weekdayLabel,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: weekdayColor,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Container(
+              width: _dayCircleSize,
+              height: _dayCircleSize,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: circleFill,
+                border: showTodayRing
+                    ? Border.all(color: AppTheme.logWeight, width: 2)
+                    : null,
+              ),
+              child: Text(
+                dayNumber,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: dayNumberColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDialysis
+                    ? (isSelected ? AppTheme.ink : AppTheme.logWeight)
+                    : Colors.transparent,
+              ),
+            ),
+          ],
         ),
       ),
     );
