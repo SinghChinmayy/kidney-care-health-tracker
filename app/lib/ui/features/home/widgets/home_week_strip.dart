@@ -252,14 +252,14 @@ class _DayChip extends StatelessWidget {
     final dayNumberColor = !enabled
         ? AppTheme.muted.withValues(alpha: 0.4)
         : isSelected
-            ? AppTheme.background
+            ? AppTheme.cardSurface
             : AppTheme.ink;
 
     final circleFill = !enabled
-        ? AppTheme.background.withValues(alpha: 0.5)
+        ? AppTheme.cardSurface.withValues(alpha: 0.5)
         : isSelected
             ? AppTheme.ink
-            : AppTheme.background;
+            : AppTheme.cardSurface;
 
     final showTodayRing = isToday && !isSelected && enabled;
 

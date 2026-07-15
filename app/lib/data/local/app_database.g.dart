@@ -4489,6 +4489,492 @@ class MedicationsCompanion extends UpdateCompanion<MedicationRow> {
   }
 }
 
+class $PatientMedicationSchedulesTable extends PatientMedicationSchedules
+    with
+        TableInfo<
+          $PatientMedicationSchedulesTable,
+          PatientMedicationScheduleRow
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PatientMedicationSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _patientIdMeta = const VerificationMeta(
+    'patientId',
+  );
+  @override
+  late final GeneratedColumn<String> patientId = GeneratedColumn<String>(
+    'patient_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES patients (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<int, List<String>>, String>
+  schedule =
+      GeneratedColumn<String>(
+        'schedule',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{"by_day":{}}'),
+      ).withConverter<Map<int, List<String>>>(
+        $PatientMedicationSchedulesTable.$converterschedule,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    patientId,
+    schedule,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isDirty,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'patient_medication_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PatientMedicationScheduleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('patient_id')) {
+      context.handle(
+        _patientIdMeta,
+        patientId.isAcceptableOrUnknown(data['patient_id']!, _patientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patientIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PatientMedicationScheduleRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PatientMedicationScheduleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      patientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}patient_id'],
+      )!,
+      schedule: $PatientMedicationSchedulesTable.$converterschedule.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}schedule'],
+        )!,
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+    );
+  }
+
+  @override
+  $PatientMedicationSchedulesTable createAlias(String alias) {
+    return $PatientMedicationSchedulesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Map<int, List<String>>, String> $converterschedule =
+      const MedicationScheduleConverter();
+}
+
+class PatientMedicationScheduleRow extends DataClass
+    implements Insertable<PatientMedicationScheduleRow> {
+  final String id;
+  final String patientId;
+  final Map<int, List<String>> schedule;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool isDirty;
+  const PatientMedicationScheduleRow({
+    required this.id,
+    required this.patientId,
+    required this.schedule,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.isDirty,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['patient_id'] = Variable<String>(patientId);
+    {
+      map['schedule'] = Variable<String>(
+        $PatientMedicationSchedulesTable.$converterschedule.toSql(schedule),
+      );
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    return map;
+  }
+
+  PatientMedicationSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return PatientMedicationSchedulesCompanion(
+      id: Value(id),
+      patientId: Value(patientId),
+      schedule: Value(schedule),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      isDirty: Value(isDirty),
+    );
+  }
+
+  factory PatientMedicationScheduleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PatientMedicationScheduleRow(
+      id: serializer.fromJson<String>(json['id']),
+      patientId: serializer.fromJson<String>(json['patientId']),
+      schedule: serializer.fromJson<Map<int, List<String>>>(json['schedule']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'patientId': serializer.toJson<String>(patientId),
+      'schedule': serializer.toJson<Map<int, List<String>>>(schedule),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+    };
+  }
+
+  PatientMedicationScheduleRow copyWith({
+    String? id,
+    String? patientId,
+    Map<int, List<String>>? schedule,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? isDirty,
+  }) => PatientMedicationScheduleRow(
+    id: id ?? this.id,
+    patientId: patientId ?? this.patientId,
+    schedule: schedule ?? this.schedule,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    isDirty: isDirty ?? this.isDirty,
+  );
+  PatientMedicationScheduleRow copyWithCompanion(
+    PatientMedicationSchedulesCompanion data,
+  ) {
+    return PatientMedicationScheduleRow(
+      id: data.id.present ? data.id.value : this.id,
+      patientId: data.patientId.present ? data.patientId.value : this.patientId,
+      schedule: data.schedule.present ? data.schedule.value : this.schedule,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMedicationScheduleRow(')
+          ..write('id: $id, ')
+          ..write('patientId: $patientId, ')
+          ..write('schedule: $schedule, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isDirty: $isDirty')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    patientId,
+    schedule,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    isDirty,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PatientMedicationScheduleRow &&
+          other.id == this.id &&
+          other.patientId == this.patientId &&
+          other.schedule == this.schedule &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.isDirty == this.isDirty);
+}
+
+class PatientMedicationSchedulesCompanion
+    extends UpdateCompanion<PatientMedicationScheduleRow> {
+  final Value<String> id;
+  final Value<String> patientId;
+  final Value<Map<int, List<String>>> schedule;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> isDirty;
+  final Value<int> rowid;
+  const PatientMedicationSchedulesCompanion({
+    this.id = const Value.absent(),
+    this.patientId = const Value.absent(),
+    this.schedule = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PatientMedicationSchedulesCompanion.insert({
+    required String id,
+    required String patientId,
+    this.schedule = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       patientId = Value(patientId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<PatientMedicationScheduleRow> custom({
+    Expression<String>? id,
+    Expression<String>? patientId,
+    Expression<String>? schedule,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? isDirty,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (patientId != null) 'patient_id': patientId,
+      if (schedule != null) 'schedule': schedule,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PatientMedicationSchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? patientId,
+    Value<Map<int, List<String>>>? schedule,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? isDirty,
+    Value<int>? rowid,
+  }) {
+    return PatientMedicationSchedulesCompanion(
+      id: id ?? this.id,
+      patientId: patientId ?? this.patientId,
+      schedule: schedule ?? this.schedule,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isDirty: isDirty ?? this.isDirty,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (patientId.present) {
+      map['patient_id'] = Variable<String>(patientId.value);
+    }
+    if (schedule.present) {
+      map['schedule'] = Variable<String>(
+        $PatientMedicationSchedulesTable.$converterschedule.toSql(
+          schedule.value,
+        ),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMedicationSchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('patientId: $patientId, ')
+          ..write('schedule: $schedule, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncStateTable extends SyncState
     with TableInfo<$SyncStateTable, SyncStateRow> {
   @override
@@ -4791,6 +5277,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $MedicationsTable medications = $MedicationsTable(this);
+  late final $PatientMedicationSchedulesTable patientMedicationSchedules =
+      $PatientMedicationSchedulesTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
   late final PatientsDao patientsDao = PatientsDao(this as AppDatabase);
   late final PatientPreferencesDao patientPreferencesDao =
@@ -4808,6 +5296,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final MedicationsDao medicationsDao = MedicationsDao(
     this as AppDatabase,
   );
+  late final PatientMedicationScheduleDao patientMedicationScheduleDao =
+      PatientMedicationScheduleDao(this as AppDatabase);
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -4821,6 +5311,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     weightReadings,
     fluidIntakeLogs,
     medications,
+    patientMedicationSchedules,
     syncState,
   ];
   @override
@@ -4859,6 +5350,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('fluid_intake_logs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'patients',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('patient_medication_schedules', kind: UpdateKind.delete),
+      ],
     ),
   ]);
 }
@@ -5001,6 +5501,31 @@ final class $$PatientsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _fluidIntakeLogsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PatientMedicationSchedulesTable,
+    List<PatientMedicationScheduleRow>
+  >
+  _patientMedicationSchedulesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.patientMedicationSchedules,
+        aliasName: 'patients__id__patient_medication_schedules__patient_id',
+      );
+
+  $$PatientMedicationSchedulesTableProcessedTableManager
+  get patientMedicationSchedulesRefs {
+    final manager = $$PatientMedicationSchedulesTableTableManager(
+      $_db,
+      $_db.patientMedicationSchedules,
+    ).filter((f) => f.patientId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _patientMedicationSchedulesRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -5211,6 +5736,33 @@ class $$PatientsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> patientMedicationSchedulesRefs(
+    Expression<bool> Function($$PatientMedicationSchedulesTableFilterComposer f)
+    f,
+  ) {
+    final $$PatientMedicationSchedulesTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.patientMedicationSchedules,
+          getReferencedColumn: (t) => t.patientId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PatientMedicationSchedulesTableFilterComposer(
+                $db: $db,
+                $table: $db.patientMedicationSchedules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -5481,6 +6033,35 @@ class $$PatientsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> patientMedicationSchedulesRefs<T extends Object>(
+    Expression<T> Function(
+      $$PatientMedicationSchedulesTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$PatientMedicationSchedulesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.patientMedicationSchedules,
+          getReferencedColumn: (t) => t.patientId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PatientMedicationSchedulesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.patientMedicationSchedules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$PatientsTableTableManager
@@ -5502,6 +6083,7 @@ class $$PatientsTableTableManager
             bool bloodGlucoseReadingsRefs,
             bool weightReadingsRefs,
             bool fluidIntakeLogsRefs,
+            bool patientMedicationSchedulesRefs,
           })
         > {
   $$PatientsTableTableManager(_$AppDatabase db, $PatientsTable table)
@@ -5598,6 +6180,7 @@ class $$PatientsTableTableManager
                 bloodGlucoseReadingsRefs = false,
                 weightReadingsRefs = false,
                 fluidIntakeLogsRefs = false,
+                patientMedicationSchedulesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5607,6 +6190,8 @@ class $$PatientsTableTableManager
                     if (bloodGlucoseReadingsRefs) db.bloodGlucoseReadings,
                     if (weightReadingsRefs) db.weightReadings,
                     if (fluidIntakeLogsRefs) db.fluidIntakeLogs,
+                    if (patientMedicationSchedulesRefs)
+                      db.patientMedicationSchedules,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5716,6 +6301,27 @@ class $$PatientsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (patientMedicationSchedulesRefs)
+                        await $_getPrefetchedData<
+                          PatientRow,
+                          $PatientsTable,
+                          PatientMedicationScheduleRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PatientsTableReferences
+                              ._patientMedicationSchedulesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PatientsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).patientMedicationSchedulesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.patientId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5742,6 +6348,7 @@ typedef $$PatientsTableProcessedTableManager =
         bool bloodGlucoseReadingsRefs,
         bool weightReadingsRefs,
         bool fluidIntakeLogsRefs,
+        bool patientMedicationSchedulesRefs,
       })
     >;
 typedef $$PatientPrefsTableCreateCompanionBuilder =
@@ -8166,6 +8773,395 @@ typedef $$MedicationsTableProcessedTableManager =
       MedicationRow,
       PrefetchHooks Function()
     >;
+typedef $$PatientMedicationSchedulesTableCreateCompanionBuilder =
+    PatientMedicationSchedulesCompanion Function({
+      required String id,
+      required String patientId,
+      Value<Map<int, List<String>>> schedule,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isDirty,
+      Value<int> rowid,
+    });
+typedef $$PatientMedicationSchedulesTableUpdateCompanionBuilder =
+    PatientMedicationSchedulesCompanion Function({
+      Value<String> id,
+      Value<String> patientId,
+      Value<Map<int, List<String>>> schedule,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> isDirty,
+      Value<int> rowid,
+    });
+
+final class $$PatientMedicationSchedulesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PatientMedicationSchedulesTable,
+          PatientMedicationScheduleRow
+        > {
+  $$PatientMedicationSchedulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PatientsTable _patientIdTable(_$AppDatabase db) => db.patients
+      .createAlias('patient_medication_schedules__patient_id__patients__id');
+
+  $$PatientsTableProcessedTableManager get patientId {
+    final $_column = $_itemColumn<String>('patient_id')!;
+
+    final manager = $$PatientsTableTableManager(
+      $_db,
+      $_db.patients,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_patientIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PatientMedicationSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $PatientMedicationSchedulesTable> {
+  $$PatientMedicationSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    Map<int, List<String>>,
+    Map<int, List<String>>,
+    String
+  >
+  get schedule => $composableBuilder(
+    column: $table.schedule,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PatientsTableFilterComposer get patientId {
+    final $$PatientsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableFilterComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientMedicationSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PatientMedicationSchedulesTable> {
+  $$PatientMedicationSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get schedule => $composableBuilder(
+    column: $table.schedule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PatientsTableOrderingComposer get patientId {
+    final $$PatientsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableOrderingComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientMedicationSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PatientMedicationSchedulesTable> {
+  $$PatientMedicationSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Map<int, List<String>>, String>
+  get schedule =>
+      $composableBuilder(column: $table.schedule, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  $$PatientsTableAnnotationComposer get patientId {
+    final $$PatientsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.patientId,
+      referencedTable: $db.patients,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PatientsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.patients,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PatientMedicationSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PatientMedicationSchedulesTable,
+          PatientMedicationScheduleRow,
+          $$PatientMedicationSchedulesTableFilterComposer,
+          $$PatientMedicationSchedulesTableOrderingComposer,
+          $$PatientMedicationSchedulesTableAnnotationComposer,
+          $$PatientMedicationSchedulesTableCreateCompanionBuilder,
+          $$PatientMedicationSchedulesTableUpdateCompanionBuilder,
+          (
+            PatientMedicationScheduleRow,
+            $$PatientMedicationSchedulesTableReferences,
+          ),
+          PatientMedicationScheduleRow,
+          PrefetchHooks Function({bool patientId})
+        > {
+  $$PatientMedicationSchedulesTableTableManager(
+    _$AppDatabase db,
+    $PatientMedicationSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PatientMedicationSchedulesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$PatientMedicationSchedulesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PatientMedicationSchedulesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> patientId = const Value.absent(),
+                Value<Map<int, List<String>>> schedule = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMedicationSchedulesCompanion(
+                id: id,
+                patientId: patientId,
+                schedule: schedule,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isDirty: isDirty,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String patientId,
+                Value<Map<int, List<String>>> schedule = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMedicationSchedulesCompanion.insert(
+                id: id,
+                patientId: patientId,
+                schedule: schedule,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                isDirty: isDirty,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PatientMedicationSchedulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({patientId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (patientId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.patientId,
+                                referencedTable:
+                                    $$PatientMedicationSchedulesTableReferences
+                                        ._patientIdTable(db),
+                                referencedColumn:
+                                    $$PatientMedicationSchedulesTableReferences
+                                        ._patientIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PatientMedicationSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PatientMedicationSchedulesTable,
+      PatientMedicationScheduleRow,
+      $$PatientMedicationSchedulesTableFilterComposer,
+      $$PatientMedicationSchedulesTableOrderingComposer,
+      $$PatientMedicationSchedulesTableAnnotationComposer,
+      $$PatientMedicationSchedulesTableCreateCompanionBuilder,
+      $$PatientMedicationSchedulesTableUpdateCompanionBuilder,
+      (
+        PatientMedicationScheduleRow,
+        $$PatientMedicationSchedulesTableReferences,
+      ),
+      PatientMedicationScheduleRow,
+      PrefetchHooks Function({bool patientId})
+    >;
 typedef $$SyncStateTableCreateCompanionBuilder =
     SyncStateCompanion Function({
       required String tableKey,
@@ -8350,6 +9346,12 @@ class $AppDatabaseManager {
       $$FluidIntakeLogsTableTableManager(_db, _db.fluidIntakeLogs);
   $$MedicationsTableTableManager get medications =>
       $$MedicationsTableTableManager(_db, _db.medications);
+  $$PatientMedicationSchedulesTableTableManager
+  get patientMedicationSchedules =>
+      $$PatientMedicationSchedulesTableTableManager(
+        _db,
+        _db.patientMedicationSchedules,
+      );
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
 }

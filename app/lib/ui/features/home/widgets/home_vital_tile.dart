@@ -41,7 +41,7 @@ class HomeVitalTile extends StatelessWidget {
     final hasReading = value != 'No readings yet';
 
     return DecoratedBox(
-      decoration: AppTheme.homeCardDecoration(color: AppTheme.background),
+      decoration: AppTheme.homeCardDecoration(color: AppTheme.cardSurface),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(_radius),

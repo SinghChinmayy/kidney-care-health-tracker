@@ -1,10 +1,14 @@
 import 'package:app/data/repositories/auth_repository.dart';
+import 'package:app/data/repositories/medications_repository.dart';
+import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/fluid_intake_log.dart';
+import 'package:app/domain/models/medication.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/patient_medication_schedule.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/domain/models/weight_gain_from_dry_weight.dart';
 import 'package:app/domain/models/weight_reading.dart';
@@ -38,9 +42,13 @@ class HomeViewModel extends ChangeNotifier {
     required AuthRepository authRepository,
     required PatientRepository patientRepository,
     required VitalsRepository vitalsRepository,
+    required MedicationsRepository medicationsRepository,
+    required PatientMedicationScheduleRepository scheduleRepository,
   })  : _authRepository = authRepository,
         _patientRepository = patientRepository,
         _vitalsRepository = vitalsRepository,
+        _medicationsRepository = medicationsRepository,
+        _scheduleRepository = scheduleRepository,
         _selectedDate = localDateOnly(DateTime.now()) {
     refresh();
   }
@@ -50,6 +58,8 @@ class HomeViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
   final VitalsRepository _vitalsRepository;
+  final MedicationsRepository _medicationsRepository;
+  final PatientMedicationScheduleRepository _scheduleRepository;
 
   DateTime _selectedDate;
   Patient? _patient;
@@ -58,6 +68,8 @@ class HomeViewModel extends ChangeNotifier {
   List<BloodGlucoseReading> _bloodGlucoseReadings = [];
   List<WeightReading> _weightReadings = [];
   List<FluidIntakeLog> _fluidIntakeLogs = [];
+  List<Medication> _medications = [];
+  PatientMedicationSchedule? _schedule;
 
   DateTime get selectedDate => _selectedDate;
 
@@ -110,6 +122,41 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   bool get isSelectedDateDialysisDay => isDialysisDay(_selectedDate);
+
+  bool get isSelectedDateToday => _selectedDate == today;
+
+  /// Banner copy when [isSelectedDateDialysisDay] is true.
+  String get dialysisDayBannerLabel {
+    if (isSelectedDateToday) {
+      return 'Today is a dialysis day';
+    }
+    return 'Dialysis day · $selectedDateLabel';
+  }
+
+  Map<String, Medication> get _medicationById {
+    return {for (final med in _medications) med.id: med};
+  }
+
+  /// Catalog meds scheduled for the selected weekday (dialysis-day schedule).
+  List<Medication> get medicationsForSelectedDate {
+    final ids = _schedule?.medIdsForDay(_selectedDate.weekday) ?? const [];
+    final byId = _medicationById;
+    final meds = <Medication>[];
+    for (final id in ids) {
+      final med = byId[id];
+      if (med != null) {
+        meds.add(med);
+      }
+    }
+    return meds;
+  }
+
+  String get medicationsForSelectedDateTitle {
+    if (isSelectedDateToday) {
+      return 'Medicines for today';
+    }
+    return 'Medicines for $selectedDateLabel';
+  }
 
   int get dailyWaterGoalMl =>
       _preferences?.dailyWaterGoalMl ??
@@ -325,11 +372,14 @@ class HomeViewModel extends ChangeNotifier {
       _vitalsRepository.getFluidIntakeLogs(),
     ]);
 
+    final medsFuture = _medicationsRepository.getAll();
+
     final Future<List<Object?>>? profileFuture = authUserId == null
         ? null
         : Future.wait([
             _patientRepository.getPatientForAuthUser(authUserId),
             _patientRepository.getOrCreatePreferencesForAuthUser(authUserId),
+            _scheduleRepository.getForCurrentPatient(),
           ]);
 
     final vitalsResults = await vitalsFuture;
@@ -337,14 +387,17 @@ class HomeViewModel extends ChangeNotifier {
     _bloodGlucoseReadings = vitalsResults[1] as List<BloodGlucoseReading>;
     _weightReadings = vitalsResults[2] as List<WeightReading>;
     _fluidIntakeLogs = vitalsResults[3] as List<FluidIntakeLog>;
+    _medications = await medsFuture;
 
     if (profileFuture == null) {
       _patient = null;
       _preferences = null;
+      _schedule = null;
     } else {
       final profileResults = await profileFuture;
       _patient = profileResults[0] as Patient?;
       _preferences = profileResults[1] as PatientPreferences?;
+      _schedule = profileResults[2] as PatientMedicationSchedule?;
     }
 
     notifyListeners();

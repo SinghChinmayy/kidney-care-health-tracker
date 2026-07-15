@@ -35,10 +35,16 @@ class JournalSection extends StatelessWidget {
         ),
         const SizedBox(height: AppTheme.spacingXs),
         Container(
-          decoration: AppTheme.homeCardDecoration(),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.cardBorder),
+          ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: children,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              children: children,
+            ),
           ),
         ),
       ],
@@ -85,6 +91,9 @@ class JournalDetailRow extends StatelessWidget {
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -93,6 +102,8 @@ class JournalDetailRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppTheme.muted,
                     ),
@@ -102,13 +113,11 @@ class JournalDetailRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppTheme.spacingXs),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.muted,
-              ),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.muted,
             ),
           ),
           if (onTap != null) ...[

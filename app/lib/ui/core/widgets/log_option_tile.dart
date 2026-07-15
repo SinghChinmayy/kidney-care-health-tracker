@@ -41,7 +41,7 @@ class LogOptionTile extends StatelessWidget {
                   color: accentColor,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: AppTheme.background, size: 22),
+                child: Icon(icon, color: AppTheme.cardSurface, size: 22),
               ),
               const SizedBox(width: AppTheme.spacingXs + 4),
               Expanded(

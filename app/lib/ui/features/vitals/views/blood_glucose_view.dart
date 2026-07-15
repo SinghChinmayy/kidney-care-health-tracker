@@ -425,7 +425,7 @@ class _SelectorChip extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: selected ? AppTheme.background : AppTheme.muted,
+                  color: selected ? AppTheme.cardSurface : AppTheme.muted,
                 ),
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:app/data/local/app_database.dart';
 import 'package:app/data/local/database_holder.dart';
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/medications_repository.dart';
+import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
@@ -69,6 +70,16 @@ class KidneyCareApp extends StatelessWidget {
         ProxyProvider<AppDatabase, MedicationsRepository>(
           update: (_, db, _) => MedicationsRepository(db: db),
         ),
+        ProxyProvider4<AppDatabase, PatientRepository, AuthRepository,
+            SyncCoordinator, PatientMedicationScheduleRepository>(
+          update: (_, db, patients, auth, coordinator, _) =>
+              PatientMedicationScheduleRepository(
+            db: db,
+            patientRepository: patients,
+            currentAuthUserId: () => auth.currentSession?.user.id,
+            onWrite: coordinator.onDriftWrite,
+          ),
+        ),
         ChangeNotifierProvider(
           create: (context) => LoginViewModel(
             authRepository: context.read<AuthRepository>(),
@@ -86,6 +97,9 @@ class KidneyCareApp extends StatelessWidget {
             authRepository: context.read<AuthRepository>(),
             patientRepository: context.read<PatientRepository>(),
             vitalsRepository: context.read<VitalsRepository>(),
+            medicationsRepository: context.read<MedicationsRepository>(),
+            scheduleRepository:
+                context.read<PatientMedicationScheduleRepository>(),
           ),
         ),
         ChangeNotifierProxyProvider2<AuthRepository, PatientRepository,
@@ -138,17 +152,20 @@ class KidneyCareApp extends StatelessWidget {
               previous ??
               MedicationsViewModel(medicationsRepository: repository),
         ),
-        ChangeNotifierProxyProvider2<VitalsRepository, MedicationsRepository,
-            JournalViewModel>(
+        ChangeNotifierProxyProvider3<VitalsRepository, MedicationsRepository,
+            PatientMedicationScheduleRepository, JournalViewModel>(
           create: (context) => JournalViewModel(
             vitalsRepository: context.read<VitalsRepository>(),
             medicationsRepository: context.read<MedicationsRepository>(),
+            scheduleRepository:
+                context.read<PatientMedicationScheduleRepository>(),
           ),
-          update: (_, vitals, medications, previous) =>
+          update: (_, vitals, medications, schedule, previous) =>
               previous ??
               JournalViewModel(
                 vitalsRepository: vitals,
                 medicationsRepository: medications,
+                scheduleRepository: schedule,
               ),
         ),
       ],

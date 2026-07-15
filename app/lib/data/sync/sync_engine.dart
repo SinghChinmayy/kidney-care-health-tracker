@@ -24,6 +24,10 @@ class SyncEngine {
               GlucoseSync(db: db, currentAuthUserId: currentAuthUserId),
               WeightSync(db: db, currentAuthUserId: currentAuthUserId),
               FluidIntakeSync(db: db, currentAuthUserId: currentAuthUserId),
+              PatientMedicationScheduleSync(
+                db: db,
+                currentAuthUserId: currentAuthUserId,
+              ),
             ];
 
   final AppDatabase _db;

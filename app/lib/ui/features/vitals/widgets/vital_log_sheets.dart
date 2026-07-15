@@ -17,7 +17,7 @@ Future<void> showBloodPressureLogSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -59,7 +59,7 @@ Future<void> showBloodGlucoseLogSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -100,7 +100,7 @@ Future<void> showWeightLogSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -143,7 +143,7 @@ Future<void> showFluidIntakeLogSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),

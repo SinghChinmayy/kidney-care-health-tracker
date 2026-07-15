@@ -1,7 +1,8 @@
 import 'package:app/theme/app_theme.dart';
+import 'package:app/ui/features/journal/utils/dialysis_days_schedule_change.dart';
 import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
+import 'package:app/ui/features/journal/views/journal_medicines_view.dart';
 import 'package:app/ui/features/journal/widgets/journal_section.dart';
-import 'package:app/ui/features/medications/views/medications_view.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
@@ -51,6 +52,7 @@ class _JournalViewState extends State<JournalView> {
   }
 
   Future<void> _pickDialysisType(ProfileViewModel viewModel) async {
+    final journal = context.read<JournalViewModel>();
     final selected = await showProfileOptionPickerSheet(
       context,
       title: 'Dialysis',
@@ -64,17 +66,52 @@ class _JournalViewState extends State<JournalView> {
       ],
     );
     if (!mounted || selected == null) return;
+
+    final previous = viewModel.patient?.dialysisType ?? 'none';
+    if (selected == 'none' && previous != 'none') {
+      final ok = await confirmClearScheduleForDialysisTypeNone(
+        context,
+        schedule: journal.schedule,
+      );
+      if (!mounted || !ok) return;
+    }
+
     final saved = await viewModel.updateDialysisType(selected);
+    if (saved && selected == 'none') {
+      await journal.applyDialysisDaysChange(const []);
+      if (viewModel.patient?.dialysisDaysOfWeek?.isNotEmpty == true) {
+        await viewModel.updateDialysisDaysOfWeek(const []);
+      }
+    }
+    if (!mounted) return;
     _showSaveFeedback(saved, viewModel);
   }
 
   Future<void> _pickDialysisDays(ProfileViewModel viewModel) async {
+    final journal = context.read<JournalViewModel>();
+    final oldDays = List<int>.from(viewModel.patient?.dialysisDaysOfWeek ?? []);
     final selected = await showProfileDialysisDaysPickerSheet(
       context,
       initialDays: viewModel.patient?.dialysisDaysOfWeek,
     );
     if (!mounted || selected == null) return;
+
+    final impact = computeDialysisDaysChangeImpact(
+      oldDays: oldDays,
+      newDays: selected,
+      schedule: journal.schedule,
+    );
+    final ok = await confirmDialysisDaysScheduleChange(
+      context,
+      impact: impact,
+    );
+    if (!mounted || !ok) return;
+
     final saved = await viewModel.updateDialysisDaysOfWeek(selected);
+    if (saved) {
+      await journal.applyDialysisDaysChange(selected);
+    }
+    if (!mounted) return;
     _showSaveFeedback(saved, viewModel);
   }
 
@@ -106,18 +143,22 @@ class _JournalViewState extends State<JournalView> {
     _showSaveFeedback(saved, viewModel, successMessage: 'Fluid limit updated');
   }
 
-  void _openMedications() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const MedicationsView()),
-    ).then((_) {
+  void _openMedicines() {
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute<void>(builder: (_) => const JournalMedicinesView()),
+    )
+        .then((_) {
       if (mounted) context.read<JournalViewModel>().refresh();
     });
   }
 
   void _openWeight() {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute<void>(builder: (_) => const WeightView()),
-    ).then((_) {
+    )
+        .then((_) {
       if (mounted) context.read<JournalViewModel>().refresh();
     });
   }
@@ -162,10 +203,17 @@ class _JournalViewState extends State<JournalView> {
                           color: AppTheme.muted,
                         ),
                   ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppTheme.cardBorder,
+                  ),
                   const SizedBox(height: AppTheme.spacingMd),
                   if (profile.isLoading && patient == null)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
+                      padding:
+                          EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
                       child: Center(child: CircularProgressIndicator()),
                     )
                   else ...[
@@ -176,8 +224,7 @@ class _JournalViewState extends State<JournalView> {
                           icon: Icons.monitor_heart_outlined,
                           label: 'CKD stage',
                           value: formatCkdStageLabel(patient?.ckdStage),
-                          onTap:
-                              canEdit ? () => _pickCkdStage(profile) : null,
+                          onTap: canEdit ? () => _pickCkdStage(profile) : null,
                         ),
                         const JournalDivider(),
                         JournalDetailRow(
@@ -217,7 +264,7 @@ class _JournalViewState extends State<JournalView> {
                     ),
                     const SizedBox(height: AppTheme.spacingMd),
                     JournalSection(
-                      title: 'Dry weight',
+                      title: 'Care plan',
                       children: [
                         JournalDetailRow(
                           icon: Icons.monitor_weight_outlined,
@@ -225,100 +272,20 @@ class _JournalViewState extends State<JournalView> {
                           value: journal.dryWeightLabel,
                           subtitle: journal.dryWeightMetaLabel,
                           onTap: _openWeight,
-                          isLast: true,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.spacingMd),
-                    JournalSection(
-                      title: 'Medications',
-                      trailing: TextButton(
-                        onPressed: _openMedications,
-                        child: const Text('Manage'),
-                      ),
-                      children: [
+                        const JournalDivider(),
                         JournalDetailRow(
                           icon: Icons.medication_outlined,
-                          label: 'Medication catalog',
+                          label: 'Medicines',
                           value: journal.medicationCount == 0
-                              ? 'Empty'
-                              : '${journal.medicationCount} meds',
-                          subtitle:
-                              'Names, composition & notes for dialysis care',
-                          onTap: _openMedications,
+                              ? 'None yet'
+                              : '${journal.medicationCount} in catalog',
+                          subtitle: 'Session schedule & catalog',
+                          onTap: _openMedicines,
                           isLast: true,
                         ),
                       ],
                     ),
-                    if (journal.medications.isNotEmpty) ...[
-                      const SizedBox(height: AppTheme.spacingXs),
-                      ...journal.medications.take(5).map((med) {
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppTheme.spacingXs,
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _openMedications,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.cardCornerRadius,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(AppTheme.spacingSm),
-                                decoration: AppTheme.homeCardDecoration(
-                                  elevated: false,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            med.pharmaceuticalName,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            med.composition,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: AppTheme.muted,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: AppTheme.muted,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                      if (journal.medicationCount > 5)
-                        TextButton(
-                          onPressed: _openMedications,
-                          child: Text(
-                            'View all ${journal.medicationCount} medications',
-                          ),
-                        ),
-                    ],
                     if (profile.isSaving) ...[
                       const SizedBox(height: AppTheme.spacingSm),
                       const LinearProgressIndicator(minHeight: 2),

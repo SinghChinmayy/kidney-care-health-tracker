@@ -8,7 +8,7 @@ Future<void> showAddMedicationSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),

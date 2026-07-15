@@ -4,6 +4,8 @@ import 'package:app/debug/synthetic_data_generator.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/views/login_view.dart';
+import 'package:app/ui/features/journal/utils/dialysis_days_schedule_change.dart';
+import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/onboarding/views/caretaker_signup_view.dart';
 import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:app/ui/features/onboarding/views/patient_signup_view.dart';
@@ -61,6 +63,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _pickDialysisType(ProfileViewModel viewModel) async {
+    final journal = context.read<JournalViewModel>();
     final selected = await showProfileOptionPickerSheet(
       context,
       title: 'Dialysis',
@@ -76,11 +79,29 @@ class _ProfileViewState extends State<ProfileView> {
     if (!mounted || selected == null) {
       return;
     }
+    final previous = viewModel.patient?.dialysisType ?? 'none';
+    if (selected == 'none' && previous != 'none') {
+      final ok = await confirmClearScheduleForDialysisTypeNone(
+        context,
+        schedule: journal.schedule,
+      );
+      if (!mounted || !ok) {
+        return;
+      }
+    }
     final saved = await viewModel.updateDialysisType(selected);
+    if (saved && selected == 'none') {
+      await journal.applyDialysisDaysChange(const []);
+      if (viewModel.patient?.dialysisDaysOfWeek?.isNotEmpty == true) {
+        await viewModel.updateDialysisDaysOfWeek(const []);
+      }
+    }
     _showSaveFeedback(saved, viewModel);
   }
 
   Future<void> _pickDialysisDays(ProfileViewModel viewModel) async {
+    final journal = context.read<JournalViewModel>();
+    final oldDays = List<int>.from(viewModel.patient?.dialysisDaysOfWeek ?? []);
     final selected = await showProfileDialysisDaysPickerSheet(
       context,
       initialDays: viewModel.patient?.dialysisDaysOfWeek,
@@ -88,7 +109,22 @@ class _ProfileViewState extends State<ProfileView> {
     if (!mounted || selected == null) {
       return;
     }
+    final impact = computeDialysisDaysChangeImpact(
+      oldDays: oldDays,
+      newDays: selected,
+      schedule: journal.schedule,
+    );
+    final ok = await confirmDialysisDaysScheduleChange(
+      context,
+      impact: impact,
+    );
+    if (!mounted || !ok) {
+      return;
+    }
     final saved = await viewModel.updateDialysisDaysOfWeek(selected);
+    if (saved) {
+      await journal.applyDialysisDaysChange(selected);
+    }
     _showSaveFeedback(saved, viewModel);
   }
 

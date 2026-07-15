@@ -1,8 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
-import 'package:app/ui/features/home/widgets/blood_glucose_card.dart';
-import 'package:app/ui/features/home/widgets/blood_pressure_card.dart';
 import 'package:app/ui/features/home/widgets/blood_pressure_widget.dart';
+import 'package:app/ui/features/home/widgets/home_day_medications_section.dart';
 import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
 import 'package:app/ui/features/home/widgets/home_week_strip.dart';
@@ -84,6 +83,9 @@ class _HomeViewState extends State<HomeView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        const HomeDayMedicationsSection(),
+                        if (viewModel.isSelectedDateDialysisDay)
+                          const SizedBox(height: AppTheme.spacingSm),
                         // Water intake: 2×2 (half-width), above weight gain
                         Align(
                           alignment: Alignment.centerLeft,

@@ -48,7 +48,7 @@ class BloodGlucoseRecentCard extends StatelessWidget {
                 : AppTheme.muted;
 
     return Material(
-      color: AppTheme.background,
+      color: AppTheme.cardSurface,
       borderRadius: BorderRadius.circular(AppTheme.cardCornerRadius),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

@@ -16,12 +16,13 @@ class NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
 }
 
 class AppTheme {
-  static const Color background = Colors.white;
+  /// Global page / scaffold background.
+  static const Color background = Color(0xFFFFFFFF);
   static const Color ink = Colors.black;
   static const Color surfaceMuted = Color(0xFFF9FAFB);
-  /// Warm cream used as background for the Blood Pressure view.
-  static const Color bpBackground = Color(0xFFF5F1EB);
-  /// Soft fill for home summary cards (modern rounded tiles).
+  /// Alias for [background]; prefer [background] for new code.
+  static const Color bpBackground = background;
+  /// Soft white fill for cards, sheets, and selected controls.
   static const Color cardSurface = Color(0xFFFFFFFF);
   static const Color muted = Color(0xFF6B7280);
   static const Color logBloodPressure = Color(0xFFE57373);
@@ -39,7 +40,7 @@ class AppTheme {
     bool elevated = true,
   }) {
     return BoxDecoration(
-      color: color ?? background,
+      color: color ?? cardSurface,
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(color: cardBorder),
       boxShadow: elevated
@@ -110,12 +111,12 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: bpBackground,
+      scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.light(
         surface: background,
         onSurface: ink,
         primary: ink,
-        onPrimary: background,
+        onPrimary: cardSurface,
         error: Colors.red,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -168,11 +169,15 @@ class AppTheme {
           ),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: background,
         foregroundColor: ink,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
+        shape: Border(
+          bottom: BorderSide(color: cardBorder, width: 1),
+        ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: ink,

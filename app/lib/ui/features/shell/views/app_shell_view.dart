@@ -196,7 +196,7 @@ class _NavCircleButton extends StatelessWidget {
           height: _size,
           child: Icon(
             selected ? selectedIcon : unselectedIcon,
-            color: selected ? AppTheme.background : _fill,
+            color: selected ? AppTheme.cardSurface : _fill,
             size: 30,
           ),
         ),

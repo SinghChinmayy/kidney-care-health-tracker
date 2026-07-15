@@ -22,7 +22,7 @@ Future<String?> showProfileOptionPickerSheet(
     context: context,
     isScrollControlled: true,
     sheetAnimationStyle: AnimationStyle.noAnimation,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -104,7 +104,7 @@ Future<double?> showProfileHeightPickerSheet(
     context: context,
     isScrollControlled: true,
     sheetAnimationStyle: AnimationStyle.noAnimation,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -151,7 +151,7 @@ Future<ProfileNameEditResult?> showProfileNamePickerSheet(
     context: context,
     isScrollControlled: true,
     sheetAnimationStyle: AnimationStyle.noAnimation,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -408,7 +408,7 @@ Future<int?> showProfileWaterGoalPickerSheet(
     context: context,
     isScrollControlled: true,
     sheetAnimationStyle: AnimationStyle.noAnimation,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -506,7 +506,7 @@ Future<List<int>?> showProfileDialysisDaysPickerSheet(
     context: context,
     isScrollControlled: true,
     sheetAnimationStyle: AnimationStyle.noAnimation,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),

@@ -37,7 +37,7 @@ Future<void> showFluidIntakeEditSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -176,7 +176,7 @@ class _FluidIntakeEditSheetState extends State<_FluidIntakeEditSheet> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppTheme.background,
+                        color: AppTheme.cardSurface,
                       ),
                     )
                   : const Text(

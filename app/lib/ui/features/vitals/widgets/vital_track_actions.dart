@@ -28,7 +28,7 @@ class VitalTrackActions extends StatelessWidget {
             onPressed: isSaving ? null : onSave,
             style: ElevatedButton.styleFrom(
               backgroundColor: saveColor,
-              foregroundColor: AppTheme.background,
+              foregroundColor: AppTheme.cardSurface,
               disabledBackgroundColor: saveColor.withValues(alpha: 0.5),
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
@@ -41,7 +41,7 @@ class VitalTrackActions extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppTheme.background,
+                      color: AppTheme.cardSurface,
                     ),
                   )
                 : Text(

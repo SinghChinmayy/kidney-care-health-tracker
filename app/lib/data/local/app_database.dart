@@ -1,8 +1,10 @@
 import 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
+import 'package:app/data/local/converters/medication_schedule_converter.dart';
 import 'package:app/data/local/daos/blood_glucose_dao.dart';
 import 'package:app/data/local/daos/blood_pressure_dao.dart';
 import 'package:app/data/local/daos/fluid_intake_dao.dart';
 import 'package:app/data/local/daos/medications_dao.dart';
+import 'package:app/data/local/daos/patient_medication_schedule_dao.dart';
 import 'package:app/data/local/daos/patient_preferences_dao.dart';
 import 'package:app/data/local/daos/patients_dao.dart';
 import 'package:app/data/local/daos/sync_state_dao.dart';
@@ -11,6 +13,7 @@ import 'package:app/data/local/tables/blood_glucose_readings.dart';
 import 'package:app/data/local/tables/blood_pressure_readings.dart';
 import 'package:app/data/local/tables/fluid_intake_logs.dart';
 import 'package:app/data/local/tables/medications.dart';
+import 'package:app/data/local/tables/patient_medication_schedules.dart';
 import 'package:app/data/local/tables/patient_preferences.dart';
 import 'package:app/data/local/tables/patients.dart';
 import 'package:app/data/local/tables/sync_state.dart';
@@ -19,10 +22,12 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 export 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
+export 'package:app/data/local/converters/medication_schedule_converter.dart';
 export 'package:app/data/local/daos/blood_glucose_dao.dart';
 export 'package:app/data/local/daos/blood_pressure_dao.dart';
 export 'package:app/data/local/daos/fluid_intake_dao.dart';
 export 'package:app/data/local/daos/medications_dao.dart';
+export 'package:app/data/local/daos/patient_medication_schedule_dao.dart';
 export 'package:app/data/local/daos/patient_preferences_dao.dart';
 export 'package:app/data/local/daos/patients_dao.dart';
 export 'package:app/data/local/daos/sync_state_dao.dart';
@@ -39,6 +44,7 @@ part 'app_database.g.dart';
     WeightReadings,
     FluidIntakeLogs,
     Medications,
+    PatientMedicationSchedules,
     SyncState,
   ],
   daos: [
@@ -49,6 +55,7 @@ part 'app_database.g.dart';
     WeightDao,
     FluidIntakeDao,
     MedicationsDao,
+    PatientMedicationScheduleDao,
     SyncStateDao,
   ],
 )
@@ -58,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -92,6 +99,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 6) {
             await migrator.createTable(medications);
           }
+          if (from < 7) {
+            await migrator.createTable(patientMedicationSchedules);
+          }
         },
       );
 
@@ -106,6 +116,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(weightReadings).go();
       await delete(fluidIntakeLogs).go();
       await delete(medications).go();
+      await delete(patientMedicationSchedules).go();
       await delete(patientPrefs).go();
       await delete(patients).go();
       await delete(syncState).go();
@@ -127,6 +138,10 @@ class AppDatabase extends _$AppDatabase {
       await weightDao.reassignPatientId(oldPatientId, newPatientId);
       await fluidIntakeDao.reassignPatientId(oldPatientId, newPatientId);
       await patientPreferencesDao.reassignPatientId(
+        oldPatientId,
+        newPatientId,
+      );
+      await patientMedicationScheduleDao.reassignPatientId(
         oldPatientId,
         newPatientId,
       );

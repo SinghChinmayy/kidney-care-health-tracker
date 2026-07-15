@@ -39,7 +39,7 @@ class WeightGainCard extends StatelessWidget {
     final showUnit = gain != null;
 
     return DecoratedBox(
-      decoration: AppTheme.homeCardDecoration(color: AppTheme.background),
+      decoration: AppTheme.homeCardDecoration(color: AppTheme.cardSurface),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(_radius),
@@ -213,7 +213,7 @@ class _WeightGainChartHelpButton extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       sheetAnimationStyle: AnimationStyle.noAnimation,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.sheetTopRadius,
       ),

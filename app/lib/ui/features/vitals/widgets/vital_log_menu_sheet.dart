@@ -12,7 +12,7 @@ enum VitalLogType {
 Future<VitalLogType?> showVitalLogMenuSheet(BuildContext context) {
   return showModalBottomSheet<VitalLogType>(
     context: context,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),

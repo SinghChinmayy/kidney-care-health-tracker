@@ -71,7 +71,7 @@ class BloodPressureCard extends StatelessWidget {
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: AppTheme.ink.withValues(alpha: 0.06)),
         boxShadow: [

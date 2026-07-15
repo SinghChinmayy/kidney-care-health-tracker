@@ -37,7 +37,7 @@ Future<void> showWeightEditSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.background,
+    backgroundColor: AppTheme.cardSurface,
     shape: const RoundedRectangleBorder(
       borderRadius: AppTheme.sheetTopRadius,
     ),
@@ -197,7 +197,7 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppTheme.background,
+                        color: AppTheme.cardSurface,
                       ),
                     )
                   : const Text(

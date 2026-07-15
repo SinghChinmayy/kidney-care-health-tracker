@@ -1,5 +1,4 @@
 import 'package:app/data/local/app_database.dart';
-import 'package:app/data/local/converters/dialysis_days_of_week_converter.dart';
 import 'package:app/data/sync/sync_utils.dart';
 import 'package:app/domain/models/weight_reading_options.dart';
 
@@ -189,6 +188,33 @@ PatientPreferencesRow patientPreferencesRowFromRemoteJson(
     weightUnit: json['weight_unit'] as String? ?? 'kg',
     bloodGlucoseUnit: json['blood_glucose_unit'] as String? ?? 'mg_dl',
     dailyWaterGoalMl: parseRemoteInt(json['daily_water_goal_ml']) ?? 1200,
+    createdAt: parseRemoteDateTime(json['created_at']),
+    updatedAt: parseRemoteDateTime(json['updated_at']),
+    deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
+    isDirty: false,
+  );
+}
+
+Map<String, dynamic> patientMedicationScheduleRowToRemoteJson(
+  PatientMedicationScheduleRow row,
+) {
+  return {
+    'id': row.id,
+    'patient_id': row.patientId,
+    'schedule': medicationScheduleToJson(row.schedule),
+    'created_at': remoteIsoDateTime(row.createdAt),
+    'updated_at': remoteIsoDateTime(row.updatedAt),
+    'deleted_at': remoteIsoDateTime(row.deletedAt),
+  };
+}
+
+PatientMedicationScheduleRow patientMedicationScheduleRowFromRemoteJson(
+  Map<String, dynamic> json,
+) {
+  return PatientMedicationScheduleRow(
+    id: json['id'] as String,
+    patientId: json['patient_id'] as String,
+    schedule: parseMedicationSchedule(json['schedule']),
     createdAt: parseRemoteDateTime(json['created_at']),
     updatedAt: parseRemoteDateTime(json['updated_at']),
     deletedAt: parseRemoteDateTimeOrNull(json['deleted_at']),
