@@ -118,7 +118,7 @@ Implemented at `app/lib/ui/features/auth/views/login_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI only (sample) | No Supabase auth wiring yet — "Forgot password?" shows a placeholder snackbar. "Sign In" navigates to Home; "Sign up" navigates to Onboarding. Wire to real auth in a later pass. |
+| Scope | Email/password auth is wired | Supabase Auth drives the session and `AuthGate`; failed sign-in is surfaced through the view model. Password reset, Google sign-in, and guest login still show placeholder snackbars. |
 | Auth method | Email + Password | Phone/OTP not built for this sample. |
 | Layout | Centered, single-column form, no card/border, generous whitespace | Uses `AppFormLayout` + global spacing scale (Section 2.3); constrained to `formMaxWidth: 400` and vertically/horizontally scrollable. |
 | Branding | Icon (`Icons.health_and_safety_outlined`) + "Kidney Care" headline + one-line tagline | Icon is a placeholder for a real logo (see Section 2.4). |
@@ -131,7 +131,7 @@ Implemented at `app/lib/ui/features/onboarding/views/onboarding_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI only | Two signup paths; no backend wiring. |
+| Scope | Two signup paths | Patient signup is wired to Supabase Auth plus the local-first patient/profile repositories. Caretaker signup remains a UI placeholder because patient linking is not implemented. |
 | Layout | Full-width page padding (`spacingMd`), headline + subtitle, stacked option cards | Uses `AppOptionCard` with 32px icons for signup choices. |
 | Options | Patient signup, Caretaker signup | Each card navigates to its respective signup form. |
 
@@ -141,7 +141,7 @@ Implemented at `app/lib/ui/features/onboarding/views/patient_signup_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI only | Fields mirror `patients` table from s1.1 schema; submit navigates to Home (mock). |
+| Scope | Supabase Auth + patient profile onboarding | Sign-up creates an Auth user, waits for the bootstrapped patient row during initial sync, then writes profile and preferences locally for later sync. |
 | Layout | `AppFormLayout`, scrollable single column | Same max-width constraint as login. |
 | Fields | First name, last name, date of birth, sex (dropdown), CKD stage (dropdown), height (cm, optional), email, password | Required fields validated on submit. |
 
@@ -151,7 +151,7 @@ Implemented at `app/lib/ui/features/onboarding/views/caretaker_signup_view.dart`
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI only | Patient linking deferred; submit navigates to Home (mock). |
+| Scope | UI placeholder | Patient linking and caretaker authorization are deferred; this path does not create a working caretaker access relationship. |
 | Fields | Full name, email, password, patient invite code (optional) | Invite code is a UI placeholder for a later linking flow. |
 
 ### 3.5 Home Screen
@@ -160,7 +160,7 @@ Implemented at `app/lib/ui/features/home/views/home_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI with mock vitals data | Pull-to-refresh reloads latest readings from in-memory repository. |
+| Scope | Local-first data backed by Drift | Pull-to-refresh reloads the current patient's local readings; repositories schedule foreground Supabase sync after writes. |
 | Layout | App bar with sign-out action, headline, three vital summary cards, "View all vitals" secondary button | Summary cards reuse `AppOptionCard`; latest value shown as card description. |
 | Navigation | Tap card → vital detail page; "View all vitals" → vitals hub; sign out → login | Returning from a vital page refreshes home summaries. |
 
@@ -170,10 +170,10 @@ Implemented at `app/lib/ui/features/shell/views/app_shell_view.dart`.
 
 | Element | Decision | Notes |
 |---|---|---|
-| Tabs | Home, center Log (+), Notifications, Profile | Journal tab removed; Home is the primary surface. |
-| Home button | Large 56px circle on left (same size as Log) | Filled when selected; soft fill when not. |
+| Tabs | Home, Journal, center Log (+), Profile | Log is an action; Home, Journal, and Profile are the indexed surfaces. |
+| Home button | Circular home button | Filled when selected; soft fill when not. |
 | Log | Center FAB-style + opens vital log menu | Unchanged. |
-| IndexedStack | Home (0), Profile (1) | Notifications is sheet-only for now. |
+| IndexedStack | Home (0), Journal (1), Profile (2) | Journal includes patient settings and medication scheduling. |
 
 ### 3.7 Vital Detail Pages (Blood Pressure, Glucose, Weight)
 
@@ -184,7 +184,7 @@ Implemented at:
 
 | Element | Decision | Notes |
 |---|---|---|
-| Scope | Static UI with in-memory mock data | New readings persist for the session only (no Supabase/local DB yet). |
+| Scope | Local-first persistent data | New readings persist in Drift/SQLite, are soft-deleted, and are registered for Supabase push/pull synchronization. |
 | Layout | App bar + FAB + list of `AppReadingCard` items, or `AppEmptyState` | List separated by `spacingSm`. |
 | Add reading | Bottom sheet form opened by FAB | BP: systolic/diastolic and/or heart rate (at least one required). Glucose: mg/dL + optional context. Weight: kg. All support optional notes. |
 | Units | BP in mmHg/bpm, glucose in mg/dL, weight in kg | Matches s1.1 schema canonical units. |
@@ -196,7 +196,7 @@ Implemented at:
 - Dark mode — explicitly out of scope for now; revisit later.
 - Accessibility targets (contrast ratios, text scaling, screen reader support) — important given the patient audience; not yet discussed.
 - Real branding/logo assets — login screen currently uses a placeholder Material icon.
-- Real auth wiring (Supabase email/password) for login and signup — currently static/sample only.
+- Password reset, Google sign-in, and guest login — buttons exist but are placeholders.
 - Caretaker–patient linking flow — UI placeholder only on caretaker signup.
 
 ## 5. Change Log
