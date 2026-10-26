@@ -52,6 +52,11 @@ This is not presented as a production medical system or as evidence of productio
 
 ## Architecture and data flow
 
+![Offline-first architecture: the UI calls repositories that read and write the local drift SQLite database immediately; the SyncEngine watches dirty rows, pushes to Supabase Postgres, pulls remote changes, and writes merges back into drift.](docs/img/architecture.svg)
+
+<details>
+<summary>Text version, with the sync details</summary>
+
 ```text
 Flutter UI
   -> ChangeNotifier view models
@@ -64,7 +69,11 @@ Flutter UI
        -> RLS scopes rows through auth.uid() and patients.auth_user_id
 ```
 
+</details>
+
 Writes are local-first. A repository writes through a Drift DAO, marks the row dirty, and schedules a debounced sync. The engine pushes dirty rows, then pulls rows newer than each table's cursor. Same-ID conflicts use `updated_at` last-write-wins; the database trigger makes the server timestamp authoritative. The first signed-in device is held behind an initial sync gate until local patient data exists or the user is shown an offline/error state.
+
+![Write path: Flutter UI, ChangeNotifier view models, repositories, then Drift over SQLite. After each local write, onDriftWrite goes to the SyncCoordinator and SyncEngine, which syncs with Supabase Postgres and writes results back into Drift.](docs/img/write-path.svg)
 
 More detail is in [Architecture](docs/architecture.md) and [Database and sync](docs/database-and-sync.md).
 

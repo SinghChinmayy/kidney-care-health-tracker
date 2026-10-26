@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="Write path: Flutter UI to ChangeNotifier view models to repositories to Drift over SQLite. After each local write, repositories call onDriftWrite, which goes to the SyncCoordinator, then the SyncEngine, which syncs with Supabase Postgres and writes results back into Drift.">
+  <defs>
+    <filter id="w" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="47"/>
+      <feDisplacementMap in="SourceGraphic" scale="2.2"/>
+    </filter>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2b2b2b"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#e5484d"/></marker>
+    <style>
+      text{font-family:'Comic Neue','Chalkboard SE','Comic Sans MS','Marker Felt',cursive;fill:#2b2b2b}
+      .mono{font-family:'SF Mono',Menlo,Consolas,monospace}
+      .s{stroke:#2b2b2b;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+  <rect width="800" height="400" rx="18" fill="#fffdf7"/>
+  <g filter="url(#w)">
+    <rect x="30" y="24" width="230" height="54" rx="10" style="fill:#dbe7ff" class="s" stroke="#276ef1"/>
+    <rect x="30" y="112" width="230" height="54" rx="10" style="fill:#dbe7ff" class="s" stroke="#276ef1"/>
+    <rect x="30" y="200" width="230" height="54" rx="10" style="fill:#eef1f5" class="s" stroke="#8a94a3"/>
+    <rect x="540" y="200" width="230" height="54" rx="10" style="fill:#fff1c7" class="s" stroke="#c99a1e"/>
+    <path d="M145 82 L145 108" class="s" marker-end="url(#a)"/>
+    <path d="M145 170 L145 196" class="s" marker-end="url(#a)"/>
+    <path d="M264 227 L536 227" class="s" marker-end="url(#a)"/>
+    <rect x="190" y="316" width="170" height="54" rx="10" style="fill:#ebe3fd" class="s" stroke="#7c5cd6"/>
+    <rect x="400" y="316" width="160" height="54" rx="10" style="fill:#ebe3fd" class="s" stroke="#7c5cd6"/>
+    <rect x="600" y="316" width="170" height="54" rx="10" style="fill:#d3f3e1" class="s" stroke="#30a46c"/>
+    <path d="M110 258 L110 343 L186 343" class="s" marker-end="url(#a)"/>
+    <path d="M364 343 L396 343" class="s" marker-end="url(#a)"/>
+    <path d="M564 343 L596 343" class="s" marker-end="url(#a)"/>
+    <path d="M480 312 L600 258" class="s" marker-end="url(#a)"/>
+  </g>
+  <text x="145.0" y="56.6" font-size="16" text-anchor="middle">Flutter UI</text>
+  <text x="145.0" y="144.2" font-size="15" text-anchor="middle">ChangeNotifier ViewModels</text>
+  <text x="145.0" y="222.5" font-size="15" text-anchor="middle" font-weight="700">Repositories</text>
+  <text x="145.0" y="242.0" font-size="13" text-anchor="middle" style="fill:#5b6573">no Supabase imports</text>
+  <text x="655.0" y="222.5" font-size="15" text-anchor="middle" font-weight="700">Drift / SQLite</text>
+  <text x="655.0" y="242.0" font-size="13" text-anchor="middle" style="fill:#5b6573">the write path</text>
+  <text x="400" y="218" font-size="13" text-anchor="middle" style="fill:#5b6573">local write succeeds = action succeeds</text>
+  <text x="275.0" y="348.2" font-size="15" text-anchor="middle">SyncCoordinator</text>
+  <text x="480.0" y="348.2" font-size="15" text-anchor="middle">SyncEngine</text>
+  <text x="685.0" y="338.5" font-size="15" text-anchor="middle" font-weight="700">Supabase</text>
+  <text x="685.0" y="358.0" font-size="13" text-anchor="middle" style="fill:#5b6573">Postgres</text>
+  <text x="64" y="300" font-size="13" text-anchor="middle" style="fill:#5b6573">onDriftWrite</text>
+  <text x="500" y="278" font-size="13" text-anchor="middle" style="fill:#5b6573">writes back</text>
+  <text x="655" y="120" font-size="13" text-anchor="middle" style="fill:#5b6573">network only changes</text>
+  <text x="655" y="138" font-size="13" text-anchor="middle" style="fill:#5b6573">WHEN the server catches up,</text>
+  <text x="655" y="156" font-size="13" text-anchor="middle" style="fill:#5b6573">not WHETHER a reading saves</text>
+</svg>

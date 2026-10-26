@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-label="Offline-first architecture. The UI ViewModels call repositories, which read and write the local drift SQLite database immediately. Separately, the SyncEngine watches dirty rows in drift, pushes them to Supabase Postgres, pulls remote changes, and writes the reconciled result back into drift. The UI never imports Supabase.">
+  <defs>
+    <filter id="w" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="43"/>
+      <feDisplacementMap in="SourceGraphic" scale="2.2"/>
+    </filter>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2b2b2b"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#e5484d"/></marker>
+    <style>
+      text{font-family:'Comic Neue','Chalkboard SE','Comic Sans MS','Marker Felt',cursive;fill:#2b2b2b}
+      .mono{font-family:'SF Mono',Menlo,Consolas,monospace}
+      .s{stroke:#2b2b2b;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+  <rect width="800" height="300" rx="18" fill="#fffdf7"/>
+  <g filter="url(#w)">
+    <rect x="30" y="50" width="200" height="66" rx="10" style="fill:#dbe7ff" class="s" stroke="#276ef1"/>
+    <rect x="300" y="50" width="200" height="66" rx="10" style="fill:#eef1f5" class="s" stroke="#8a94a3"/>
+    <rect x="570" y="50" width="200" height="66" rx="10" style="fill:#fff1c7" class="s" stroke="#c99a1e"/>
+    <rect x="570" y="200" width="200" height="66" rx="10" style="fill:#d3f3e1" class="s" stroke="#30a46c"/>
+    <rect x="300" y="200" width="200" height="66" rx="10" style="fill:#ebe3fd" class="s" stroke="#7c5cd6"/>
+    <path d="M234 83 L296 83" class="s" marker-end="url(#a)"/>
+    <path d="M504 83 L566 83" class="s" marker-end="url(#a)"/>
+    <path d="M440 196 L600 120" class="s" marker-end="url(#a)"/>
+    <path d="M504 222 L566 222" class="s" marker-end="url(#a)"/>
+    <path d="M566 246 L504 246" class="s" marker-end="url(#a)"/>
+    <path d="M236 233 L296 233" class="s" stroke-dasharray="7 6" marker-end="url(#a)"/>
+  </g>
+  <text x="130.0" y="78.5" font-size="15" text-anchor="middle" font-weight="700">UI (ViewModels)</text>
+  <text x="130.0" y="98.0" font-size="13" text-anchor="middle" style="fill:#5b6573">never imports supabase</text>
+  <text x="400.0" y="78.5" font-size="15" text-anchor="middle" font-weight="700">Repositories</text>
+  <text x="400.0" y="98.0" font-size="13" text-anchor="middle" style="fill:#5b6573">read + write locally</text>
+  <text x="670.0" y="78.5" font-size="15" text-anchor="middle" font-weight="700">drift SQLite</text>
+  <text x="670.0" y="98.0" font-size="13" text-anchor="middle" style="fill:#5b6573">is_dirty flags, sync_state</text>
+  <text x="670.0" y="228.5" font-size="15" text-anchor="middle" font-weight="700">Supabase Postgres</text>
+  <text x="670.0" y="248.0" font-size="13" text-anchor="middle" style="fill:#5b6573">RLS, soft deletes</text>
+  <text x="400.0" y="228.5" font-size="15" text-anchor="middle" font-weight="700">SyncEngine</text>
+  <text x="400.0" y="248.0" font-size="13" text-anchor="middle" style="fill:#5b6573">push, then pull, LWW</text>
+  <text x="535" y="74" font-size="13" text-anchor="middle" style="fill:#5b6573">instant</text>
+  <text x="420" y="146" font-size="13" text-anchor="middle" style="fill:#5b6573">watch dirty rows,</text>
+  <text x="420" y="164" font-size="13" text-anchor="middle" style="fill:#5b6573">write merges back</text>
+  <text x="535" y="214" font-size="13" text-anchor="middle" style="fill:#5b6573">push</text>
+  <text x="535" y="264" font-size="13" text-anchor="middle" style="fill:#5b6573">pull</text>
+  <text x="130" y="228" font-size="13" text-anchor="middle" style="fill:#5b6573">runs on startup, resume,</text>
+  <text x="130" y="246" font-size="13" text-anchor="middle" style="fill:#5b6573">and after each write</text>
+</svg>
