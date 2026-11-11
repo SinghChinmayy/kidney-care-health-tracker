@@ -1,0 +1,41 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / s2 / s2.3 (patient_access + multi-patient RLS)
+// Generated: 2026-11-12
+// Engine: Postgres (Supabase)
+
+Enum patient_access_role {
+  owner
+  caregiver
+  viewer
+}
+
+Table patients {
+  id uuid [pk]
+  auth_user_id uuid [unique, null, note: 'was NOT NULL; self patient only; immutable from clients']
+}
+
+Table patient_access {
+  id uuid [pk, default: `gen_random_uuid()`]
+  patient_id uuid [not null, ref: > patients.id, note: 'on delete cascade']
+  user_id uuid [not null, note: 'auth.users(id) on delete cascade']
+  role patient_access_role [not null]
+  granted_by uuid [null, note: 'auth.users(id) on delete set null']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (patient_id, user_id) [unique]
+    user_id [name: 'idx_patient_access_user']
+  }
+}
+
+// private.patient_role_rank(role) -> 3/2/1
+// private.has_patient_access(patient_id, min_role) -> boolean  SECURITY DEFINER, search_path = ''
+// private.bootstrap_patient_on_signup(): self patient + owner access row
+// private.guard_patient_update(): auth_user_id immutable; deleted_at owner-only
+// public.create_patient(p_first_name, p_last_name, p_id, p_date_of_birth, p_sex, p_blood_group) -> patients
+//
+// RLS (all app tables):
+//   patients:   select viewer+, update caregiver+, no insert/delete (privileges revoked)
+//   children:   select viewer+, insert/update/delete caregiver+
+//   patient_access: select own row or owner; NO write privileges
