@@ -35,6 +35,10 @@ Future<void> showBloodGlucoseEditSheet(
   required BloodGlucoseReading reading,
   required BloodGlucoseViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

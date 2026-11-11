@@ -17,6 +17,12 @@ class BloodPressureViewModel extends ChangeNotifier {
 
   /// Signed-in user, for "logged by you" attribution.
   String? get currentUserId => _vitalsRepository.currentUserId;
+
+  bool _canWrite = true;
+
+  /// False when the signed-in user only has viewer access to the active
+  /// patient; log/edit sheets are not offered then.
+  bool get canWrite => _canWrite;
   List<BloodPressureReading> _readings = [];
   BloodPressurePeriod _selectedPeriod = BloodPressurePeriod.last7Days;
   DateTime _selectedMonthStart;
@@ -347,6 +353,7 @@ class BloodPressureViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _canWrite = await _vitalsRepository.canWriteCurrentPatient();
     _readings = await _vitalsRepository.getBloodPressureReadings();
     notifyListeners();
   }

@@ -35,6 +35,10 @@ Future<void> showFluidIntakeEditSheet(
   required FluidIntakeLog log,
   required FluidIntakeViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

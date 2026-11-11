@@ -5,7 +5,6 @@ import 'package:app/domain/models/weight_reading_options.dart';
 Map<String, dynamic> patientRowToRemoteJson(PatientRow row) {
   return {
     'id': row.id,
-    'auth_user_id': row.authUserId,
     'first_name': row.firstName,
     'last_name': row.lastName,
     'date_of_birth': remoteIsoDate(row.dateOfBirth),
@@ -24,7 +23,7 @@ Map<String, dynamic> patientRowToRemoteJson(PatientRow row) {
 PatientRow patientRowFromRemoteJson(Map<String, dynamic> json) {
   return PatientRow(
     id: json['id'] as String,
-    authUserId: json['auth_user_id'] as String,
+    authUserId: json['auth_user_id'] as String?,
     firstName: json['first_name'] as String?,
     lastName: json['last_name'] as String?,
     dateOfBirth: parseRemoteDateOrNull(json['date_of_birth']),

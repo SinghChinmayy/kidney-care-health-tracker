@@ -1,3 +1,4 @@
+import 'package:app/data/repositories/active_patient_notifier.dart';
 import 'package:app/data/sync/sync_coordinator.dart';
 import 'package:app/data/sync/sync_status.dart';
 import 'package:app/theme/app_theme.dart';
@@ -5,8 +6,15 @@ import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/home/views/home_view.dart';
 import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/journal/views/journal_view.dart';
+import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
+import 'package:app/ui/features/patients/widgets/active_patient_bar.dart';
+import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/views/profile_view.dart';
 import 'package:app/ui/features/sync/widgets/sync_status_banner.dart';
+import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
+import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
+import 'package:app/ui/features/vitals/view_models/fluid_intake_view_model.dart';
+import 'package:app/ui/features/vitals/view_models/weight_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +30,36 @@ class AppShellView extends StatefulWidget {
 class _AppShellViewState extends State<AppShellView> {
   /// 0 = Home, 1 = Journal, 2 = Profile
   int _selectedIndex = 0;
+  ActivePatientNotifier? _activePatient;
+
+  @override
+  void initState() {
+    super.initState();
+    _activePatient = context.read<ActivePatientNotifier>()
+      ..addListener(_onActivePatientChanged);
+    // View models outlive sign-in; load the signed-in user's patients.
+    context.read<PatientsViewModel>().refresh();
+  }
+
+  @override
+  void dispose() {
+    _activePatient?.removeListener(_onActivePatientChanged);
+    super.dispose();
+  }
+
+  /// Switching patient (or gaining/losing access) re-scopes every screen.
+  void _onActivePatientChanged() {
+    if (!mounted) {
+      return;
+    }
+    context.read<HomeViewModel>().refresh();
+    context.read<JournalViewModel>().refresh();
+    context.read<ProfileViewModel>().refresh();
+    context.read<BloodPressureViewModel>().refresh();
+    context.read<BloodGlucoseViewModel>().refresh();
+    context.read<WeightViewModel>().refresh();
+    context.read<FluidIntakeViewModel>().refresh();
+  }
 
   void _openProfile() {
     setState(() => _selectedIndex = 2);
@@ -54,6 +92,7 @@ class _AppShellViewState extends State<AppShellView> {
   @override
   Widget build(BuildContext context) {
     final coordinator = context.read<SyncCoordinator>();
+    final isViewingOther = context.watch<PatientsViewModel>().isViewingOther;
     final tabs = IndexedStack(
       index: _selectedIndex,
       children: [
@@ -71,11 +110,12 @@ class _AppShellViewState extends State<AppShellView> {
           return Column(
             children: [
               SyncStatusBanner(coordinator: coordinator),
+              ActivePatientBar(removeTopInset: status.needsAttention),
               Expanded(
-                // The banner already consumed the top inset.
+                // A banner/bar above already consumed the top inset.
                 child: MediaQuery.removePadding(
                   context: context,
-                  removeTop: status.needsAttention,
+                  removeTop: status.needsAttention || isViewingOther,
                   child: tabs,
                 ),
               ),

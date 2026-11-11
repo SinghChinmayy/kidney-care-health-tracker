@@ -3,7 +3,7 @@ const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 class Patient {
   const Patient({
     required this.id,
-    required this.authUserId,
+    this.authUserId,
     this.firstName,
     this.lastName,
     this.dateOfBirth,
@@ -19,7 +19,7 @@ class Patient {
   });
 
   final String id;
-  final String authUserId;
+  final String? authUserId;
   final String? firstName;
   final String? lastName;
   final DateTime? dateOfBirth;

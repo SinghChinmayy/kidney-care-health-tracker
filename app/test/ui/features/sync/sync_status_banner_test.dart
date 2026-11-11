@@ -92,10 +92,10 @@ class _FlakyTable implements SyncableTable {
   String get remoteTableName => 'flaky';
 
   @override
-  Future<void> push(SupabaseClient supabase) async {}
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {}
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
     pulls++;
     if (fail) {
       throw StateError('boom');

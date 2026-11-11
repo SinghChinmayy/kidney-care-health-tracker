@@ -114,7 +114,9 @@ grant usage on schema private to authenticated;
 grant execute on function private.patient_role_rank(text) to authenticated;
 grant execute on function private.has_patient_access(uuid, text) to authenticated;
 
--- Bootstrap: self patient + owner access row at signup.
+-- Bootstrap: self patient + owner access row at signup. OAuth sign-ups
+-- (Google) also prefill the name from the provider profile; email/password
+-- sign-ups have no such metadata and keep NULL names as before.
 create or replace function private.bootstrap_patient_on_signup()
 returns trigger
 language plpgsql
@@ -123,9 +125,25 @@ set search_path = ''
 as $$
 declare
   v_patient_id uuid := gen_random_uuid();
+  v_meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  v_full_name text := nullif(btrim(coalesce(
+    v_meta ->> 'full_name',
+    v_meta ->> 'name',
+    ''
+  )), '');
+  v_first text := nullif(btrim(coalesce(v_meta ->> 'given_name', '')), '');
+  v_last text := nullif(btrim(coalesce(v_meta ->> 'family_name', '')), '');
 begin
-  insert into public.patients (id, auth_user_id)
-  values (v_patient_id, new.id);
+  if v_first is null and v_full_name is not null then
+    v_first := split_part(v_full_name, ' ', 1);
+    v_last := coalesce(
+      v_last,
+      nullif(btrim(substr(v_full_name, length(v_first) + 1)), '')
+    );
+  end if;
+
+  insert into public.patients (id, auth_user_id, first_name, last_name)
+  values (v_patient_id, new.id, v_first, v_last);
 
   insert into public.patient_access (patient_id, user_id, role, granted_by)
   values (v_patient_id, new.id, 'owner', new.id);

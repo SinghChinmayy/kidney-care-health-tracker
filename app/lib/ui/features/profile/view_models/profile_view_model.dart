@@ -2,6 +2,7 @@ import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
+import 'package:app/domain/models/patient_role.dart';
 import 'package:flutter/material.dart';
 
 class ProfileViewModel extends ChangeNotifier {
@@ -17,6 +18,8 @@ class ProfileViewModel extends ChangeNotifier {
   final PatientRepository _patientRepository;
 
   Patient? _patient;
+  PatientRole? _role;
+  bool _isSelf = true;
   PatientPreferences? _preferences;
   String? _email;
   bool _isLoading = true;
@@ -25,6 +28,14 @@ class ProfileViewModel extends ChangeNotifier {
   String? _errorMessage;
 
   Patient? get patient => _patient;
+
+  /// Signed-in user's role on the active patient.
+  PatientRole? get role => _role;
+
+  /// Whether the active patient is the signed-in user's own record.
+  bool get isSelf => _isSelf;
+
+  bool get canWrite => _role?.canWrite ?? false;
   PatientPreferences? get preferences => _preferences;
   String? get email => _email;
   bool get isLoading => _isLoading;
@@ -48,10 +59,18 @@ class ProfileViewModel extends ChangeNotifier {
       return;
     }
 
-    _patient = await _patientRepository.getPatientForAuthUser(authUserId);
-    _preferences = await _patientRepository.getOrCreatePreferencesForAuthUser(
-      authUserId,
-    );
+    _patient = await _patientRepository.getActivePatient(authUserId);
+    final patientId = _patient?.id;
+    _role = patientId == null
+        ? null
+        : await _patientRepository.roleFor(patientId, authUserId);
+    _isSelf = _patient?.authUserId == authUserId;
+    _preferences = patientId == null
+        ? null
+        : await _patientRepository.getOrCreatePreferencesForPatient(
+            patientId,
+            authUserId: authUserId,
+          );
     _isLoading = false;
     notifyListeners();
   }
@@ -177,9 +196,15 @@ class ProfileViewModel extends ChangeNotifier {
 
     try {
       final updated = build(current);
-      await _patientRepository.updateProfile(updated);
+      await _patientRepository.updateProfile(
+        updated,
+        authUserId: _authRepository.currentSession?.user.id,
+      );
       _patient = updated;
       return true;
+    } on ReadOnlyPatientException {
+      _errorMessage = 'You have view-only access to this patient.';
+      return false;
     } catch (error) {
       _errorMessage = 'Could not update profile. Please try again.';
       return false;
@@ -203,9 +228,15 @@ class ProfileViewModel extends ChangeNotifier {
 
     try {
       final updated = build(current);
-      await _patientRepository.updatePreferences(updated);
+      await _patientRepository.updatePreferences(
+        updated,
+        authUserId: _authRepository.currentSession?.user.id,
+      );
       _preferences = updated;
       return true;
+    } on ReadOnlyPatientException {
+      _errorMessage = 'You have view-only access to this patient.';
+      return false;
     } catch (error) {
       _errorMessage = 'Could not update preferences. Please try again.';
       return false;

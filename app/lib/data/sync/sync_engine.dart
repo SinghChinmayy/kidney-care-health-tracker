@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:app/data/local/app_database.dart';
+import 'package:app/data/sync/patient_access_sync.dart';
 import 'package:app/data/sync/sync_status.dart';
 import 'package:app/data/sync/syncable_table.dart';
 import 'package:app/data/sync/tables/sync_tables.dart';
@@ -12,37 +13,41 @@ class SyncEngine {
     required SupabaseClient supabase,
     required String? Function() currentAuthUserId,
     List<SyncableTable>? registry,
+    PatientAccessSync? accessSync,
+    void Function()? onAccessChanged,
   })  : _db = db,
         _supabase = supabase,
+        _currentAuthUserId = currentAuthUserId,
+        _accessSync = accessSync ?? PatientAccessSync(db: db),
+        _onAccessChanged = onAccessChanged,
         registry = registry ??
             [
-              PatientsSync(db: db, currentAuthUserId: currentAuthUserId),
-              PatientPreferencesSync(
-                db: db,
-                currentAuthUserId: currentAuthUserId,
-              ),
-              BpSync(db: db, currentAuthUserId: currentAuthUserId),
-              GlucoseSync(db: db, currentAuthUserId: currentAuthUserId),
-              WeightSync(db: db, currentAuthUserId: currentAuthUserId),
-              FluidIntakeSync(db: db, currentAuthUserId: currentAuthUserId),
-              PatientMedicationScheduleSync(
-                db: db,
-                currentAuthUserId: currentAuthUserId,
-              ),
+              PatientsSync(db: db),
+              PatientPreferencesSync(db: db),
+              bloodPressureSync(db),
+              bloodGlucoseSync(db),
+              weightSync(db),
+              fluidIntakeSync(db),
+              PatientMedicationScheduleSync(db: db),
             ];
 
   final AppDatabase _db;
   final SupabaseClient _supabase;
+  final String? Function() _currentAuthUserId;
+  final PatientAccessSync _accessSync;
+  final void Function()? _onAccessChanged;
   final List<SyncableTable> registry;
 
-  /// Pushes then pulls every registered table. Failures are isolated per
-  /// table (one bad table never blocks the rest) and reported back so the
-  /// coordinator can surface them.
+  /// Refreshes access, then pushes and pulls every registered table for
+  /// every accessible patient. Failures are isolated per table (one bad
+  /// table never blocks the rest) and reported back to the coordinator.
   Future<SyncRunResult> run() async {
     final failed = <String>{};
+    final scope = await _resolveScope(failed);
+
     for (final table in registry) {
       try {
-        await table.push(_supabase);
+        await table.push(_supabase, scope);
         await _db.syncStateDao.setLastSyncedRunAt(
           table.tableKey,
           DateTime.now().toUtc(),
@@ -55,7 +60,7 @@ class SyncEngine {
 
     for (final table in registry) {
       try {
-        await table.pull(_supabase);
+        await table.pull(_supabase, scope);
         await _db.syncStateDao.setLastSyncedRunAt(
           table.tableKey,
           DateTime.now().toUtc(),
@@ -67,6 +72,25 @@ class SyncEngine {
     }
 
     return SyncRunResult(failedTables: failed.toList());
+  }
+
+  Future<SyncScope> _resolveScope(Set<String> failed) async {
+    final authUserId = _currentAuthUserId();
+    if (authUserId == null) {
+      return SyncScope.empty;
+    }
+    try {
+      final result = await _accessSync.refresh(_supabase, authUserId);
+      if (result.changed) {
+        _onAccessChanged?.call();
+      }
+      return result.scope;
+    } catch (error, stackTrace) {
+      failed.add(PatientAccessSync.remoteTableName);
+      logSyncError('${PatientAccessSync.remoteTableName} refresh', error,
+          stackTrace);
+      return _accessSync.localScope(authUserId);
+    }
   }
 }
 

@@ -53,6 +53,10 @@ Future<void> showBloodPressureEditSheet(
   required BloodPressureReading reading,
   required BloodPressureViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

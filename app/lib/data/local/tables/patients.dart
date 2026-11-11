@@ -5,7 +5,9 @@ import 'package:drift/drift.dart';
 class Patients extends Table {
   TextColumn get id => text()();
 
-  TextColumn get authUserId => text().unique()();
+  /// The account this record describes (self patient). Null for patients
+  /// created for someone without an account. Not used for authorization.
+  TextColumn get authUserId => text().nullable().unique()();
 
   TextColumn get firstName => text().nullable()();
 

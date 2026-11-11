@@ -35,6 +35,10 @@ Future<void> showWeightEditSheet(
   required WeightReading reading,
   required WeightViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

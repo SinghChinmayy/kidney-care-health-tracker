@@ -86,6 +86,52 @@ void main() {
     }
   });
 
+  test('upgrade from v7 makes auth_user_id nullable without losing rows',
+      () async {
+    final db = openV7Database(
+      seedSql: '$_v7Seed'
+          "INSERT INTO sync_state (table_key, last_pulled_at) "
+          "VALUES ('blood_pressure_readings', 0);",
+    );
+    addTearDown(db.close);
+
+    final patient = await (db.select(db.patients)).getSingle();
+    expect(patient.authUserId, 'auth-1');
+    expect(await db.select(db.bloodPressureReadings).get(), hasLength(1),
+        reason: 'table rebuild must not cascade-delete children');
+    expect(await db.select(db.syncState).get(), isEmpty,
+        reason: 'old per-table cursors are dropped for per-patient ones');
+
+    await db.into(db.patients).insert(
+          PatientsCompanion.insert(
+            id: 'patient-2',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+    await db.patientAccessDao.upsertMembership(
+      patientId: 'patient-2',
+      role: 'caregiver',
+      updatedAt: DateTime.utc(2026),
+    );
+    await db.patientAccessDao.setSetting(activePatientSettingKey, 'patient-2');
+    expect(
+      (await db.patientsDao.getRowById('patient-2'))!.authUserId,
+      isNull,
+    );
+    expect(
+      await db.patientAccessDao.getSetting(activePatientSettingKey),
+      'patient-2',
+    );
+
+    await db.wipeAllData();
+    expect(await db.patientAccessDao.getMemberships(), isEmpty);
+    expect(
+      await db.patientAccessDao.getSetting(activePatientSettingKey),
+      isNull,
+    );
+  });
+
   test('fresh database reports the current schema version', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

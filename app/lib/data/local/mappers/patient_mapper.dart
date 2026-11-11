@@ -28,7 +28,7 @@ extension PatientDomainMapper on Patient {
     final now = DateTime.now().toUtc();
     return PatientsCompanion.insert(
       id: id,
-      authUserId: authUserId,
+      authUserId: Value(authUserId),
       firstName: Value(firstName),
       lastName: Value(lastName),
       dateOfBirth: Value(dateOfBirth),

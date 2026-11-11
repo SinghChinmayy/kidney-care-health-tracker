@@ -13,7 +13,7 @@ Continue with Google
   -> account.authentication.idToken              (aud = Web client id)
   -> supabase.auth.signInWithIdToken(provider: google, idToken)
   -> Supabase verifies the token, creates auth.users on first sign-in
-  -> signup trigger creates the self patient row
+  -> signup trigger creates the self patient + owner access row
   -> AuthGate sees the session -> InitialSyncGate -> app
 ```
 
@@ -88,6 +88,13 @@ If the variables are unset the CLI prints a warning and the provider stays
 enabled with an empty client ID (any Google token is rejected) — email/password
 auth is unaffected. `skip_nonce_check = false` is fine: the native Android flow
 does not put a nonce in the token.
+
+## Profile data
+
+On first Google sign-in the signup trigger copies `given_name`/`family_name`
+(or splits `full_name`/`name`) from the Google profile into the self
+patient's first/last name so the user is not left nameless. Email/password
+signups are unchanged.
 
 ## Not ported from v1
 

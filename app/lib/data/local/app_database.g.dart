@@ -25,9 +25,9 @@ class $PatientsTable extends Patients
   late final GeneratedColumn<String> authUserId = GeneratedColumn<String>(
     'auth_user_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _firstNameMeta = const VerificationMeta(
@@ -217,8 +217,6 @@ class $PatientsTable extends Patients
           _authUserIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_authUserIdMeta);
     }
     if (data.containsKey('first_name')) {
       context.handle(
@@ -318,7 +316,7 @@ class $PatientsTable extends Patients
       authUserId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}auth_user_id'],
-      )!,
+      ),
       firstName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}first_name'],
@@ -389,7 +387,10 @@ class $PatientsTable extends Patients
 
 class PatientRow extends DataClass implements Insertable<PatientRow> {
   final String id;
-  final String authUserId;
+
+  /// The account this record describes (self patient). Null for patients
+  /// created for someone without an account. Not used for authorization.
+  final String? authUserId;
   final String? firstName;
   final String? lastName;
   final DateTime? dateOfBirth;
@@ -405,7 +406,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   final bool isDirty;
   const PatientRow({
     required this.id,
-    required this.authUserId,
+    this.authUserId,
     this.firstName,
     this.lastName,
     this.dateOfBirth,
@@ -424,7 +425,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['auth_user_id'] = Variable<String>(authUserId);
+    if (!nullToAbsent || authUserId != null) {
+      map['auth_user_id'] = Variable<String>(authUserId);
+    }
     if (!nullToAbsent || firstName != null) {
       map['first_name'] = Variable<String>(firstName);
     }
@@ -464,7 +467,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   PatientsCompanion toCompanion(bool nullToAbsent) {
     return PatientsCompanion(
       id: Value(id),
-      authUserId: Value(authUserId),
+      authUserId: authUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authUserId),
       firstName: firstName == null && nullToAbsent
           ? const Value.absent()
           : Value(firstName),
@@ -504,7 +509,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PatientRow(
       id: serializer.fromJson<String>(json['id']),
-      authUserId: serializer.fromJson<String>(json['authUserId']),
+      authUserId: serializer.fromJson<String?>(json['authUserId']),
       firstName: serializer.fromJson<String?>(json['firstName']),
       lastName: serializer.fromJson<String?>(json['lastName']),
       dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
@@ -527,7 +532,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'authUserId': serializer.toJson<String>(authUserId),
+      'authUserId': serializer.toJson<String?>(authUserId),
       'firstName': serializer.toJson<String?>(firstName),
       'lastName': serializer.toJson<String?>(lastName),
       'dateOfBirth': serializer.toJson<DateTime?>(dateOfBirth),
@@ -546,7 +551,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
 
   PatientRow copyWith({
     String? id,
-    String? authUserId,
+    Value<String?> authUserId = const Value.absent(),
     Value<String?> firstName = const Value.absent(),
     Value<String?> lastName = const Value.absent(),
     Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -562,7 +567,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     bool? isDirty,
   }) => PatientRow(
     id: id ?? this.id,
-    authUserId: authUserId ?? this.authUserId,
+    authUserId: authUserId.present ? authUserId.value : this.authUserId,
     firstName: firstName.present ? firstName.value : this.firstName,
     lastName: lastName.present ? lastName.value : this.lastName,
     dateOfBirth: dateOfBirth.present ? dateOfBirth.value : this.dateOfBirth,
@@ -672,7 +677,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
 
 class PatientsCompanion extends UpdateCompanion<PatientRow> {
   final Value<String> id;
-  final Value<String> authUserId;
+  final Value<String?> authUserId;
   final Value<String?> firstName;
   final Value<String?> lastName;
   final Value<DateTime?> dateOfBirth;
@@ -707,7 +712,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
   });
   PatientsCompanion.insert({
     required String id,
-    required String authUserId,
+    this.authUserId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
     this.dateOfBirth = const Value.absent(),
@@ -723,7 +728,6 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     this.isDirty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       authUserId = Value(authUserId),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<PatientRow> custom({
@@ -767,7 +771,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
 
   PatientsCompanion copyWith({
     Value<String>? id,
-    Value<String>? authUserId,
+    Value<String?>? authUserId,
     Value<String?>? firstName,
     Value<String?>? lastName,
     Value<DateTime?>? dateOfBirth,
@@ -5447,6 +5451,494 @@ class PatientMedicationSchedulesCompanion
   }
 }
 
+class $PatientMembershipsTable extends PatientMemberships
+    with TableInfo<$PatientMembershipsTable, PatientMembershipRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PatientMembershipsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _patientIdMeta = const VerificationMeta(
+    'patientId',
+  );
+  @override
+  late final GeneratedColumn<String> patientId = GeneratedColumn<String>(
+    'patient_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [patientId, role, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'patient_memberships';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PatientMembershipRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('patient_id')) {
+      context.handle(
+        _patientIdMeta,
+        patientId.isAcceptableOrUnknown(data['patient_id']!, _patientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patientIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {patientId};
+  @override
+  PatientMembershipRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PatientMembershipRow(
+      patientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}patient_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PatientMembershipsTable createAlias(String alias) {
+    return $PatientMembershipsTable(attachedDatabase, alias);
+  }
+}
+
+class PatientMembershipRow extends DataClass
+    implements Insertable<PatientMembershipRow> {
+  final String patientId;
+
+  /// owner | caregiver | viewer
+  final String role;
+  final DateTime updatedAt;
+  const PatientMembershipRow({
+    required this.patientId,
+    required this.role,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['patient_id'] = Variable<String>(patientId);
+    map['role'] = Variable<String>(role);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PatientMembershipsCompanion toCompanion(bool nullToAbsent) {
+    return PatientMembershipsCompanion(
+      patientId: Value(patientId),
+      role: Value(role),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PatientMembershipRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PatientMembershipRow(
+      patientId: serializer.fromJson<String>(json['patientId']),
+      role: serializer.fromJson<String>(json['role']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'patientId': serializer.toJson<String>(patientId),
+      'role': serializer.toJson<String>(role),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PatientMembershipRow copyWith({
+    String? patientId,
+    String? role,
+    DateTime? updatedAt,
+  }) => PatientMembershipRow(
+    patientId: patientId ?? this.patientId,
+    role: role ?? this.role,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PatientMembershipRow copyWithCompanion(PatientMembershipsCompanion data) {
+    return PatientMembershipRow(
+      patientId: data.patientId.present ? data.patientId.value : this.patientId,
+      role: data.role.present ? data.role.value : this.role,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMembershipRow(')
+          ..write('patientId: $patientId, ')
+          ..write('role: $role, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(patientId, role, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PatientMembershipRow &&
+          other.patientId == this.patientId &&
+          other.role == this.role &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PatientMembershipsCompanion
+    extends UpdateCompanion<PatientMembershipRow> {
+  final Value<String> patientId;
+  final Value<String> role;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PatientMembershipsCompanion({
+    this.patientId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PatientMembershipsCompanion.insert({
+    required String patientId,
+    required String role,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : patientId = Value(patientId),
+       role = Value(role),
+       updatedAt = Value(updatedAt);
+  static Insertable<PatientMembershipRow> custom({
+    Expression<String>? patientId,
+    Expression<String>? role,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (patientId != null) 'patient_id': patientId,
+      if (role != null) 'role': role,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PatientMembershipsCompanion copyWith({
+    Value<String>? patientId,
+    Value<String>? role,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PatientMembershipsCompanion(
+      patientId: patientId ?? this.patientId,
+      role: role ?? this.role,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (patientId.present) {
+      map['patient_id'] = Variable<String>(patientId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMembershipsCompanion(')
+          ..write('patientId: $patientId, ')
+          ..write('role: $role, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalSettingsTable extends LocalSettings
+    with TableInfo<$LocalSettingsTable, LocalSettingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalSettingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  LocalSettingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalSettingRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      ),
+    );
+  }
+
+  @override
+  $LocalSettingsTable createAlias(String alias) {
+    return $LocalSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalSettingRow extends DataClass implements Insertable<LocalSettingRow> {
+  final String key;
+  final String? value;
+  const LocalSettingRow({required this.key, this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    if (!nullToAbsent || value != null) {
+      map['value'] = Variable<String>(value);
+    }
+    return map;
+  }
+
+  LocalSettingsCompanion toCompanion(bool nullToAbsent) {
+    return LocalSettingsCompanion(
+      key: Value(key),
+      value: value == null && nullToAbsent
+          ? const Value.absent()
+          : Value(value),
+    );
+  }
+
+  factory LocalSettingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalSettingRow(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String?>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String?>(value),
+    };
+  }
+
+  LocalSettingRow copyWith({
+    String? key,
+    Value<String?> value = const Value.absent(),
+  }) => LocalSettingRow(
+    key: key ?? this.key,
+    value: value.present ? value.value : this.value,
+  );
+  LocalSettingRow copyWithCompanion(LocalSettingsCompanion data) {
+    return LocalSettingRow(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSettingRow(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalSettingRow &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class LocalSettingsCompanion extends UpdateCompanion<LocalSettingRow> {
+  final Value<String> key;
+  final Value<String?> value;
+  final Value<int> rowid;
+  const LocalSettingsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalSettingsCompanion.insert({
+    required String key,
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : key = Value(key);
+  static Insertable<LocalSettingRow> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalSettingsCompanion copyWith({
+    Value<String>? key,
+    Value<String?>? value,
+    Value<int>? rowid,
+  }) {
+    return LocalSettingsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSettingsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncStateTable extends SyncState
     with TableInfo<$SyncStateTable, SyncStateRow> {
   @override
@@ -5751,6 +6243,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MedicationsTable medications = $MedicationsTable(this);
   late final $PatientMedicationSchedulesTable patientMedicationSchedules =
       $PatientMedicationSchedulesTable(this);
+  late final $PatientMembershipsTable patientMemberships =
+      $PatientMembershipsTable(this);
+  late final $LocalSettingsTable localSettings = $LocalSettingsTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
   late final PatientsDao patientsDao = PatientsDao(this as AppDatabase);
   late final PatientPreferencesDao patientPreferencesDao =
@@ -5770,6 +6265,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final PatientMedicationScheduleDao patientMedicationScheduleDao =
       PatientMedicationScheduleDao(this as AppDatabase);
+  late final PatientAccessDao patientAccessDao = PatientAccessDao(
+    this as AppDatabase,
+  );
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -5784,6 +6282,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fluidIntakeLogs,
     medications,
     patientMedicationSchedules,
+    patientMemberships,
+    localSettings,
     syncState,
   ];
   @override
@@ -5838,7 +6338,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$PatientsTableCreateCompanionBuilder =
     PatientsCompanion Function({
       required String id,
-      required String authUserId,
+      Value<String?> authUserId,
       Value<String?> firstName,
       Value<String?> lastName,
       Value<DateTime?> dateOfBirth,
@@ -5857,7 +6357,7 @@ typedef $$PatientsTableCreateCompanionBuilder =
 typedef $$PatientsTableUpdateCompanionBuilder =
     PatientsCompanion Function({
       Value<String> id,
-      Value<String> authUserId,
+      Value<String?> authUserId,
       Value<String?> firstName,
       Value<String?> lastName,
       Value<DateTime?> dateOfBirth,
@@ -6589,7 +7089,7 @@ class $$PatientsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String> authUserId = const Value.absent(),
+                Value<String?> authUserId = const Value.absent(),
                 Value<String?> firstName = const Value.absent(),
                 Value<String?> lastName = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -6625,7 +7125,7 @@ class $$PatientsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                required String authUserId,
+                Value<String?> authUserId = const Value.absent(),
                 Value<String?> firstName = const Value.absent(),
                 Value<String?> lastName = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -9819,6 +10319,321 @@ typedef $$PatientMedicationSchedulesTableProcessedTableManager =
       PatientMedicationScheduleRow,
       PrefetchHooks Function({bool patientId})
     >;
+typedef $$PatientMembershipsTableCreateCompanionBuilder =
+    PatientMembershipsCompanion Function({
+      required String patientId,
+      required String role,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PatientMembershipsTableUpdateCompanionBuilder =
+    PatientMembershipsCompanion Function({
+      Value<String> patientId,
+      Value<String> role,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$PatientMembershipsTableFilterComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get patientId => $composableBuilder(
+    column: $table.patientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PatientMembershipsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get patientId => $composableBuilder(
+    column: $table.patientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PatientMembershipsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get patientId =>
+      $composableBuilder(column: $table.patientId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PatientMembershipsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PatientMembershipsTable,
+          PatientMembershipRow,
+          $$PatientMembershipsTableFilterComposer,
+          $$PatientMembershipsTableOrderingComposer,
+          $$PatientMembershipsTableAnnotationComposer,
+          $$PatientMembershipsTableCreateCompanionBuilder,
+          $$PatientMembershipsTableUpdateCompanionBuilder,
+          (
+            PatientMembershipRow,
+            BaseReferences<
+              _$AppDatabase,
+              $PatientMembershipsTable,
+              PatientMembershipRow
+            >,
+          ),
+          PatientMembershipRow,
+          PrefetchHooks Function()
+        > {
+  $$PatientMembershipsTableTableManager(
+    _$AppDatabase db,
+    $PatientMembershipsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PatientMembershipsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PatientMembershipsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PatientMembershipsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> patientId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMembershipsCompanion(
+                patientId: patientId,
+                role: role,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String patientId,
+                required String role,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMembershipsCompanion.insert(
+                patientId: patientId,
+                role: role,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PatientMembershipsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PatientMembershipsTable,
+      PatientMembershipRow,
+      $$PatientMembershipsTableFilterComposer,
+      $$PatientMembershipsTableOrderingComposer,
+      $$PatientMembershipsTableAnnotationComposer,
+      $$PatientMembershipsTableCreateCompanionBuilder,
+      $$PatientMembershipsTableUpdateCompanionBuilder,
+      (
+        PatientMembershipRow,
+        BaseReferences<
+          _$AppDatabase,
+          $PatientMembershipsTable,
+          PatientMembershipRow
+        >,
+      ),
+      PatientMembershipRow,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalSettingsTableCreateCompanionBuilder =
+    LocalSettingsCompanion Function({
+      required String key,
+      Value<String?> value,
+      Value<int> rowid,
+    });
+typedef $$LocalSettingsTableUpdateCompanionBuilder =
+    LocalSettingsCompanion Function({
+      Value<String> key,
+      Value<String?> value,
+      Value<int> rowid,
+    });
+
+class $$LocalSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$LocalSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalSettingsTable,
+          LocalSettingRow,
+          $$LocalSettingsTableFilterComposer,
+          $$LocalSettingsTableOrderingComposer,
+          $$LocalSettingsTableAnnotationComposer,
+          $$LocalSettingsTableCreateCompanionBuilder,
+          $$LocalSettingsTableUpdateCompanionBuilder,
+          (
+            LocalSettingRow,
+            BaseReferences<_$AppDatabase, $LocalSettingsTable, LocalSettingRow>,
+          ),
+          LocalSettingRow,
+          PrefetchHooks Function()
+        > {
+  $$LocalSettingsTableTableManager(_$AppDatabase db, $LocalSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String?> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  LocalSettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                Value<String?> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalSettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalSettingsTable,
+      LocalSettingRow,
+      $$LocalSettingsTableFilterComposer,
+      $$LocalSettingsTableOrderingComposer,
+      $$LocalSettingsTableAnnotationComposer,
+      $$LocalSettingsTableCreateCompanionBuilder,
+      $$LocalSettingsTableUpdateCompanionBuilder,
+      (
+        LocalSettingRow,
+        BaseReferences<_$AppDatabase, $LocalSettingsTable, LocalSettingRow>,
+      ),
+      LocalSettingRow,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncStateTableCreateCompanionBuilder =
     SyncStateCompanion Function({
       required String tableKey,
@@ -10009,6 +10824,10 @@ class $AppDatabaseManager {
         _db,
         _db.patientMedicationSchedules,
       );
+  $$PatientMembershipsTableTableManager get patientMemberships =>
+      $$PatientMembershipsTableTableManager(_db, _db.patientMemberships);
+  $$LocalSettingsTableTableManager get localSettings =>
+      $$LocalSettingsTableTableManager(_db, _db.localSettings);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
 }

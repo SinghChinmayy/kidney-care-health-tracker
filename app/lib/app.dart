@@ -1,5 +1,6 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/local/database_holder.dart';
+import 'package:app/data/repositories/active_patient_notifier.dart';
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/medications_repository.dart';
 import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
@@ -7,6 +8,7 @@ import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
 import 'package:app/data/services/connectivity_service.dart';
+import 'package:app/data/services/patient_access_remote.dart';
 import 'package:app/data/sync/sync_coordinator.dart';
 import 'package:app/data/sync/sync_engine.dart';
 import 'package:app/data/sync/sync_lifecycle_observer.dart';
@@ -17,6 +19,7 @@ import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/medications/view_models/medications_view_model.dart';
 import 'package:app/ui/features/onboarding/view_models/patient_signup_view_model.dart';
+import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
@@ -36,17 +39,23 @@ class KidneyCareApp extends StatelessWidget {
         Provider.value(value: appDatabase),
         Provider(create: (_) => AuthService()),
         Provider(create: (_) => ConnectivityService()),
+        ChangeNotifierProvider(create: (_) => ActivePatientNotifier()),
+        Provider<PatientAccessRemote>(
+          create: (_) => SupabasePatientAccessRemote(),
+        ),
         ProxyProvider2<AuthService, AppDatabase, AuthRepository>(
           update: (_, authService, db, _) => AuthRepository(
             authService: authService,
             db: db,
           ),
         ),
-        ProxyProvider2<AppDatabase, AuthRepository, SyncEngine>(
-          update: (_, db, auth, _) => SyncEngine(
+        ProxyProvider3<AppDatabase, AuthRepository, ActivePatientNotifier,
+            SyncEngine>(
+          update: (_, db, auth, activePatient, _) => SyncEngine(
             db: db,
             supabase: Supabase.instance.client,
             currentAuthUserId: () => auth.currentSession?.user.id,
+            onAccessChanged: activePatient.markChanged,
           ),
         ),
         ProxyProvider2<SyncEngine, ConnectivityService, SyncCoordinator>(
@@ -55,10 +64,14 @@ class KidneyCareApp extends StatelessWidget {
             isOnline: connectivity.isOnline,
           ),
         ),
-        ProxyProvider2<AppDatabase, SyncCoordinator, PatientRepository>(
-          update: (_, db, coordinator, _) => PatientRepository(
+        ProxyProvider4<AppDatabase, SyncCoordinator, PatientAccessRemote,
+            ActivePatientNotifier, PatientRepository>(
+          update: (_, db, coordinator, remote, activePatient, _) =>
+              PatientRepository(
             db: db,
             onWrite: coordinator.onDriftWrite,
+            remote: remote,
+            activePatientNotifier: activePatient,
           ),
         ),
         ProxyProvider3<AuthRepository, PatientRepository, SyncCoordinator,
@@ -93,6 +106,13 @@ class KidneyCareApp extends StatelessWidget {
             authRepository: context.read<AuthRepository>(),
             patientRepository: context.read<PatientRepository>(),
             syncCoordinator: context.read<SyncCoordinator>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PatientsViewModel(
+            authRepository: context.read<AuthRepository>(),
+            patientRepository: context.read<PatientRepository>(),
+            activePatientNotifier: context.read<ActivePatientNotifier>(),
           ),
         ),
         ChangeNotifierProvider(

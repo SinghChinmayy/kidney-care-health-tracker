@@ -10,6 +10,9 @@ import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/onboarding/views/caretaker_signup_view.dart';
 import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:app/ui/features/onboarding/views/patient_signup_view.dart';
+import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
+import 'package:app/ui/features/patients/views/manage_patients_view.dart';
+import 'package:app/ui/features/patients/widgets/patient_switcher_sheet.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
@@ -173,6 +176,15 @@ class _ProfileViewState extends State<ProfileView> {
     _showSaveFeedback(saved, viewModel);
   }
 
+  String _viewingLabel(BuildContext context, ProfileViewModel viewModel) {
+    final active = context.watch<PatientsViewModel>().activePatient;
+    if (active == null) {
+      return 'You';
+    }
+    final name = active.isSelf ? 'You' : active.displayName;
+    return active.isSelf ? name : '$name · ${active.role.label}';
+  }
+
   Future<void> _pickBloodGroup(ProfileViewModel viewModel) async {
     final selected = await showProfileOptionPickerSheet(
       context,
@@ -298,8 +310,10 @@ class _ProfileViewState extends State<ProfileView> {
     final displayName = patient?.displayName?.isNotEmpty == true
         ? patient!.displayName!
         : 'Patient';
-    final canEdit = patient != null && !viewModel.isSaving;
-    final canEditPreferences = preferences != null && !viewModel.isSaving;
+    final canEdit =
+        patient != null && viewModel.canWrite && !viewModel.isSaving;
+    final canEditPreferences =
+        preferences != null && viewModel.canWrite && !viewModel.isSaving;
 
     return SafeArea(
       child: Center(
@@ -316,7 +330,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               children: [
                 Text(
-                  'My Profile',
+                  viewModel.isSelf ? 'My Profile' : 'Patient profile',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -331,11 +345,34 @@ class _ProfileViewState extends State<ProfileView> {
                 else ...[
                   _ProfileHeader(
                     name: displayName,
-                    email: viewModel.email,
+                    email: viewModel.isSelf ? viewModel.email : null,
                     onEditProfile:
                         canEdit ? () => _pickName(viewModel) : null,
                   ),
                   const SizedBox(height: AppTheme.spacingLg),
+                  _ProfileSection(
+                    title: 'Patients',
+                    children: [
+                      _ProfileDetailRow(
+                        icon: Icons.swap_horiz,
+                        label: 'Viewing',
+                        value: _viewingLabel(context, viewModel),
+                        onTap: () => showPatientSwitcherSheet(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.group_outlined,
+                        label: 'Manage patients',
+                        value: '',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ManagePatientsView(),
+                          ),
+                        ),
+                        isLast: true,
+                      ),
+                    ],
+                  ),
+                  const _ProfileSectionDivider(),
                   _ProfileSection(
                     title: 'Personal',
                     children: [

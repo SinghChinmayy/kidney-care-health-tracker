@@ -164,12 +164,12 @@ class _ScriptedSyncTable implements SyncableTable {
   String get remoteTableName => 'scripted';
 
   @override
-  Future<void> push(SupabaseClient supabase) async {
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
     pushCount++;
   }
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
     if (failPull) {
       throw StateError('pull failed');
     }
@@ -189,13 +189,13 @@ class _BlockingSyncTable implements SyncableTable {
   String get remoteTableName => 'blocking';
 
   @override
-  Future<void> push(SupabaseClient supabase) async {
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
     pushCount++;
     await _blocker.future;
   }
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {}
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {}
 
   void release() {
     if (!_blocker.isCompleted) {
