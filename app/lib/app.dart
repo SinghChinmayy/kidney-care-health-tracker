@@ -49,8 +49,11 @@ class KidneyCareApp extends StatelessWidget {
             currentAuthUserId: () => auth.currentSession?.user.id,
           ),
         ),
-        ProxyProvider<SyncEngine, SyncCoordinator>(
-          update: (_, engine, _) => SyncCoordinator(engine: engine),
+        ProxyProvider2<SyncEngine, ConnectivityService, SyncCoordinator>(
+          update: (_, engine, connectivity, _) => SyncCoordinator(
+            engine: engine,
+            isOnline: connectivity.isOnline,
+          ),
         ),
         ProxyProvider2<AppDatabase, SyncCoordinator, PatientRepository>(
           update: (_, db, coordinator, _) => PatientRepository(

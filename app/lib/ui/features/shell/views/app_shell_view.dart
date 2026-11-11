@@ -1,9 +1,12 @@
+import 'package:app/data/sync/sync_coordinator.dart';
+import 'package:app/data/sync/sync_status.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
 import 'package:app/ui/features/home/views/home_view.dart';
 import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/journal/views/journal_view.dart';
 import 'package:app/ui/features/profile/views/profile_view.dart';
+import 'package:app/ui/features/sync/widgets/sync_status_banner.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_menu_sheet.dart';
 import 'package:app/ui/features/vitals/widgets/vital_log_sheets.dart';
 import 'package:flutter/material.dart';
@@ -50,15 +53,35 @@ class _AppShellViewState extends State<AppShellView> {
 
   @override
   Widget build(BuildContext context) {
+    final coordinator = context.read<SyncCoordinator>();
+    final tabs = IndexedStack(
+      index: _selectedIndex,
+      children: [
+        HomeView(onOpenProfile: _openProfile),
+        const JournalView(),
+        const ProfileView(),
+      ],
+    );
+
     return Scaffold(
       backgroundColor: AppTheme.bpBackground,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          HomeView(onOpenProfile: _openProfile),
-          const JournalView(),
-          const ProfileView(),
-        ],
+      body: ValueListenableBuilder<SyncStatus>(
+        valueListenable: coordinator.status,
+        builder: (context, status, _) {
+          return Column(
+            children: [
+              SyncStatusBanner(coordinator: coordinator),
+              Expanded(
+                // The banner already consumed the top inset.
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: status.needsAttention,
+                  child: tabs,
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _LightBottomNavBar(
         selectedIndex: _selectedIndex,

@@ -46,6 +46,7 @@ class _SyncLifecycleObserverState extends State<SyncLifecycleObserver>
         _triggerStartupSync();
       } else {
         _startupTriggered = false;
+        _coordinator?.reset();
       }
     });
 
@@ -106,12 +107,20 @@ class _SyncLifecycleObserverState extends State<SyncLifecycleObserver>
     }
     _startupTriggered = true;
     _coordinator?.onAppStartup();
+    _coordinator?.startPeriodicRetry();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _coordinator?.onAppResumed();
+      if (_authRepository?.currentSession != null) {
+        _coordinator?.onAppResumed();
+        _coordinator?.startPeriodicRetry();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Foreground-only: no timers while backgrounded.
+      _coordinator?.stopPeriodicRetry();
     }
   }
 

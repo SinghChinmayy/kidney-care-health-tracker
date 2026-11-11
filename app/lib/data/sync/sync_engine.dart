@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:app/data/local/app_database.dart';
+import 'package:app/data/sync/sync_status.dart';
 import 'package:app/data/sync/syncable_table.dart';
 import 'package:app/data/sync/tables/sync_tables.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,7 +35,11 @@ class SyncEngine {
   final SupabaseClient _supabase;
   final List<SyncableTable> registry;
 
-  Future<void> run() async {
+  /// Pushes then pulls every registered table. Failures are isolated per
+  /// table (one bad table never blocks the rest) and reported back so the
+  /// coordinator can surface them.
+  Future<SyncRunResult> run() async {
+    final failed = <String>{};
     for (final table in registry) {
       try {
         await table.push(_supabase);
@@ -43,6 +48,7 @@ class SyncEngine {
           DateTime.now().toUtc(),
         );
       } catch (error, stackTrace) {
+        failed.add(table.tableKey);
         logSyncError('${table.tableKey} push', error, stackTrace);
       }
     }
@@ -55,9 +61,12 @@ class SyncEngine {
           DateTime.now().toUtc(),
         );
       } catch (error, stackTrace) {
+        failed.add(table.tableKey);
         logSyncError('${table.tableKey} pull', error, stackTrace);
       }
     }
+
+    return SyncRunResult(failedTables: failed.toList());
   }
 }
 
