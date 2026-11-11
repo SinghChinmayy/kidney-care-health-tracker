@@ -66,6 +66,7 @@ class PatientRepository {
         dialysisType: patient.dialysisType,
         dialysisDaysOfWeek: patient.dialysisDaysOfWeek,
         heightCm: patient.heightCm,
+        bloodGroup: patient.bloodGroup,
         createdAt: patient.createdAt ?? now,
         updatedAt: now,
         deletedAt: patient.deletedAt,

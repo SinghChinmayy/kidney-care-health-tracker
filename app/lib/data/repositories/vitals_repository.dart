@@ -48,6 +48,9 @@ class VitalsRepository {
     return _patientRepository.getPreferencesForAuthUser(authUserId);
   }
 
+  /// Signed-in auth user id, used to label "logged by you".
+  String? get currentUserId => _currentAuthUserId();
+
   Future<String> _requirePatientId() async {
     final patientId = await _patientIdOrNull();
     if (patientId == null) {
@@ -81,6 +84,7 @@ class VitalsRepository {
       BloodPressureReading(
         id: reading.id,
         patientId: patientId,
+        recordedBy: _currentAuthUserId(),
         recordedAt: reading.recordedAt,
         systolic: reading.systolic,
         diastolic: reading.diastolic,
@@ -147,6 +151,7 @@ class VitalsRepository {
       BloodGlucoseReading(
         id: reading.id,
         patientId: patientId,
+        recordedBy: _currentAuthUserId(),
         recordedAt: reading.recordedAt,
         valueMgDl: reading.valueMgDl,
         context: reading.context,
@@ -211,6 +216,7 @@ class VitalsRepository {
       WeightReading(
         id: reading.id,
         patientId: patientId,
+        recordedBy: _currentAuthUserId(),
         recordedAt: reading.recordedAt,
         valueKg: reading.valueKg,
         dialysisTiming: reading.dialysisTiming,
@@ -277,6 +283,7 @@ class VitalsRepository {
       FluidIntakeLog(
         id: log.id,
         patientId: patientId,
+        recordedBy: _currentAuthUserId(),
         recordedAt: log.recordedAt,
         fluidMl: log.fluidMl,
         source: log.source,

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 const bloodGlucoseContextOptions = [
   'fasting',
+  'before_meal',
   'post_meal',
   'random',
   'bedtime',

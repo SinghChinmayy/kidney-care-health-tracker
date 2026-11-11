@@ -14,6 +14,9 @@ class BloodPressureViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
   List<BloodPressureReading> _readings = [];
   BloodPressurePeriod _selectedPeriod = BloodPressurePeriod.last7Days;
   DateTime _selectedMonthStart;

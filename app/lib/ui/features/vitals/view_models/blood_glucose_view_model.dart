@@ -15,6 +15,9 @@ class BloodGlucoseViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
   List<BloodGlucoseReading> _readings = [];
   BloodGlucosePeriod _selectedPeriod = BloodGlucosePeriod.last7Days;
   DateTime _selectedMonthStart;

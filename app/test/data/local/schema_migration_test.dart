@@ -63,6 +63,29 @@ void main() {
     expect(inserted.dialysisPhase, 'pre_dialysis');
   });
 
+  test('upgrade from v7 adds blood group and recorded_by columns', () async {
+    final db = openV7Database(seedSql: _v7Seed);
+    addTearDown(db.close);
+
+    final patient = await (db.select(db.patients)).getSingle();
+    expect(patient.bloodGroup, isNull);
+    final bp = await (db.select(db.bloodPressureReadings)).getSingle();
+    expect(bp.recordedBy, isNull);
+
+    for (final table in [
+      'blood_glucose_readings',
+      'weight_readings',
+      'fluid_intake_logs',
+    ]) {
+      final columns = await db
+          .customSelect('SELECT name FROM pragma_table_info(?)',
+              variables: [Variable.withString(table)])
+          .map((row) => row.read<String>('name'))
+          .get();
+      expect(columns, contains('recorded_by'), reason: table);
+    }
+  });
+
   test('fresh database reports the current schema version', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

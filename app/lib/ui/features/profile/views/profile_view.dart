@@ -1,6 +1,7 @@
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/debug/agent_debug_log.dart';
 import 'package:app/debug/synthetic_data_generator.dart';
+import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/views/login_view.dart';
@@ -172,6 +173,23 @@ class _ProfileViewState extends State<ProfileView> {
     _showSaveFeedback(saved, viewModel);
   }
 
+  Future<void> _pickBloodGroup(ProfileViewModel viewModel) async {
+    final selected = await showProfileOptionPickerSheet(
+      context,
+      title: 'Blood group',
+      selectedValue: viewModel.patient?.bloodGroup,
+      options: [
+        for (final value in bloodGroupOptions)
+          ProfilePickerOption(value: value, label: value),
+      ],
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateBloodGroup(selected);
+    _showSaveFeedback(saved, viewModel);
+  }
+
   Future<void> _pickDateOfBirth(ProfileViewModel viewModel) async {
     final current = viewModel.patient?.dateOfBirth?.toLocal() ??
         DateTime(DateTime.now().year - 40);
@@ -339,6 +357,13 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Sex',
                         value: formatSexLabel(patient?.sex),
                         onTap: canEdit ? () => _pickSex(viewModel) : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.bloodtype_outlined,
+                        label: 'Blood group',
+                        value: formatBloodGroupLabel(patient?.bloodGroup),
+                        onTap:
+                            canEdit ? () => _pickBloodGroup(viewModel) : null,
                       ),
                       _ProfileDetailRow(
                         icon: Icons.height_outlined,

@@ -26,6 +26,8 @@ class Patients extends Table {
 
   RealColumn get heightCm => real().nullable()();
 
+  TextColumn get bloodGroup => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
 
   DateTimeColumn get updatedAt => dateTime()();

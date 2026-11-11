@@ -66,6 +66,7 @@ class ProfileViewModel extends ChangeNotifier {
     String? Function()? sex,
     DateTime? Function()? dateOfBirth,
     double? Function()? heightCm,
+    String? Function()? bloodGroup,
   }) {
     return Patient(
       id: patient.id,
@@ -81,6 +82,7 @@ class ProfileViewModel extends ChangeNotifier {
           ? dialysisDaysOfWeek()
           : patient.dialysisDaysOfWeek,
       heightCm: heightCm != null ? heightCm() : patient.heightCm,
+      bloodGroup: bloodGroup != null ? bloodGroup() : patient.bloodGroup,
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt,
       deletedAt: patient.deletedAt,
@@ -130,6 +132,12 @@ class ProfileViewModel extends ChangeNotifier {
   Future<bool> updateDateOfBirth(DateTime? dateOfBirth) {
     return _updatePatient(
       (patient) => _withPatient(patient, dateOfBirth: () => dateOfBirth),
+    );
+  }
+
+  Future<bool> updateBloodGroup(String? bloodGroup) {
+    return _updatePatient(
+      (patient) => _withPatient(patient, bloodGroup: () => bloodGroup),
     );
   }
 

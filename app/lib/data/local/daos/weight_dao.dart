@@ -41,20 +41,11 @@ class WeightDao extends DatabaseAccessor<AppDatabase> with _$WeightDaoMixin {
   }
 
   Future<void> updateReading(WeightReading reading, {required bool isDirty}) {
-    return update(weightReadings).replace(
-      WeightRow(
-        id: reading.id,
-        patientId: reading.patientId ?? '',
-        recordedAt: reading.recordedAt,
-        valueKg: reading.valueKg,
-        dialysisTiming: reading.dialysisTiming,
-        weightContext: reading.weightContext,
-        source: reading.source,
-        notes: reading.notes,
-        createdAt: reading.createdAt ?? DateTime.now().toUtc(),
-        updatedAt: reading.updatedAt ?? DateTime.now().toUtc(),
-        deletedAt: reading.deletedAt,
-        isDirty: isDirty,
+    // recordedBy is attribution set at insert (server-authoritative), so
+    // local edits never overwrite it.
+    return (update(weightReadings)..where((t) => t.id.equals(reading.id))).write(
+      reading.toCompanion(isDirty: isDirty).copyWith(
+        recordedBy: const Value.absent(),
       ),
     );
   }
@@ -84,6 +75,7 @@ class WeightDao extends DatabaseAccessor<AppDatabase> with _$WeightDaoMixin {
         dialysisTiming: Value(row.dialysisTiming),
         weightContext: Value(row.weightContext),
         source: Value(row.source),
+        recordedBy: Value(row.recordedBy),
         notes: Value(row.notes),
         createdAt: Value(row.createdAt),
         updatedAt: Value(row.updatedAt),

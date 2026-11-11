@@ -15,6 +15,9 @@ class FluidIntakeViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
   List<FluidIntakeLog> _logs = [];
   int _dailyWaterGoalMl = PatientPreferences.defaultDailyWaterGoalMl;
   FluidIntakePeriod _selectedPeriod = FluidIntakePeriod.last7Days;

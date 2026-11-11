@@ -15,6 +15,9 @@ class WeightViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
   List<WeightReading> _readings = [];
   bool _isOnDialysis = false;
   WeightPeriod _selectedPeriod = WeightPeriod.last7Days;

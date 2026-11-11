@@ -5,6 +5,7 @@ import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dar
 import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/vital_save_confirmation.dart';
+import 'package:app/ui/features/vitals/widgets/recorded_by_note.dart';
 import 'package:flutter/material.dart';
 
 const _defaultSystolic = 120;
@@ -192,6 +193,10 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
+            ),
+            RecordedByNote(
+              recordedBy: widget.reading.recordedBy,
+              currentUserId: widget.viewModel.currentUserId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             BloodPressureReadingForm(

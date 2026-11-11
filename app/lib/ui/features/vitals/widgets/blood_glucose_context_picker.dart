@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 String formatBloodGlucoseContextLabel(String context) {
   return switch (context) {
     'fasting' => 'Fasting',
+    'before_meal' => 'Before meal',
     'post_meal' => 'Post meal',
     'random' => 'Random',
     'bedtime' => 'Bedtime',

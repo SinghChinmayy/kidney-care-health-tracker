@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,6 +118,25 @@ class AppDatabase extends _$AppDatabase {
             await migrator.addColumn(
               bloodPressureReadings,
               bloodPressureReadings.dialysisPhase,
+            );
+          }
+          if (from < 9) {
+            await migrator.addColumn(patients, patients.bloodGroup);
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              bloodGlucoseReadings,
+              bloodGlucoseReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              weightReadings,
+              weightReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              fluidIntakeLogs,
+              fluidIntakeLogs.recordedBy,
             );
           }
         },
@@ -182,6 +201,7 @@ class AppDatabase extends _$AppDatabase {
           dialysisType: localRow.dialysisType,
           dialysisDaysOfWeek: localRow.dialysisDaysOfWeek,
           heightCm: localRow.heightCm,
+          bloodGroup: localRow.bloodGroup,
           createdAt: localRow.createdAt,
           updatedAt: localRow.updatedAt,
           deletedAt: localRow.deletedAt,

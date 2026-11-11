@@ -97,6 +97,7 @@ class PatientSignupViewModel extends ChangeNotifier {
             ? null
             : profile.dialysisDaysOfWeek,
         heightCm: profile.heightCm,
+        bloodGroup: patient.bloodGroup,
         createdAt: patient.createdAt,
         updatedAt: patient.updatedAt,
         deletedAt: patient.deletedAt,

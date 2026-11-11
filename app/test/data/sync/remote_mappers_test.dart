@@ -80,4 +80,35 @@ void main() {
     expect(row.isDialysisDay, isNull);
     expect(bloodPressureRowToRemoteJson(row)['dialysis_phase'], isNull);
   });
+
+  test('recorded_by is pulled but never pushed (server-set)', () {
+    final row = bloodGlucoseRowFromRemoteJson({
+      'id': 'bg-1',
+      'patient_id': 'patient-1',
+      'recorded_at': '2026-07-08T10:00:00Z',
+      'value_mg_dl': 110,
+      'context': 'before_meal',
+      'recorded_by': 'auth-2',
+      'created_at': '2026-07-08T10:00:00Z',
+      'updated_at': '2026-07-08T10:00:00Z',
+    });
+    expect(row.recordedBy, 'auth-2');
+    expect(row.context, 'before_meal');
+
+    final json = bloodGlucoseRowToRemoteJson(row);
+    expect(json.containsKey('recorded_by'), isFalse);
+    expect(json['context'], 'before_meal');
+  });
+
+  test('patient blood_group maps both ways', () {
+    final row = patientRowFromRemoteJson({
+      'id': 'patient-1',
+      'auth_user_id': 'auth-1',
+      'blood_group': 'O-',
+      'created_at': '2026-07-08T10:00:00Z',
+      'updated_at': '2026-07-08T10:00:00Z',
+    });
+    expect(row.bloodGroup, 'O-');
+    expect(patientRowToRemoteJson(row)['blood_group'], 'O-');
+  });
 }
