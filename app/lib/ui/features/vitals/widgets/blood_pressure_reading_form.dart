@@ -1,4 +1,6 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/theme/app_theme.dart';
+import 'package:app/ui/features/vitals/widgets/blood_pressure_context_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
 import 'package:app/ui/features/vitals/widgets/numeric_stepper_input.dart';
 import 'package:app/ui/features/vitals/widgets/vital_recorded_at_picker.dart';
@@ -12,11 +14,13 @@ class BloodPressureReadingForm extends StatelessWidget {
     required this.diastolic,
     required this.heartRateBpm,
     required this.recordedAt,
+    required this.measurementContext,
     required this.onLogTypeChanged,
     required this.onSystolicChanged,
     required this.onDiastolicChanged,
     required this.onHeartRateChanged,
     required this.onRecordedAtChanged,
+    required this.onMeasurementContextChanged,
     this.accentColor = AppTheme.logBloodPressure,
     this.errorText,
   });
@@ -26,11 +30,13 @@ class BloodPressureReadingForm extends StatelessWidget {
   final int diastolic;
   final int heartRateBpm;
   final DateTime recordedAt;
+  final BloodPressureContext measurementContext;
   final ValueChanged<BloodPressureLogType> onLogTypeChanged;
   final ValueChanged<int> onSystolicChanged;
   final ValueChanged<int> onDiastolicChanged;
   final ValueChanged<int> onHeartRateChanged;
   final ValueChanged<DateTime> onRecordedAtChanged;
+  final ValueChanged<BloodPressureContext> onMeasurementContextChanged;
   final Color accentColor;
   final String? errorText;
 
@@ -101,6 +107,12 @@ class BloodPressureReadingForm extends StatelessWidget {
           accentColor: accentColor,
           compact: true,
           onChanged: onRecordedAtChanged,
+        ),
+        const SizedBox(height: AppTheme.spacingXs),
+        BloodPressureContextPicker(
+          value: measurementContext,
+          accentColor: accentColor,
+          onChanged: onMeasurementContextChanged,
         ),
         if (errorText != null) ...[
           const SizedBox(height: AppTheme.spacingSm),

@@ -1,3 +1,4 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
@@ -90,6 +91,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
   late int _diastolic;
   late int _heartRateBpm;
   late DateTime _recordedAt;
+  late BloodPressureContext _context;
   bool _isSaving = false;
   bool _isDeleting = false;
 
@@ -104,6 +106,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
     _diastolic = reading.diastolic ?? _defaultDiastolic;
     _heartRateBpm = reading.heartRateBpm ?? _defaultHeartRate;
     _recordedAt = reading.recordedAt.toLocal();
+    _context = reading.context;
   }
 
   Future<void> _save() async {
@@ -121,6 +124,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
         systolic: systolic,
         diastolic: diastolic,
         heartRateBpm: heartRate,
+        context: _context,
         recordedAt: _recordedAt,
         notes: widget.reading.notes,
       );
@@ -196,6 +200,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
               diastolic: _diastolic,
               heartRateBpm: _heartRateBpm,
               recordedAt: _recordedAt,
+              measurementContext: _context,
               onLogTypeChanged: (value) => setState(() => _logType = value),
               onSystolicChanged: (value) => setState(() => _systolic = value),
               onDiastolicChanged: (value) => setState(() => _diastolic = value),
@@ -203,6 +208,8 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
                   setState(() => _heartRateBpm = value),
               onRecordedAtChanged: (value) =>
                   setState(() => _recordedAt = value),
+              onMeasurementContextChanged: (value) =>
+                  setState(() => _context = value),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             ElevatedButton(

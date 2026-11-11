@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +101,24 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await migrator.createTable(patientMedicationSchedules);
+          }
+          if (from < 8) {
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.arm,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.posture,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.isDialysisDay,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.dialysisPhase,
+            );
           }
         },
       );

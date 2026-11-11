@@ -51,6 +51,7 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
     BloodPressureReading reading, {
     required bool isDirty,
   }) {
+    final normalizedContext = reading.context.normalized();
     return update(bloodPressureReadings).replace(
       BloodPressureRow(
         id: reading.id,
@@ -59,6 +60,10 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
         systolic: reading.systolic,
         diastolic: reading.diastolic,
         heartRateBpm: reading.heartRateBpm,
+        arm: normalizedContext.arm,
+        posture: normalizedContext.posture,
+        isDialysisDay: normalizedContext.isDialysisDay,
+        dialysisPhase: normalizedContext.dialysisPhase,
         notes: reading.notes,
         createdAt: reading.createdAt ?? DateTime.now().toUtc(),
         updatedAt: reading.updatedAt ?? DateTime.now().toUtc(),
@@ -92,6 +97,10 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
         systolic: Value(row.systolic),
         diastolic: Value(row.diastolic),
         heartRateBpm: Value(row.heartRateBpm),
+        arm: Value(row.arm),
+        posture: Value(row.posture),
+        isDialysisDay: Value(row.isDialysisDay),
+        dialysisPhase: Value(row.dialysisPhase),
         notes: Value(row.notes),
         createdAt: Value(row.createdAt),
         updatedAt: Value(row.updatedAt),

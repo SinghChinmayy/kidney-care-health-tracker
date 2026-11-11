@@ -1479,6 +1479,51 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _armMeta = const VerificationMeta('arm');
+  @override
+  late final GeneratedColumn<String> arm = GeneratedColumn<String>(
+    'arm',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _postureMeta = const VerificationMeta(
+    'posture',
+  );
+  @override
+  late final GeneratedColumn<String> posture = GeneratedColumn<String>(
+    'posture',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDialysisDayMeta = const VerificationMeta(
+    'isDialysisDay',
+  );
+  @override
+  late final GeneratedColumn<bool> isDialysisDay = GeneratedColumn<bool>(
+    'is_dialysis_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dialysis_day" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _dialysisPhaseMeta = const VerificationMeta(
+    'dialysisPhase',
+  );
+  @override
+  late final GeneratedColumn<String> dialysisPhase = GeneratedColumn<String>(
+    'dialysis_phase',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1544,6 +1589,10 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
     systolic,
     diastolic,
     heartRateBpm,
+    arm,
+    posture,
+    isDialysisDay,
+    dialysisPhase,
     notes,
     createdAt,
     updatedAt,
@@ -1601,6 +1650,36 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
         heartRateBpm.isAcceptableOrUnknown(
           data['heart_rate_bpm']!,
           _heartRateBpmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('arm')) {
+      context.handle(
+        _armMeta,
+        arm.isAcceptableOrUnknown(data['arm']!, _armMeta),
+      );
+    }
+    if (data.containsKey('posture')) {
+      context.handle(
+        _postureMeta,
+        posture.isAcceptableOrUnknown(data['posture']!, _postureMeta),
+      );
+    }
+    if (data.containsKey('is_dialysis_day')) {
+      context.handle(
+        _isDialysisDayMeta,
+        isDialysisDay.isAcceptableOrUnknown(
+          data['is_dialysis_day']!,
+          _isDialysisDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dialysis_phase')) {
+      context.handle(
+        _dialysisPhaseMeta,
+        dialysisPhase.isAcceptableOrUnknown(
+          data['dialysis_phase']!,
+          _dialysisPhaseMeta,
         ),
       );
     }
@@ -1671,6 +1750,22 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
         DriftSqlType.int,
         data['${effectivePrefix}heart_rate_bpm'],
       ),
+      arm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}arm'],
+      ),
+      posture: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}posture'],
+      ),
+      isDialysisDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dialysis_day'],
+      ),
+      dialysisPhase: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialysis_phase'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -1708,6 +1803,10 @@ class BloodPressureRow extends DataClass
   final int? systolic;
   final int? diastolic;
   final int? heartRateBpm;
+  final String? arm;
+  final String? posture;
+  final bool? isDialysisDay;
+  final String? dialysisPhase;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1720,6 +1819,10 @@ class BloodPressureRow extends DataClass
     this.systolic,
     this.diastolic,
     this.heartRateBpm,
+    this.arm,
+    this.posture,
+    this.isDialysisDay,
+    this.dialysisPhase,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -1740,6 +1843,18 @@ class BloodPressureRow extends DataClass
     }
     if (!nullToAbsent || heartRateBpm != null) {
       map['heart_rate_bpm'] = Variable<int>(heartRateBpm);
+    }
+    if (!nullToAbsent || arm != null) {
+      map['arm'] = Variable<String>(arm);
+    }
+    if (!nullToAbsent || posture != null) {
+      map['posture'] = Variable<String>(posture);
+    }
+    if (!nullToAbsent || isDialysisDay != null) {
+      map['is_dialysis_day'] = Variable<bool>(isDialysisDay);
+    }
+    if (!nullToAbsent || dialysisPhase != null) {
+      map['dialysis_phase'] = Variable<String>(dialysisPhase);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -1767,6 +1882,16 @@ class BloodPressureRow extends DataClass
       heartRateBpm: heartRateBpm == null && nullToAbsent
           ? const Value.absent()
           : Value(heartRateBpm),
+      arm: arm == null && nullToAbsent ? const Value.absent() : Value(arm),
+      posture: posture == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posture),
+      isDialysisDay: isDialysisDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isDialysisDay),
+      dialysisPhase: dialysisPhase == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialysisPhase),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -1791,6 +1916,10 @@ class BloodPressureRow extends DataClass
       systolic: serializer.fromJson<int?>(json['systolic']),
       diastolic: serializer.fromJson<int?>(json['diastolic']),
       heartRateBpm: serializer.fromJson<int?>(json['heartRateBpm']),
+      arm: serializer.fromJson<String?>(json['arm']),
+      posture: serializer.fromJson<String?>(json['posture']),
+      isDialysisDay: serializer.fromJson<bool?>(json['isDialysisDay']),
+      dialysisPhase: serializer.fromJson<String?>(json['dialysisPhase']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1808,6 +1937,10 @@ class BloodPressureRow extends DataClass
       'systolic': serializer.toJson<int?>(systolic),
       'diastolic': serializer.toJson<int?>(diastolic),
       'heartRateBpm': serializer.toJson<int?>(heartRateBpm),
+      'arm': serializer.toJson<String?>(arm),
+      'posture': serializer.toJson<String?>(posture),
+      'isDialysisDay': serializer.toJson<bool?>(isDialysisDay),
+      'dialysisPhase': serializer.toJson<String?>(dialysisPhase),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1823,6 +1956,10 @@ class BloodPressureRow extends DataClass
     Value<int?> systolic = const Value.absent(),
     Value<int?> diastolic = const Value.absent(),
     Value<int?> heartRateBpm = const Value.absent(),
+    Value<String?> arm = const Value.absent(),
+    Value<String?> posture = const Value.absent(),
+    Value<bool?> isDialysisDay = const Value.absent(),
+    Value<String?> dialysisPhase = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1835,6 +1972,14 @@ class BloodPressureRow extends DataClass
     systolic: systolic.present ? systolic.value : this.systolic,
     diastolic: diastolic.present ? diastolic.value : this.diastolic,
     heartRateBpm: heartRateBpm.present ? heartRateBpm.value : this.heartRateBpm,
+    arm: arm.present ? arm.value : this.arm,
+    posture: posture.present ? posture.value : this.posture,
+    isDialysisDay: isDialysisDay.present
+        ? isDialysisDay.value
+        : this.isDialysisDay,
+    dialysisPhase: dialysisPhase.present
+        ? dialysisPhase.value
+        : this.dialysisPhase,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1853,6 +1998,14 @@ class BloodPressureRow extends DataClass
       heartRateBpm: data.heartRateBpm.present
           ? data.heartRateBpm.value
           : this.heartRateBpm,
+      arm: data.arm.present ? data.arm.value : this.arm,
+      posture: data.posture.present ? data.posture.value : this.posture,
+      isDialysisDay: data.isDialysisDay.present
+          ? data.isDialysisDay.value
+          : this.isDialysisDay,
+      dialysisPhase: data.dialysisPhase.present
+          ? data.dialysisPhase.value
+          : this.dialysisPhase,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1870,6 +2023,10 @@ class BloodPressureRow extends DataClass
           ..write('systolic: $systolic, ')
           ..write('diastolic: $diastolic, ')
           ..write('heartRateBpm: $heartRateBpm, ')
+          ..write('arm: $arm, ')
+          ..write('posture: $posture, ')
+          ..write('isDialysisDay: $isDialysisDay, ')
+          ..write('dialysisPhase: $dialysisPhase, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1887,6 +2044,10 @@ class BloodPressureRow extends DataClass
     systolic,
     diastolic,
     heartRateBpm,
+    arm,
+    posture,
+    isDialysisDay,
+    dialysisPhase,
     notes,
     createdAt,
     updatedAt,
@@ -1903,6 +2064,10 @@ class BloodPressureRow extends DataClass
           other.systolic == this.systolic &&
           other.diastolic == this.diastolic &&
           other.heartRateBpm == this.heartRateBpm &&
+          other.arm == this.arm &&
+          other.posture == this.posture &&
+          other.isDialysisDay == this.isDialysisDay &&
+          other.dialysisPhase == this.dialysisPhase &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1917,6 +2082,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
   final Value<int?> systolic;
   final Value<int?> diastolic;
   final Value<int?> heartRateBpm;
+  final Value<String?> arm;
+  final Value<String?> posture;
+  final Value<bool?> isDialysisDay;
+  final Value<String?> dialysisPhase;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1930,6 +2099,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     this.systolic = const Value.absent(),
     this.diastolic = const Value.absent(),
     this.heartRateBpm = const Value.absent(),
+    this.arm = const Value.absent(),
+    this.posture = const Value.absent(),
+    this.isDialysisDay = const Value.absent(),
+    this.dialysisPhase = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1944,6 +2117,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     this.systolic = const Value.absent(),
     this.diastolic = const Value.absent(),
     this.heartRateBpm = const Value.absent(),
+    this.arm = const Value.absent(),
+    this.posture = const Value.absent(),
+    this.isDialysisDay = const Value.absent(),
+    this.dialysisPhase = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1962,6 +2139,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     Expression<int>? systolic,
     Expression<int>? diastolic,
     Expression<int>? heartRateBpm,
+    Expression<String>? arm,
+    Expression<String>? posture,
+    Expression<bool>? isDialysisDay,
+    Expression<String>? dialysisPhase,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1976,6 +2157,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
       if (systolic != null) 'systolic': systolic,
       if (diastolic != null) 'diastolic': diastolic,
       if (heartRateBpm != null) 'heart_rate_bpm': heartRateBpm,
+      if (arm != null) 'arm': arm,
+      if (posture != null) 'posture': posture,
+      if (isDialysisDay != null) 'is_dialysis_day': isDialysisDay,
+      if (dialysisPhase != null) 'dialysis_phase': dialysisPhase,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1992,6 +2177,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     Value<int?>? systolic,
     Value<int?>? diastolic,
     Value<int?>? heartRateBpm,
+    Value<String?>? arm,
+    Value<String?>? posture,
+    Value<bool?>? isDialysisDay,
+    Value<String?>? dialysisPhase,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2006,6 +2195,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
       systolic: systolic ?? this.systolic,
       diastolic: diastolic ?? this.diastolic,
       heartRateBpm: heartRateBpm ?? this.heartRateBpm,
+      arm: arm ?? this.arm,
+      posture: posture ?? this.posture,
+      isDialysisDay: isDialysisDay ?? this.isDialysisDay,
+      dialysisPhase: dialysisPhase ?? this.dialysisPhase,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2035,6 +2228,18 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     }
     if (heartRateBpm.present) {
       map['heart_rate_bpm'] = Variable<int>(heartRateBpm.value);
+    }
+    if (arm.present) {
+      map['arm'] = Variable<String>(arm.value);
+    }
+    if (posture.present) {
+      map['posture'] = Variable<String>(posture.value);
+    }
+    if (isDialysisDay.present) {
+      map['is_dialysis_day'] = Variable<bool>(isDialysisDay.value);
+    }
+    if (dialysisPhase.present) {
+      map['dialysis_phase'] = Variable<String>(dialysisPhase.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -2066,6 +2271,10 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
           ..write('systolic: $systolic, ')
           ..write('diastolic: $diastolic, ')
           ..write('heartRateBpm: $heartRateBpm, ')
+          ..write('arm: $arm, ')
+          ..write('posture: $posture, ')
+          ..write('isDialysisDay: $isDialysisDay, ')
+          ..write('dialysisPhase: $dialysisPhase, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6763,6 +6972,10 @@ typedef $$BloodPressureReadingsTableCreateCompanionBuilder =
       Value<int?> systolic,
       Value<int?> diastolic,
       Value<int?> heartRateBpm,
+      Value<String?> arm,
+      Value<String?> posture,
+      Value<bool?> isDialysisDay,
+      Value<String?> dialysisPhase,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -6778,6 +6991,10 @@ typedef $$BloodPressureReadingsTableUpdateCompanionBuilder =
       Value<int?> systolic,
       Value<int?> diastolic,
       Value<int?> heartRateBpm,
+      Value<String?> arm,
+      Value<String?> posture,
+      Value<bool?> isDialysisDay,
+      Value<String?> dialysisPhase,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -6848,6 +7065,26 @@ class $$BloodPressureReadingsTableFilterComposer
 
   ColumnFilters<int> get heartRateBpm => $composableBuilder(
     column: $table.heartRateBpm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get arm => $composableBuilder(
+    column: $table.arm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posture => $composableBuilder(
+    column: $table.posture,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6934,6 +7171,26 @@ class $$BloodPressureReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get arm => $composableBuilder(
+    column: $table.arm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posture => $composableBuilder(
+    column: $table.posture,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7008,6 +7265,22 @@ class $$BloodPressureReadingsTableAnnotationComposer
 
   GeneratedColumn<int> get heartRateBpm => $composableBuilder(
     column: $table.heartRateBpm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get arm =>
+      $composableBuilder(column: $table.arm, builder: (column) => column);
+
+  GeneratedColumn<String> get posture =>
+      $composableBuilder(column: $table.posture, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
     builder: (column) => column,
   );
 
@@ -7095,6 +7368,10 @@ class $$BloodPressureReadingsTableTableManager
                 Value<int?> systolic = const Value.absent(),
                 Value<int?> diastolic = const Value.absent(),
                 Value<int?> heartRateBpm = const Value.absent(),
+                Value<String?> arm = const Value.absent(),
+                Value<String?> posture = const Value.absent(),
+                Value<bool?> isDialysisDay = const Value.absent(),
+                Value<String?> dialysisPhase = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -7108,6 +7385,10 @@ class $$BloodPressureReadingsTableTableManager
                 systolic: systolic,
                 diastolic: diastolic,
                 heartRateBpm: heartRateBpm,
+                arm: arm,
+                posture: posture,
+                isDialysisDay: isDialysisDay,
+                dialysisPhase: dialysisPhase,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7123,6 +7404,10 @@ class $$BloodPressureReadingsTableTableManager
                 Value<int?> systolic = const Value.absent(),
                 Value<int?> diastolic = const Value.absent(),
                 Value<int?> heartRateBpm = const Value.absent(),
+                Value<String?> arm = const Value.absent(),
+                Value<String?> posture = const Value.absent(),
+                Value<bool?> isDialysisDay = const Value.absent(),
+                Value<String?> dialysisPhase = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -7136,6 +7421,10 @@ class $$BloodPressureReadingsTableTableManager
                 systolic: systolic,
                 diastolic: diastolic,
                 heartRateBpm: heartRateBpm,
+                arm: arm,
+                posture: posture,
+                isDialysisDay: isDialysisDay,
+                dialysisPhase: dialysisPhase,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

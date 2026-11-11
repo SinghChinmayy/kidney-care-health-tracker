@@ -26,11 +26,18 @@ Future<void> showBloodPressureLogSheet(
       return _VitalLogSheetPadding(
         child: AddBloodPressureForm(
           initialRecordedAt: initialRecordedAt,
-          onSubmit: (systolic, diastolic, heartRate, recordedAt) async {
+          onSubmit: (
+            systolic,
+            diastolic,
+            heartRate,
+            recordedAt,
+            measurementContext,
+          ) async {
             await viewModel.addReading(
               systolic: systolic,
               diastolic: diastolic,
               heartRateBpm: heartRate,
+              context: measurementContext,
               recordedAt: recordedAt,
             );
             if (sheetContext.mounted) {

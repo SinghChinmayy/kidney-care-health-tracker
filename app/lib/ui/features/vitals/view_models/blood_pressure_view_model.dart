@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:app/data/repositories/vitals_repository.dart';
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/ui/features/vitals/models/blood_pressure_period.dart';
 import 'package:flutter/material.dart';
@@ -351,6 +352,7 @@ class BloodPressureViewModel extends ChangeNotifier {
     int? systolic,
     int? diastolic,
     int? heartRateBpm,
+    BloodPressureContext context = BloodPressureContext.empty,
     String? notes,
     DateTime? recordedAt,
   }) async {
@@ -366,6 +368,7 @@ class BloodPressureViewModel extends ChangeNotifier {
       systolic: systolic,
       diastolic: diastolic,
       heartRateBpm: heartRateBpm,
+      context: context.normalized(),
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );
     await _vitalsRepository.addBloodPressureReading(reading);
@@ -377,6 +380,7 @@ class BloodPressureViewModel extends ChangeNotifier {
     int? systolic,
     int? diastolic,
     int? heartRateBpm,
+    BloodPressureContext? context,
     required DateTime recordedAt,
     String? notes,
   }) async {
@@ -394,6 +398,7 @@ class BloodPressureViewModel extends ChangeNotifier {
         systolic: systolic,
         diastolic: diastolic,
         heartRateBpm: heartRateBpm,
+        context: (context ?? existing.context).normalized(),
         notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
         createdAt: existing.createdAt,
         updatedAt: existing.updatedAt,
