@@ -120,10 +120,7 @@ class _LoginViewState extends State<LoginView> {
                   GoogleSignInButton(
                     onPressed: viewModel.isLoading
                         ? null
-                        : () => showPlaceholderSnackBar(
-                              context,
-                              'Google sign-in coming soon.',
-                            ),
+                        : () => _signInWithGoogle(viewModel),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   OutlinedButton(
@@ -163,6 +160,17 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
     );
+  }
+
+  Future<void> _signInWithGoogle(LoginViewModel viewModel) async {
+    final success = await viewModel.signInWithGoogle();
+    if (!mounted || success) {
+      return;
+    }
+    final message = viewModel.errorMessage;
+    if (message != null) {
+      showPlaceholderSnackBar(context, message);
+    }
   }
 
   Future<void> _submit(LoginViewModel viewModel) async {

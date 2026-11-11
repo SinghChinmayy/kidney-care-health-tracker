@@ -103,10 +103,11 @@ cp dart_defines/dev.example.json dart_defines/dev.json
 flutter run --dart-define-from-file=dart_defines/dev.json
 ```
 
-The app reads only these build-time variables:
+The app reads these build-time variables:
 
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
+- `GOOGLE_WEB_CLIENT_ID` (optional; enables native Google sign-in on Android — see [Google sign-in](docs/google-sign-in.md))
 
 Do not commit `dart_defines/dev.json`, service-role keys, database passwords, JWT signing keys, or real patient data. The example file contains placeholders only.
 
