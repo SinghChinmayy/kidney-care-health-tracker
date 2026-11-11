@@ -40,7 +40,13 @@ class KidneyCareApp extends StatelessWidget {
         Provider.value(value: appDatabase),
         Provider(create: (_) => AuthService()),
         Provider(create: (_) => ConnectivityService()),
-        ChangeNotifierProvider(create: (_) => ActivePatientNotifier()),
+        // Plain Provider on purpose: the proxies below must not be rebuilt
+        // (new SyncEngine/SyncCoordinator) every time the patient changes.
+        // Listeners subscribe explicitly (shell, PatientsViewModel).
+        Provider<ActivePatientNotifier>(
+          create: (_) => ActivePatientNotifier(),
+          dispose: (_, notifier) => notifier.dispose(),
+        ),
         Provider<PatientAccessRemote>(
           create: (_) => SupabasePatientAccessRemote(),
         ),
