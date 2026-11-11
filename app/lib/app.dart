@@ -5,6 +5,7 @@ import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/medications_repository.dart';
 import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
+import 'package:app/data/repositories/sharing_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/data/services/auth_service.dart';
 import 'package:app/data/services/connectivity_service.dart';
@@ -74,6 +75,17 @@ class KidneyCareApp extends StatelessWidget {
             activePatientNotifier: activePatient,
           ),
         ),
+        ProxyProvider5<AppDatabase, PatientAccessRemote, AuthRepository,
+            ActivePatientNotifier, SyncCoordinator, SharingRepository>(
+          update: (_, db, remote, auth, activePatient, coordinator, _) =>
+              SharingRepository(
+            db: db,
+            remote: remote,
+            currentAuthUserId: () => auth.currentSession?.user.id,
+            activePatientNotifier: activePatient,
+            requestSync: coordinator.run,
+          ),
+        ),
         ProxyProvider3<AuthRepository, PatientRepository, SyncCoordinator,
             VitalsRepository>(
           update: (_, auth, patients, coordinator, _) => VitalsRepository(
@@ -106,6 +118,7 @@ class KidneyCareApp extends StatelessWidget {
             authRepository: context.read<AuthRepository>(),
             patientRepository: context.read<PatientRepository>(),
             syncCoordinator: context.read<SyncCoordinator>(),
+            sharingRepository: context.read<SharingRepository>(),
           ),
         ),
         ChangeNotifierProvider(
@@ -113,6 +126,7 @@ class KidneyCareApp extends StatelessWidget {
             authRepository: context.read<AuthRepository>(),
             patientRepository: context.read<PatientRepository>(),
             activePatientNotifier: context.read<ActivePatientNotifier>(),
+            sharingRepository: context.read<SharingRepository>(),
           ),
         ),
         ChangeNotifierProvider(

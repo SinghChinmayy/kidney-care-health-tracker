@@ -2,6 +2,7 @@ import 'package:app/domain/models/accessible_patient.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
 import 'package:app/ui/features/patients/views/add_patient_view.dart';
+import 'package:app/ui/features/patients/views/patient_access_view.dart';
 import 'package:app/ui/features/patients/widgets/patient_role_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -91,13 +92,31 @@ class _PatientTile extends StatelessWidget {
           ),
         ),
         title: Text(entry.displayName),
-        subtitle: Text(
-          [
-            if (entry.isSelf) 'You',
-            if (isActive) 'Viewing now',
-          ].join(' · '),
+        subtitle: Row(
+          children: [
+            PatientRoleBadge(role: entry.role),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                [
+                  if (entry.isSelf) 'You',
+                  if (isActive) 'Viewing now',
+                ].join(' · '),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-        trailing: PatientRoleBadge(role: entry.role),
+        trailing: IconButton(
+          key: ValueKey('access-${entry.patient.id}'),
+          tooltip: 'Sharing & access',
+          icon: const Icon(Icons.manage_accounts_outlined),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PatientAccessView(patient: entry),
+            ),
+          ),
+        ),
       ),
     );
   }

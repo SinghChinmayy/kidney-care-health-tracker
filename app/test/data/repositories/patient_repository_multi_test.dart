@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const me = 'auth-me';
 
-class _FakeRemote implements PatientAccessRemote {
+class _FakeRemote extends Fake implements PatientAccessRemote {
   final calls = <Map<String, Object?>>[];
 
   @override

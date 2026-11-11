@@ -178,6 +178,7 @@ class _WeightEditSheetState extends State<_WeightEditSheet> {
             RecordedByNote(
               recordedBy: widget.reading.recordedBy,
               currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.reading.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             WeightReadingForm(

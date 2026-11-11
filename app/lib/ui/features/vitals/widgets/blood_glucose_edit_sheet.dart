@@ -167,6 +167,7 @@ class _BloodGlucoseEditSheetState extends State<_BloodGlucoseEditSheet> {
             RecordedByNote(
               recordedBy: widget.reading.recordedBy,
               currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.reading.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             BloodGlucoseReadingForm(

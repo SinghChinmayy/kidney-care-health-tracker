@@ -1,10 +1,11 @@
 import 'package:app/data/repositories/active_patient_notifier.dart';
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
+import 'package:app/data/repositories/sharing_repository.dart';
 import 'package:app/domain/models/accessible_patient.dart';
 import 'package:app/domain/models/patient.dart';
+import 'package:app/domain/models/patient_member.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Patient list, active-patient switching and patient creation.
 class PatientsViewModel extends ChangeNotifier {
@@ -12,9 +13,11 @@ class PatientsViewModel extends ChangeNotifier {
     required AuthRepository authRepository,
     required PatientRepository patientRepository,
     ActivePatientNotifier? activePatientNotifier,
+    SharingRepository? sharingRepository,
   })  : _authRepository = authRepository,
         _patientRepository = patientRepository,
-        _notifier = activePatientNotifier {
+        _notifier = activePatientNotifier,
+        _sharing = sharingRepository {
     _notifier?.addListener(_onActivePatientChanged);
     refresh();
   }
@@ -22,6 +25,48 @@ class PatientsViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
   final ActivePatientNotifier? _notifier;
+  final SharingRepository? _sharing;
+
+  String? _myUsername;
+  bool _usernameLoaded = false;
+
+  /// The signed-in user's sharing handle (null until set or loaded).
+  String? get myUsername => _myUsername;
+  bool get usernameLoaded => _usernameLoaded;
+
+  /// Best-effort fetch; offline just leaves [usernameLoaded] false.
+  Future<void> loadMyUsername() async {
+    final sharing = _sharing;
+    if (sharing == null) {
+      return;
+    }
+    try {
+      _myUsername = await sharing.getMyUsername();
+      _usernameLoaded = true;
+      _notify();
+    } catch (_) {
+      // Shown as "unavailable offline" by the UI.
+    }
+  }
+
+  /// Returns an error message, or null on success.
+  Future<String?> setMyUsername(String username) async {
+    final sharing = _sharing;
+    if (sharing == null) {
+      return 'Not available.';
+    }
+    try {
+      await sharing.setMyUsername(username);
+      _myUsername = normalizeUsername(username);
+      _usernameLoaded = true;
+      _notify();
+      return null;
+    } on SharingException catch (error) {
+      return error.message;
+    } catch (_) {
+      return 'Something went wrong. Check your connection and try again.';
+    }
+  }
 
   List<AccessiblePatient> _patients = const [];
   String? _activePatientId;
@@ -103,7 +148,7 @@ class PatientsViewModel extends ChangeNotifier {
         await refresh();
       }
       return patient;
-    } on PostgrestException catch (error) {
+    } on SharingException catch (error) {
       _errorMessage = error.message;
       return null;
     } catch (_) {

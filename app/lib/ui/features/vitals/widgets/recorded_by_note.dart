@@ -1,5 +1,7 @@
+import 'package:app/data/repositories/sharing_repository.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 /// "Logged by …" attribution line shown on reading detail/edit sheets.
 class RecordedByNote extends StatelessWidget {
@@ -8,6 +10,7 @@ class RecordedByNote extends StatelessWidget {
     required this.recordedBy,
     required this.currentUserId,
     this.memberName,
+    this.patientId,
   });
 
   /// auth user id stored on the row (server-set `recorded_by`).
@@ -16,6 +19,10 @@ class RecordedByNote extends StatelessWidget {
 
   /// Display name for [recordedBy] when it is another member, if known.
   final String? memberName;
+
+  /// When set (and [memberName] is not), another member's @username is
+  /// looked up via [SharingRepository] (best effort; online only).
+  final String? patientId;
 
   static String? labelFor({
     required String? recordedBy,
@@ -33,11 +40,36 @@ class RecordedByNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = labelFor(
-      recordedBy: recordedBy,
-      currentUserId: currentUserId,
-      memberName: memberName,
+    final author = recordedBy;
+    final sharing = context.read<SharingRepository?>();
+    if (author != null &&
+        author != currentUserId &&
+        memberName == null &&
+        patientId != null &&
+        sharing != null) {
+      return FutureBuilder<String?>(
+        future: sharing.memberHandle(patientId!, author),
+        builder: (context, snapshot) => _line(
+          context,
+          labelFor(
+            recordedBy: author,
+            currentUserId: currentUserId,
+            memberName: snapshot.data,
+          ),
+        ),
+      );
+    }
+    return _line(
+      context,
+      labelFor(
+        recordedBy: recordedBy,
+        currentUserId: currentUserId,
+        memberName: memberName,
+      ),
     );
+  }
+
+  Widget _line(BuildContext context, String? label) {
     if (label == null) {
       return const SizedBox.shrink();
     }

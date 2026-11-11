@@ -164,6 +164,7 @@ class _FluidIntakeEditSheetState extends State<_FluidIntakeEditSheet> {
             RecordedByNote(
               recordedBy: widget.log.recordedBy,
               currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.log.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             FluidIntakeReadingForm(

@@ -201,6 +201,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
             RecordedByNote(
               recordedBy: widget.reading.recordedBy,
               currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.reading.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             BloodPressureReadingForm(

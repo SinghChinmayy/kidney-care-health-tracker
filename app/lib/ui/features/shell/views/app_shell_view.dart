@@ -38,7 +38,9 @@ class _AppShellViewState extends State<AppShellView> {
     _activePatient = context.read<ActivePatientNotifier>()
       ..addListener(_onActivePatientChanged);
     // View models outlive sign-in; load the signed-in user's patients.
-    context.read<PatientsViewModel>().refresh();
+    final patients = context.read<PatientsViewModel>();
+    patients.refresh();
+    patients.loadMyUsername();
   }
 
   @override

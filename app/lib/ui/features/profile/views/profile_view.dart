@@ -12,6 +12,8 @@ import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:app/ui/features/onboarding/views/patient_signup_view.dart';
 import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
 import 'package:app/ui/features/patients/views/manage_patients_view.dart';
+import 'package:app/ui/features/patients/views/patient_access_view.dart';
+import 'package:app/ui/features/patients/widgets/username_sheet.dart';
 import 'package:app/ui/features/patients/widgets/patient_switcher_sheet.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
@@ -174,6 +176,36 @@ class _ProfileViewState extends State<ProfileView> {
     }
     final saved = await viewModel.updateSex(selected);
     _showSaveFeedback(saved, viewModel);
+  }
+
+  String _usernameLabel(BuildContext context) {
+    final patients = context.watch<PatientsViewModel>();
+    if (!patients.usernameLoaded) {
+      return '—';
+    }
+    final username = patients.myUsername;
+    return username == null ? 'Not set' : '@$username';
+  }
+
+  Future<void> _editUsername(BuildContext context) async {
+    final patients = context.read<PatientsViewModel>();
+    await showUsernameSheet(
+      context,
+      initial: patients.myUsername,
+      save: patients.setMyUsername,
+    );
+  }
+
+  void _openAccess(BuildContext context) {
+    final active = context.read<PatientsViewModel>().activePatient;
+    if (active == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PatientAccessView(patient: active),
+      ),
+    );
   }
 
   String _viewingLabel(BuildContext context, ProfileViewModel viewModel) {
@@ -358,6 +390,18 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Viewing',
                         value: _viewingLabel(context, viewModel),
                         onTap: () => showPatientSwitcherSheet(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.manage_accounts_outlined,
+                        label: 'Sharing & access',
+                        value: '',
+                        onTap: () => _openAccess(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.alternate_email,
+                        label: 'Your username',
+                        value: _usernameLabel(context),
+                        onTap: () => _editUsername(context),
                       ),
                       _ProfileDetailRow(
                         icon: Icons.group_outlined,
