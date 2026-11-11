@@ -43,18 +43,11 @@ class FluidIntakeDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> updateLog(FluidIntakeLog log, {required bool isDirty}) {
-    return update(fluidIntakeLogs).replace(
-      FluidIntakeRow(
-        id: log.id,
-        patientId: log.patientId ?? '',
-        recordedAt: log.recordedAt,
-        fluidMl: log.fluidMl,
-        source: log.source,
-        notes: log.notes,
-        createdAt: log.createdAt ?? DateTime.now().toUtc(),
-        updatedAt: log.updatedAt ?? DateTime.now().toUtc(),
-        deletedAt: log.deletedAt,
-        isDirty: isDirty,
+    // recordedBy is attribution set at insert (server-authoritative), so
+    // local edits never overwrite it.
+    return (update(fluidIntakeLogs)..where((t) => t.id.equals(log.id))).write(
+      log.toCompanion(isDirty: isDirty).copyWith(
+        recordedBy: const Value.absent(),
       ),
     );
   }
@@ -82,6 +75,7 @@ class FluidIntakeDao extends DatabaseAccessor<AppDatabase>
         recordedAt: Value(row.recordedAt),
         fluidMl: Value(row.fluidMl),
         source: Value(row.source),
+        recordedBy: Value(row.recordedBy),
         notes: Value(row.notes),
         createdAt: Value(row.createdAt),
         updatedAt: Value(row.updatedAt),

@@ -53,19 +53,11 @@ class BloodGlucoseDao extends DatabaseAccessor<AppDatabase>
     BloodGlucoseReading reading, {
     required bool isDirty,
   }) {
-    return update(bloodGlucoseReadings).replace(
-      BloodGlucoseRow(
-        id: reading.id,
-        patientId: reading.patientId ?? '',
-        recordedAt: reading.recordedAt,
-        valueMgDl: reading.valueMgDl,
-        context: reading.context,
-        source: reading.source,
-        notes: reading.notes,
-        createdAt: reading.createdAt ?? DateTime.now().toUtc(),
-        updatedAt: reading.updatedAt ?? DateTime.now().toUtc(),
-        deletedAt: reading.deletedAt,
-        isDirty: isDirty,
+    // recordedBy is attribution set at insert (server-authoritative), so
+    // local edits never overwrite it.
+    return (update(bloodGlucoseReadings)..where((t) => t.id.equals(reading.id))).write(
+      reading.toCompanion(isDirty: isDirty).copyWith(
+        recordedBy: const Value.absent(),
       ),
     );
   }
@@ -94,6 +86,7 @@ class BloodGlucoseDao extends DatabaseAccessor<AppDatabase>
         valueMgDl: Value(row.valueMgDl),
         context: Value(row.context),
         source: Value(row.source),
+        recordedBy: Value(row.recordedBy),
         notes: Value(row.notes),
         createdAt: Value(row.createdAt),
         updatedAt: Value(row.updatedAt),

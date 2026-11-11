@@ -377,8 +377,15 @@ class HomeViewModel extends ChangeNotifier {
     final Future<List<Object?>>? profileFuture = authUserId == null
         ? null
         : Future.wait([
-            _patientRepository.getPatientForAuthUser(authUserId),
-            _patientRepository.getOrCreatePreferencesForAuthUser(authUserId),
+            _patientRepository.getActivePatient(authUserId),
+            _patientRepository.getActivePatient(authUserId).then(
+                  (patient) => patient == null
+                      ? null
+                      : _patientRepository.getOrCreatePreferencesForPatient(
+                          patient.id,
+                          authUserId: authUserId,
+                        ),
+                ),
             _scheduleRepository.getForCurrentPatient(),
           ]);
 

@@ -15,6 +15,7 @@ extension PatientRowMapper on PatientRow {
       dialysisType: dialysisType,
       dialysisDaysOfWeek: dialysisDaysOfWeek,
       heightCm: heightCm,
+      bloodGroup: bloodGroup,
       createdAt: createdAt,
       updatedAt: updatedAt,
       deletedAt: deletedAt,
@@ -27,7 +28,7 @@ extension PatientDomainMapper on Patient {
     final now = DateTime.now().toUtc();
     return PatientsCompanion.insert(
       id: id,
-      authUserId: authUserId,
+      authUserId: Value(authUserId),
       firstName: Value(firstName),
       lastName: Value(lastName),
       dateOfBirth: Value(dateOfBirth),
@@ -36,6 +37,7 @@ extension PatientDomainMapper on Patient {
       dialysisType: Value(dialysisType),
       dialysisDaysOfWeek: Value(dialysisDaysOfWeek),
       heightCm: Value(heightCm),
+      bloodGroup: Value(bloodGroup),
       createdAt: createdAt ?? now,
       updatedAt: updatedAt ?? now,
       deletedAt: Value(deletedAt),

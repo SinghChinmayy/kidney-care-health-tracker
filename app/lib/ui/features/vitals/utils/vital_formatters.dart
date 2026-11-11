@@ -1,3 +1,4 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/weight_reading_options.dart';
 
 const _shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -258,4 +259,56 @@ Map<DateTime, List<T>> groupReadingsByWeekStart<T>(
     ..sort((a, b) => b.compareTo(a));
 
   return {for (final key in sortedKeys) key: grouped[key]!};
+}
+
+String formatBpArmLabel(String arm) {
+  return switch (arm) {
+    bpArmLeft => 'Left arm',
+    bpArmRight => 'Right arm',
+    _ => arm.replaceAll('_', ' '),
+  };
+}
+
+String formatBpPostureLabel(String posture) {
+  return switch (posture) {
+    bpPostureSitting => 'Sitting',
+    bpPostureStanding => 'Standing',
+    bpPostureLying => 'Lying down',
+    _ => posture.replaceAll('_', ' '),
+  };
+}
+
+String formatBpDialysisPhaseLabel(String phase) {
+  return switch (phase) {
+    bpDialysisPhasePre => 'Before dialysis',
+    bpDialysisPhasePost => 'After dialysis',
+    _ => phase.replaceAll('_', ' '),
+  };
+}
+
+/// Human labels for whatever context was recorded, in display order.
+List<String> formatBloodPressureContextLabels(BloodPressureContext context) {
+  final labels = <String>[];
+  final arm = context.arm;
+  if (arm != null) {
+    labels.add(formatBpArmLabel(arm));
+  }
+  final posture = context.posture;
+  if (posture != null) {
+    labels.add(formatBpPostureLabel(posture));
+  }
+  final phase = context.dialysisPhase;
+  if (context.isDialysisDay == true) {
+    labels.add(
+      phase != null ? formatBpDialysisPhaseLabel(phase) : 'Dialysis day',
+    );
+  } else if (context.isDialysisDay == false) {
+    labels.add('Non-dialysis day');
+  }
+  return labels;
+}
+
+String? formatBloodPressureContextSummary(BloodPressureContext context) {
+  final labels = formatBloodPressureContextLabels(context);
+  return labels.isEmpty ? null : labels.join(' · ');
 }

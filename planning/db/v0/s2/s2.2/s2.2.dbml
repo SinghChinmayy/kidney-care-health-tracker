@@ -1,0 +1,45 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / s2 / s2.2 (blood group, recorded_by, glucose context)
+// Generated: 2026-11-12
+// Engine: Postgres (Supabase)
+
+Enum blood_group {
+  "A+"
+  "A-"
+  "B+"
+  "B-"
+  "AB+"
+  "AB-"
+  "O+"
+  "O-"
+}
+
+Table patients {
+  id uuid [pk]
+  blood_group blood_group [null, note: 'CHECK on the 8 ABO/Rh values']
+}
+
+Table blood_pressure_readings {
+  id uuid [pk]
+  recorded_by uuid [null, note: 'auth.users(id) on delete set null; trigger-set']
+}
+
+Table blood_glucose_readings {
+  id uuid [pk]
+  context text [note: 'fasting | before_meal | post_meal | random | bedtime (app-validated)']
+  recorded_by uuid [null, note: 'auth.users(id) on delete set null; trigger-set']
+}
+
+Table weight_readings {
+  id uuid [pk]
+  recorded_by uuid [null, note: 'auth.users(id) on delete set null; trigger-set']
+}
+
+Table fluid_intake_logs {
+  id uuid [pk]
+  recorded_by uuid [null, note: 'auth.users(id) on delete set null; trigger-set']
+}
+
+// Trigger private.set_recorded_by() BEFORE INSERT OR UPDATE on the 4 log tables:
+//   INSERT: recorded_by := auth.uid() when a JWT is present (client value ignored)
+//   UPDATE: recorded_by := OLD.recorded_by (immutable)

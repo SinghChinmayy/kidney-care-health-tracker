@@ -1,6 +1,7 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/ui/features/vitals/models/blood_pressure_period.dart';
@@ -275,5 +276,44 @@ void main() {
       expect(vm.periodStdDevSystolic, closeTo(8.165, 0.01));
       expect(vm.periodStdDevDiastolic, closeTo(8.165, 0.01));
     });
+  });
+
+  test('addReading and updateReading persist measurement context', () async {
+    final viewModel = BloodPressureViewModel(vitalsRepository: repo);
+    await viewModel.addReading(
+      systolic: 128,
+      diastolic: 84,
+      context: const BloodPressureContext(
+        arm: bpArmLeft,
+        posture: bpPostureSitting,
+        isDialysisDay: false,
+        dialysisPhase: bpDialysisPhasePre,
+      ),
+    );
+
+    var stored = (await repo.getBloodPressureReadings()).single;
+    expect(stored.context.arm, bpArmLeft);
+    expect(stored.context.posture, bpPostureSitting);
+    expect(stored.context.isDialysisDay, isFalse);
+    expect(stored.context.dialysisPhase, isNull,
+        reason: 'phase is dropped on non-dialysis days');
+
+    await viewModel.updateReading(
+      existing: stored,
+      systolic: 128,
+      diastolic: 84,
+      recordedAt: stored.recordedAt,
+      context: const BloodPressureContext(
+        isDialysisDay: true,
+        dialysisPhase: bpDialysisPhasePost,
+      ),
+    );
+
+    stored = (await repo.getBloodPressureReadings()).single;
+    expect(stored.context.arm, isNull);
+    expect(stored.context.dialysisPhase, bpDialysisPhasePost);
+
+    final dirty = await db.bloodPressureDao.getDirtyRows();
+    expect(dirty.single.dialysisPhase, bpDialysisPhasePost);
   });
 }

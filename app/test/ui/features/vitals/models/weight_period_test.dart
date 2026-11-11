@@ -1,4 +1,5 @@
 import 'package:app/domain/models/weight_reading.dart';
+import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:app/ui/features/vitals/models/weight_period.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -41,7 +42,7 @@ void main() {
   });
 
   group('weightChartDays', () {
-    test('buckets latest reading per local day', () {
+    test('buckets latest non-post per day into weightKg', () {
       final days = weightChartDays(
         readings: [
           WeightReading(
@@ -65,10 +66,43 @@ void main() {
       );
 
       expect(days, hasLength(3));
-      expect(days[0].valueKg, 72);
+      expect(days[0].weightKg, 72);
+      expect(days[0].dryWeightKg, isNull);
       expect(days[0].axisLabel, 'W');
-      expect(days[1].valueKg, 72.5);
-      expect(days[2].valueKg, isNull);
+      expect(days[1].weightKg, 72.5);
+      expect(days[2].weightKg, isNull);
+    });
+
+    test('splits post-dialysis into dryWeightKg and keeps both on same day',
+        () {
+      final days = weightChartDays(
+        readings: [
+          WeightReading(
+            id: 'post',
+            recordedAt: DateTime(2026, 7, 8, 14),
+            valueKg: 70,
+            dialysisTiming: dialysisTimingPostDialysis,
+          ),
+          WeightReading(
+            id: 'pre',
+            recordedAt: DateTime(2026, 7, 8, 8),
+            valueKg: 72.5,
+            dialysisTiming: dialysisTimingPreDialysis,
+          ),
+          WeightReading(
+            id: 'later-post',
+            recordedAt: DateTime(2026, 7, 8, 16),
+            valueKg: 69.5,
+            dialysisTiming: dialysisTimingPostDialysis,
+          ),
+        ],
+        start: DateTime(2026, 7, 8),
+        end: DateTime(2026, 7, 8),
+      );
+
+      expect(days, hasLength(1));
+      expect(days[0].weightKg, 72.5);
+      expect(days[0].dryWeightKg, 69.5);
     });
 
     test('uses day-of-month labels for ranges longer than 7 days', () {

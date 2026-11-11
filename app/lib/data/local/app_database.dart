@@ -4,6 +4,7 @@ import 'package:app/data/local/daos/blood_glucose_dao.dart';
 import 'package:app/data/local/daos/blood_pressure_dao.dart';
 import 'package:app/data/local/daos/fluid_intake_dao.dart';
 import 'package:app/data/local/daos/medications_dao.dart';
+import 'package:app/data/local/daos/patient_access_dao.dart';
 import 'package:app/data/local/daos/patient_medication_schedule_dao.dart';
 import 'package:app/data/local/daos/patient_preferences_dao.dart';
 import 'package:app/data/local/daos/patients_dao.dart';
@@ -12,8 +13,10 @@ import 'package:app/data/local/daos/weight_dao.dart';
 import 'package:app/data/local/tables/blood_glucose_readings.dart';
 import 'package:app/data/local/tables/blood_pressure_readings.dart';
 import 'package:app/data/local/tables/fluid_intake_logs.dart';
+import 'package:app/data/local/tables/local_settings.dart';
 import 'package:app/data/local/tables/medications.dart';
 import 'package:app/data/local/tables/patient_medication_schedules.dart';
+import 'package:app/data/local/tables/patient_memberships.dart';
 import 'package:app/data/local/tables/patient_preferences.dart';
 import 'package:app/data/local/tables/patients.dart';
 import 'package:app/data/local/tables/sync_state.dart';
@@ -27,6 +30,7 @@ export 'package:app/data/local/daos/blood_glucose_dao.dart';
 export 'package:app/data/local/daos/blood_pressure_dao.dart';
 export 'package:app/data/local/daos/fluid_intake_dao.dart';
 export 'package:app/data/local/daos/medications_dao.dart';
+export 'package:app/data/local/daos/patient_access_dao.dart';
 export 'package:app/data/local/daos/patient_medication_schedule_dao.dart';
 export 'package:app/data/local/daos/patient_preferences_dao.dart';
 export 'package:app/data/local/daos/patients_dao.dart';
@@ -45,6 +49,8 @@ part 'app_database.g.dart';
     FluidIntakeLogs,
     Medications,
     PatientMedicationSchedules,
+    PatientMemberships,
+    LocalSettings,
     SyncState,
   ],
   daos: [
@@ -56,6 +62,7 @@ part 'app_database.g.dart';
     FluidIntakeDao,
     MedicationsDao,
     PatientMedicationScheduleDao,
+    PatientAccessDao,
     SyncStateDao,
   ],
 )
@@ -65,7 +72,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,6 +109,54 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             await migrator.createTable(patientMedicationSchedules);
           }
+          if (from < 8) {
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.arm,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.posture,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.isDialysisDay,
+            );
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.dialysisPhase,
+            );
+          }
+          if (from < 9) {
+            await migrator.addColumn(patients, patients.bloodGroup);
+            await migrator.addColumn(
+              bloodPressureReadings,
+              bloodPressureReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              bloodGlucoseReadings,
+              bloodGlucoseReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              weightReadings,
+              weightReadings.recordedBy,
+            );
+            await migrator.addColumn(
+              fluidIntakeLogs,
+              fluidIntakeLogs.recordedBy,
+            );
+          }
+          if (from < 10) {
+            // Multi-patient (s2.3): auth_user_id becomes nullable, which
+            // SQLite can only do by rebuilding the table. Foreign keys are
+            // not enforced on this connection, so child rows are untouched.
+            await migrator.alterTable(TableMigration(patients));
+            await migrator.createTable(patientMemberships);
+            await migrator.createTable(localSettings);
+            // Pull cursors become per patient ('table:patientId'); drop the
+            // old per-table cursors so every patient gets one full pull.
+            await delete(syncState).go();
+          }
         },
       );
 
@@ -119,6 +174,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(patientMedicationSchedules).go();
       await delete(patientPrefs).go();
       await delete(patients).go();
+      await delete(patientMemberships).go();
+      await delete(localSettings).go();
       await delete(syncState).go();
     });
   }
@@ -164,6 +221,7 @@ class AppDatabase extends _$AppDatabase {
           dialysisType: localRow.dialysisType,
           dialysisDaysOfWeek: localRow.dialysisDaysOfWeek,
           heightCm: localRow.heightCm,
+          bloodGroup: localRow.bloodGroup,
           createdAt: localRow.createdAt,
           updatedAt: localRow.updatedAt,
           deletedAt: localRow.deletedAt,
@@ -172,6 +230,65 @@ class AppDatabase extends _$AppDatabase {
         isDirty: localRow.isDirty,
       );
     });
+  }
+
+  /// Removes every cached row for [patientId] (revoked access, or a
+  /// read-only patient whose unsynced local edits must be discarded).
+  ///
+  /// With [keepMembership] the patient stays in scope so the next pull
+  /// restores a clean server copy.
+  Future<void> evictPatient(
+    String patientId, {
+    bool keepMembership = false,
+  }) async {
+    await transaction(() async {
+      await (delete(bloodPressureReadings)
+            ..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(bloodGlucoseReadings)
+            ..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(weightReadings)
+            ..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(fluidIntakeLogs)
+            ..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(patientPrefs)..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(patientMedicationSchedules)
+            ..where((t) => t.patientId.equals(patientId)))
+          .go();
+      await (delete(patients)..where((t) => t.id.equals(patientId))).go();
+      await (delete(syncState)
+            ..where((t) => t.tableKey.like('%:$patientId')))
+          .go();
+      if (!keepMembership) {
+        await patientAccessDao.deleteMembership(patientId);
+        final active =
+            await patientAccessDao.getSetting(activePatientSettingKey);
+        if (active == patientId) {
+          await patientAccessDao.setSetting(activePatientSettingKey, null);
+        }
+      }
+    });
+  }
+
+  /// True when [patientId] has local rows waiting to be pushed.
+  Future<bool> hasDirtyRowsForPatient(String patientId) async {
+    final row = await customSelect(
+      'SELECT 1 FROM ('
+      ' SELECT patient_id FROM blood_pressure_readings WHERE is_dirty = 1'
+      ' UNION ALL SELECT patient_id FROM blood_glucose_readings WHERE is_dirty = 1'
+      ' UNION ALL SELECT patient_id FROM weight_readings WHERE is_dirty = 1'
+      ' UNION ALL SELECT patient_id FROM fluid_intake_logs WHERE is_dirty = 1'
+      ' UNION ALL SELECT patient_id FROM patient_prefs WHERE is_dirty = 1'
+      ' UNION ALL SELECT patient_id FROM patient_medication_schedules WHERE is_dirty = 1'
+      ' UNION ALL SELECT id AS patient_id FROM patients WHERE is_dirty = 1'
+      ') WHERE patient_id = ? LIMIT 1',
+      variables: [Variable.withString(patientId)],
+    ).getSingleOrNull();
+    return row != null;
   }
 
   Future<String?> patientIdForAuthUser(String authUserId) async {

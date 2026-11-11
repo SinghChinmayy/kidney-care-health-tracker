@@ -25,10 +25,11 @@ These are debug/sample captures of the current Flutter UI. Values shown are synt
 
 Implemented today:
 
-- Email/password sign-in, sign-up, session-driven auth routing, sign-out, and local data wipe on sign-out through Supabase Auth.
+- Email/password and native Google (Android) sign-in, sign-up, session-driven auth routing, sign-out, and local data wipe on sign-out through Supabase Auth.
+- Multiple patients per account and sharing by username with owner / caregiver / viewer roles, enforced by RLS through `patient_access`.
 - Patient onboarding/profile editing, CKD stage, dialysis type/days, height, unit preferences, and daily water goal.
 - Local SQLite persistence through Drift for patient data, blood pressure, glucose, weight, fluid intake, medication catalog, medication schedules, and sync state.
-- Add, edit, delete, recent-history, summaries, and charts for blood pressure, glucose, weight, and fluid intake. Deletes are soft deletes locally and remotely.
+- Add, edit, delete, recent-history, summaries, and charts for blood pressure (with arm/posture/dialysis context), glucose, weight, and fluid intake. Deletes are soft deletes locally and remotely. Readings record who logged them.
 - Medication catalog seeded locally plus per-dialysis-day medication schedules.
 - Bidirectional push/pull synchronization for `patients`, `patient_preferences`, `blood_pressure_readings`, `blood_glucose_readings`, `weight_readings`, `fluid_intake_logs`, and `patient_medication_schedules`.
 - Supabase migrations with Postgres constraints, server-side `updated_at` triggers, signup bootstrap triggers, indexes, grants, and patient-scoped RLS policies.
@@ -36,16 +37,16 @@ Implemented today:
 
 Partial or known-broken today:
 
-- `flutter analyze` reports 52 informational lint issues and exits non-zero.
-- `flutter test` runs 156 tests but currently has 5 failures. See [Testing and operations](docs/testing-and-operations.md).
-- Sync is foreground-only. It runs at startup/resume, after local writes with a two-second debounce, and after connectivity restoration; it has no native background worker, sync-status UI, or dedicated exponential backoff loop.
-- Login UI exposes Google sign-in, guest login, and password reset as placeholders. Caretaker linking is UI-only.
+- `flutter analyze` reports 57 informational lint issues (no errors or warnings) and exits non-zero.
+- `flutter test` runs 219 tests; 4 date-dependent "N more readings" widget tests fail. See [Testing and operations](docs/testing-and-operations.md).
+- Sync is foreground-only. It runs at startup/resume, after local writes with a two-second debounce, after connectivity restoration, and every 45 seconds while open, with an offline/error banner; it has no native background worker.
+- Login UI exposes guest login and password reset as placeholders. The caretaker signup screen is still UI-only (caregivers use a normal account and are added by username).
 
 Planned or deferred:
 
-- Caretaker/patient access model and invite/linking flow.
-- Google/guest authentication and password reset.
-- Native background synchronization, visible sync status, retry/backoff, and broader operational telemetry.
+- Email invitations for sharing (today the other person needs an account and username).
+- Guest authentication and password reset; Google sign-in on iOS.
+- Native background synchronization and broader operational telemetry.
 - Additional clinical domains from the planning documents, such as labs, symptoms, appointments, dialysis sessions, documents, and reminders.
 
 This is not presented as a production medical system or as evidence of production traffic, compliance certification, measured scale, or clinical validation.
@@ -66,7 +67,7 @@ Flutter UI
   -> debounced SyncCoordinator
   -> registry-driven SyncEngine
   -> Supabase Auth + PostgREST/Postgres
-       -> RLS scopes rows through auth.uid() and patients.auth_user_id
+       -> RLS scopes rows through private.has_patient_access(patient_id, role)
 ```
 
 </details>
@@ -103,10 +104,11 @@ cp dart_defines/dev.example.json dart_defines/dev.json
 flutter run --dart-define-from-file=dart_defines/dev.json
 ```
 
-The app reads only these build-time variables:
+The app reads these build-time variables:
 
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
+- `GOOGLE_WEB_CLIENT_ID` (optional; enables native Google sign-in on Android — see [Google sign-in](docs/google-sign-in.md))
 
 Do not commit `dart_defines/dev.json`, service-role keys, database passwords, JWT signing keys, or real patient data. The example file contains placeholders only.
 
@@ -120,6 +122,8 @@ From `app/`:
 flutter analyze
 flutter test
 ```
+
+Database RLS tests (pgTAP) run against a **local** Supabase stack from the repo root: `supabase start`, `supabase db reset`, `supabase test db`.
 
 The current results are recorded in [Testing and operations](docs/testing-and-operations.md). Tests use `NativeDatabase.memory()` for Drift and fake/in-memory Supabase auth storage where needed; they do not prove that a real remote Supabase project has been deployed or that device builds work on every platform.
 
@@ -135,8 +139,8 @@ The highest-value next steps are:
 
 1. Fix the five failing tests and add regression coverage for the period/list grouping rules.
 2. Make analysis clean, starting with the current 52 informational issues and the test-only dependency warning.
-3. Add observable sync state and durable retry/backoff, then exercise offline/reconnect flows against a local Supabase stack.
-4. Design caregiver authorization before implementing caretaker linking; current RLS is patient-owner-only.
+3. Exercise offline/reconnect and multi-device sharing flows end to end on devices.
+4. Add sharing invitations and an audit trail for access changes.
 5. Add CI that runs `flutter analyze`, `flutter test`, and migration validation on every change.
 
 UI decisions and history remain in [docs/Design/design.md](docs/Design/design.md); it is a design reference, not a claim that every older mock-screen note is still current.

@@ -51,19 +51,11 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
     BloodPressureReading reading, {
     required bool isDirty,
   }) {
-    return update(bloodPressureReadings).replace(
-      BloodPressureRow(
-        id: reading.id,
-        patientId: reading.patientId ?? '',
-        recordedAt: reading.recordedAt,
-        systolic: reading.systolic,
-        diastolic: reading.diastolic,
-        heartRateBpm: reading.heartRateBpm,
-        notes: reading.notes,
-        createdAt: reading.createdAt ?? DateTime.now().toUtc(),
-        updatedAt: reading.updatedAt ?? DateTime.now().toUtc(),
-        deletedAt: reading.deletedAt,
-        isDirty: isDirty,
+    // recordedBy is attribution set at insert (server-authoritative), so
+    // local edits never overwrite it.
+    return (update(bloodPressureReadings)..where((t) => t.id.equals(reading.id))).write(
+      reading.toCompanion(isDirty: isDirty).copyWith(
+        recordedBy: const Value.absent(),
       ),
     );
   }
@@ -92,6 +84,11 @@ class BloodPressureDao extends DatabaseAccessor<AppDatabase>
         systolic: Value(row.systolic),
         diastolic: Value(row.diastolic),
         heartRateBpm: Value(row.heartRateBpm),
+        arm: Value(row.arm),
+        posture: Value(row.posture),
+        isDialysisDay: Value(row.isDialysisDay),
+        dialysisPhase: Value(row.dialysisPhase),
+        recordedBy: Value(row.recordedBy),
         notes: Value(row.notes),
         createdAt: Value(row.createdAt),
         updatedAt: Value(row.updatedAt),

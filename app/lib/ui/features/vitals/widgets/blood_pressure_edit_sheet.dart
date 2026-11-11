@@ -1,9 +1,11 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/view_models/blood_pressure_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_log_type_picker.dart';
 import 'package:app/ui/features/vitals/widgets/blood_pressure_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/vital_save_confirmation.dart';
+import 'package:app/ui/features/vitals/widgets/recorded_by_note.dart';
 import 'package:flutter/material.dart';
 
 const _defaultSystolic = 120;
@@ -51,6 +53,10 @@ Future<void> showBloodPressureEditSheet(
   required BloodPressureReading reading,
   required BloodPressureViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -90,6 +96,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
   late int _diastolic;
   late int _heartRateBpm;
   late DateTime _recordedAt;
+  late BloodPressureContext _context;
   bool _isSaving = false;
   bool _isDeleting = false;
 
@@ -104,6 +111,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
     _diastolic = reading.diastolic ?? _defaultDiastolic;
     _heartRateBpm = reading.heartRateBpm ?? _defaultHeartRate;
     _recordedAt = reading.recordedAt.toLocal();
+    _context = reading.context;
   }
 
   Future<void> _save() async {
@@ -121,6 +129,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
         systolic: systolic,
         diastolic: diastolic,
         heartRateBpm: heartRate,
+        context: _context,
         recordedAt: _recordedAt,
         notes: widget.reading.notes,
       );
@@ -189,6 +198,11 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
                     fontWeight: FontWeight.w700,
                   ),
             ),
+            RecordedByNote(
+              recordedBy: widget.reading.recordedBy,
+              currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.reading.patientId,
+            ),
             const SizedBox(height: AppTheme.spacingSm),
             BloodPressureReadingForm(
               logType: _logType,
@@ -196,6 +210,7 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
               diastolic: _diastolic,
               heartRateBpm: _heartRateBpm,
               recordedAt: _recordedAt,
+              measurementContext: _context,
               onLogTypeChanged: (value) => setState(() => _logType = value),
               onSystolicChanged: (value) => setState(() => _systolic = value),
               onDiastolicChanged: (value) => setState(() => _diastolic = value),
@@ -203,6 +218,8 @@ class _BloodPressureEditSheetState extends State<_BloodPressureEditSheet> {
                   setState(() => _heartRateBpm = value),
               onRecordedAtChanged: (value) =>
                   setState(() => _recordedAt = value),
+              onMeasurementContextChanged: (value) =>
+                  setState(() => _context = value),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             ElevatedButton(

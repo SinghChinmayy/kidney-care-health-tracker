@@ -1,3 +1,5 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
+
 class BloodPressureReading {
   const BloodPressureReading({
     required this.id,
@@ -6,6 +8,8 @@ class BloodPressureReading {
     this.systolic,
     this.diastolic,
     this.heartRateBpm,
+    this.context = BloodPressureContext.empty,
+    this.recordedBy,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -18,6 +22,10 @@ class BloodPressureReading {
   final int? systolic;
   final int? diastolic;
   final int? heartRateBpm;
+  final BloodPressureContext context;
+
+  /// auth user id of whoever logged it; null = unknown.
+  final String? recordedBy;
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;

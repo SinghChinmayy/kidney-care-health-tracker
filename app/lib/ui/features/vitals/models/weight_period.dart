@@ -1,4 +1,5 @@
 import 'package:app/domain/models/weight_reading.dart';
+import 'package:app/domain/models/weight_reading_options.dart';
 
 enum WeightPeriod {
   last7Days,
@@ -10,12 +11,21 @@ class WeightChartDay {
   const WeightChartDay({
     required this.day,
     required this.axisLabel,
-    this.valueKg,
+    this.weightKg,
+    this.dryWeightKg,
   });
 
   final DateTime day;
-  final double? valueKg;
+
+  /// Latest non-post reading that day (`pre_dialysis` or `non_dialysis`).
+  final double? weightKg;
+
+  /// Latest post-dialysis (dry) reading that day.
+  final double? dryWeightKg;
+
   final String axisLabel;
+
+  bool get hasData => weightKg != null || dryWeightKg != null;
 }
 
 DateTime weightLocalDateOnly(DateTime value) {
@@ -113,16 +123,26 @@ List<WeightChartDay> weightChartDays({
   final rangeStart = weightLocalDateOnly(start);
   final rangeEnd = weightLocalDateOnly(end);
 
-  final latestByDay = <DateTime, WeightReading>{};
+  final latestWeightByDay = <DateTime, WeightReading>{};
+  final latestDryByDay = <DateTime, WeightReading>{};
   for (final reading in readings) {
     final day = weightLocalDateOnly(reading.recordedAt);
     if (day.isBefore(rangeStart) || day.isAfter(rangeEnd)) {
       continue;
     }
-    final existing = latestByDay[day];
+    if (reading.dialysisTiming == dialysisTimingPostDialysis) {
+      final existing = latestDryByDay[day];
+      if (existing == null ||
+          reading.recordedAt.isAfter(existing.recordedAt)) {
+        latestDryByDay[day] = reading;
+      }
+      continue;
+    }
+    // Non-post: pre-dialysis or non-dialysis.
+    final existing = latestWeightByDay[day];
     if (existing == null ||
         reading.recordedAt.isAfter(existing.recordedAt)) {
-      latestByDay[day] = reading;
+      latestWeightByDay[day] = reading;
     }
   }
 
@@ -137,7 +157,8 @@ List<WeightChartDay> weightChartDays({
     days.add(
       WeightChartDay(
         day: day,
-        valueKg: latestByDay[day]?.valueKg,
+        weightKg: latestWeightByDay[day]?.valueKg,
+        dryWeightKg: latestDryByDay[day]?.valueKg,
         axisLabel: axisLabel,
       ),
     );

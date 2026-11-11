@@ -8,6 +8,7 @@ import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
 import 'package:app/ui/features/vitals/views/weight_view.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 const double _journalContentMaxWidth = 600;
@@ -188,22 +189,30 @@ class _JournalViewState extends State<JournalView> {
                   AppTheme.floatingNavClearance,
                 ),
                 children: [
-                  Text(
-                    'Journal',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      0,
+                      0,
+                      0,
+                      AppTheme.spacingXs,
+                    ),
+                    child: SizedBox(
+                      height: 46,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Journal',
+                          style: GoogleFonts.inter(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.3,
+                            height: 1.2,
+                            color: const Color(0xFF1A1A1A),
+                          ),
                         ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  Text(
-                    'Dialysis prep & care plan in one place',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.muted,
-                        ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingSm),
                   Divider(
                     height: 1,
                     thickness: 1,

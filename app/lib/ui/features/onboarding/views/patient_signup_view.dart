@@ -1,3 +1,4 @@
+import 'package:app/domain/models/patient_member.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/domain/models/patient_signup_profile.dart';
 import 'package:app/theme/app_theme.dart';
@@ -24,6 +25,7 @@ class _PatientSignupViewState extends State<PatientSignupView> {
   final _dateOfBirthController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
@@ -45,6 +47,7 @@ class _PatientSignupViewState extends State<PatientSignupView> {
     _dateOfBirthController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _usernameController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
@@ -133,6 +136,23 @@ class _PatientSignupViewState extends State<PatientSignupView> {
                     },
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
+                  TextFormField(
+                    key: const ValueKey('signup-username'),
+                    controller: _usernameController,
+                    enabled: enabled,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Username (optional)',
+                      prefixText: '@',
+                      helperText: 'Lets family or carers share access with you',
+                    ),
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                            ? null
+                            : validateUsername(value),
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
                   const _SectionHeader(
                     title: 'About you',
                     subtitle: 'Basic identity details for your profile.',
@@ -382,6 +402,9 @@ class _PatientSignupViewState extends State<PatientSignupView> {
       weightUnit: _weightUnit,
       bloodGlucoseUnit: _bloodGlucoseUnit,
       dailyWaterGoalMl: _dailyWaterGoalMl,
+      username: _usernameController.text.trim().isEmpty
+          ? null
+          : normalizeUsername(_usernameController.text),
     );
 
     final viewModel = context.read<PatientSignupViewModel>();
@@ -401,6 +424,11 @@ class _PatientSignupViewState extends State<PatientSignupView> {
         showPlaceholderSnackBar(context, message);
       }
       return;
+    }
+
+    final warning = viewModel.warningMessage;
+    if (warning != null && !result.needsEmailConfirmation) {
+      showPlaceholderSnackBar(context, warning);
     }
 
     if (result.needsEmailConfirmation) {

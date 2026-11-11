@@ -3,6 +3,7 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/view_models/blood_glucose_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/vital_save_confirmation.dart';
+import 'package:app/ui/features/vitals/widgets/recorded_by_note.dart';
 import 'package:flutter/material.dart';
 
 Future<bool> confirmDeleteBloodGlucoseReading(BuildContext context) async {
@@ -34,6 +35,10 @@ Future<void> showBloodGlucoseEditSheet(
   required BloodGlucoseReading reading,
   required BloodGlucoseViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -158,6 +163,11 @@ class _BloodGlucoseEditSheetState extends State<_BloodGlucoseEditSheet> {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
+            ),
+            RecordedByNote(
+              recordedBy: widget.reading.recordedBy,
+              currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.reading.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             BloodGlucoseReadingForm(

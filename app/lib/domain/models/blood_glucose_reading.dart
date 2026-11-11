@@ -6,6 +6,7 @@ class BloodGlucoseReading {
     this.patientId,
     this.context,
     this.source = 'manual',
+    this.recordedBy,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -18,6 +19,9 @@ class BloodGlucoseReading {
   final double valueMgDl;
   final String? context;
   final String source;
+
+  /// auth user id of whoever logged it; null = unknown.
+  final String? recordedBy;
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;

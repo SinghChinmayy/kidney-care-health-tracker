@@ -1,9 +1,13 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
+import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
+import 'package:app/domain/models/fluid_intake_log.dart';
+import 'package:app/domain/models/weight_reading.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -188,5 +192,64 @@ void main() {
 
     final latest = await vitalsRepository.getLatestBloodPressure();
     expect(latest?.id, id);
+  });
+
+  test('new readings are attributed to the signed-in user and keep it on edit',
+      () async {
+    await seedPatient(db, authUserId: 'auth-user-1');
+    final at = DateTime.utc(2026, 7, 8, 9);
+
+    await vitalsRepository.addBloodPressureReading(
+      BloodPressureReading(id: 'bp-1', recordedAt: at, systolic: 120, diastolic: 80),
+    );
+    await vitalsRepository.addBloodGlucoseReading(
+      BloodGlucoseReading(id: 'bg-1', recordedAt: at, valueMgDl: 110),
+    );
+    await vitalsRepository.addWeightReading(
+      WeightReading(id: 'w-1', recordedAt: at, valueKg: 70),
+    );
+    await vitalsRepository.addFluidIntakeLog(
+      FluidIntakeLog(id: 'f-1', recordedAt: at, fluidMl: 250),
+    );
+
+    expect((await db.bloodPressureDao.getRowById('bp-1'))!.recordedBy, 'auth-user-1');
+    expect((await db.bloodGlucoseDao.getRowById('bg-1'))!.recordedBy, 'auth-user-1');
+    expect((await db.weightDao.getRowById('w-1'))!.recordedBy, 'auth-user-1');
+    expect((await db.fluidIntakeDao.getRowById('f-1'))!.recordedBy, 'auth-user-1');
+
+    // Simulate a row pulled from another member, then edited locally.
+    final pulled = (await db.bloodPressureDao.getRowById('bp-1'))!
+        .copyWith(recordedBy: const Value('auth-2'));
+    await db.bloodPressureDao.upsertRemoteRow(pulled, isDirty: false);
+    final reading = (await vitalsRepository.getBloodPressureReadings()).single;
+    await vitalsRepository.updateBloodPressureReading(
+      BloodPressureReading(
+        id: reading.id,
+        patientId: reading.patientId,
+        recordedAt: reading.recordedAt,
+        systolic: 130,
+        diastolic: 85,
+        createdAt: reading.createdAt,
+      ),
+    );
+
+    final row = (await db.bloodPressureDao.getRowById('bp-1'))!;
+    expect(row.systolic, 130);
+    expect(row.recordedBy, 'auth-2', reason: 'edits never rewrite attribution');
+    expect(row.isDirty, isTrue);
+  });
+
+  test('patient blood group persists through profile updates', () async {
+    final patient = await seedPatient(db, authUserId: 'auth-user-1');
+    await patientRepository.updateProfile(
+      Patient(
+        id: patient.id,
+        authUserId: patient.authUserId,
+        bloodGroup: 'AB-',
+        createdAt: patient.createdAt,
+      ),
+    );
+    final loaded = await patientRepository.getPatientForAuthUser('auth-user-1');
+    expect(loaded!.bloodGroup, 'AB-');
   });
 }

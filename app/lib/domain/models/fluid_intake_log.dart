@@ -5,6 +5,7 @@ class FluidIntakeLog {
     required this.fluidMl,
     this.patientId,
     this.source = 'manual',
+    this.recordedBy,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -16,6 +17,9 @@ class FluidIntakeLog {
   final DateTime recordedAt;
   final double fluidMl;
   final String source;
+
+  /// auth user id of whoever logged it; null = unknown.
+  final String? recordedBy;
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;
