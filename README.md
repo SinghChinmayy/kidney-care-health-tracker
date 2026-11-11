@@ -38,7 +38,7 @@ Implemented today:
 Partial or known-broken today:
 
 - `flutter analyze` reports 57 informational lint issues (no errors or warnings) and exits non-zero.
-- `flutter test` runs 218 tests; 4 date-dependent "N more readings" widget tests fail. See [Testing and operations](docs/testing-and-operations.md).
+- `flutter test` runs 219 tests; 4 date-dependent "N more readings" widget tests fail. See [Testing and operations](docs/testing-and-operations.md).
 - Sync is foreground-only. It runs at startup/resume, after local writes with a two-second debounce, after connectivity restoration, and every 45 seconds while open, with an offline/error banner; it has no native background worker.
 - Login UI exposes guest login and password reset as placeholders. The caretaker signup screen is still UI-only (caregivers use a normal account and are added by username).
 

@@ -13,7 +13,7 @@ flutter test
 Verification performed on 2026-11-12 with Flutter 3.44.3 and Dart 3.12.2 (v1 feature port branch):
 
 - `flutter analyze`: no errors or warnings; 57 informational issues (same count as before the port), so the command still exits 1.
-- `flutter test`: 218 tests; 214 passed, 4 failed. The failures are the pre-existing, date-dependent "shows max 3 readings per week and a N-more row" tests in the blood glucose / blood pressure / weight view tests and "tapping N-more row expands all readings for that week" in the blood pressure view test.
+- `flutter test`: 219 tests; 215 passed, 4 failed. The failures are the pre-existing, date-dependent "shows max 3 readings per week and a N-more row" tests in the blood glucose / blood pressure / weight view tests and "tapping N-more row expands all readings for that week" in the blood pressure view test.
 - `supabase test db` (pgTAP, `supabase/tests/database/`): 71 tests passed on a local stack after `supabase db reset`. They cover non-member read/write denial, self-granted ownership attempts (direct insert/update/delete on `patient_access` and the RPCs), viewer write denial, `recorded_by` spoofing, revocation, last-owner and patient-self protections, and username lookup.
 - Migrations were also applied on top of a database seeded at the previous schema (`supabase db reset --version 20260713201652`, then `supabase migration up`) to check the `patient_access` and `recorded_by` backfills.
 
