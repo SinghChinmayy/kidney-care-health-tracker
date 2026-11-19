@@ -6,15 +6,47 @@ import 'package:app/data/sync/sync_utils.dart';
 import 'package:app/data/sync/syncable_table.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Incremental pull of one patient's rows from [remoteTableName], filtered
+/// by [filterColumn] = patientId and the per-patient cursor. A patient with
+/// no cursor (new grant, or cursors reset) gets a full pull.
+Future<void> pullForPatient({
+  required AppDatabase db,
+  required SupabaseClient supabase,
+  required String tableKey,
+  required String remoteTableName,
+  required String patientId,
+  required Future<void> Function(Map<String, dynamic> remote) apply,
+  String filterColumn = 'patient_id',
+}) async {
+  final cursorKey = patientCursorKey(tableKey, patientId);
+  final lastPulledAt = await db.syncStateDao.getLastPulledAt(cursorKey);
+  var query =
+      supabase.from(remoteTableName).select().eq(filterColumn, patientId);
+  if (lastPulledAt != null) {
+    query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
+  }
+
+  final response = await query.order('updated_at');
+  final rows = List<Map<String, dynamic>>.from(response);
+  var maxUpdatedAt = lastPulledAt;
+
+  for (final remote in rows) {
+    await apply(remote);
+    final updatedAt = parseRemoteDateTime(remote['updated_at']);
+    if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
+      maxUpdatedAt = updatedAt;
+    }
+  }
+
+  if (maxUpdatedAt != lastPulledAt) {
+    await db.syncStateDao.setLastPulledAt(cursorKey, maxUpdatedAt);
+  }
+}
+
 class PatientsSync implements SyncableTable {
-  PatientsSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
+  PatientsSync({required AppDatabase db}) : _db = db;
 
   final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
 
   @override
   String get tableKey => remoteTableName;
@@ -22,64 +54,55 @@ class PatientsSync implements SyncableTable {
   @override
   String get remoteTableName => 'patients';
 
+  /// Patients are created server-side only (signup trigger or the
+  /// create_patient RPC), so a push is always an UPDATE of an existing row.
   @override
-  Future<void> push(SupabaseClient supabase) async {
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
     final dirtyRows = await _db.patientsDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
-    final payload = dirtyRows.map(patientRowToRemoteJson).toList();
-    final response = await supabase
-        .from(remoteTableName)
-        .upsert(payload, onConflict: 'id')
-        .select();
-
-    await _applyPushResult(List<Map<String, dynamic>>.from(response));
-  }
-
-  @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query = supabase.from(remoteTableName).select().eq('auth_user_id', authUserId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
+    for (final row in dirtyRows) {
+      if (!scope.canWrite(row.id)) {
+        continue;
+      }
+      final payload = patientRowToRemoteJson(row)..remove('id');
+      final response = await supabase
+          .from(remoteTableName)
+          .update(payload)
+          .eq('id', row.id)
+          .select();
+      final serverRows = List<Map<String, dynamic>>.from(response);
+      if (serverRows.isEmpty) {
+        throw StateError('Patient ${row.id} update was not applied.');
+      }
+      for (final serverRow in serverRows) {
+        await _db.patientsDao.markSynced(
+          serverRow['id'] as String,
+          parseRemoteDateTime(serverRow['updated_at']),
+        );
       }
     }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
-    }
   }
 
-  Future<void> _applyPushResult(List<Map<String, dynamic>> serverRows) async {
-    for (final serverRow in serverRows) {
-      final id = serverRow['id'] as String;
-      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-      await _db.patientsDao.markSynced(id, updatedAt);
+  @override
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
+    for (final patientId in scope.patientIds) {
+      await pullForPatient(
+        db: _db,
+        supabase: supabase,
+        tableKey: tableKey,
+        remoteTableName: remoteTableName,
+        patientId: patientId,
+        filterColumn: 'id',
+        apply: _applyPulledRow,
+      );
     }
   }
 
   Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
     final remoteRow = patientRowFromRemoteJson(remote);
-    final localByAuth =
-        await _db.patientsDao.getRowByAuthUserId(remoteRow.authUserId);
+    final authUserId = remoteRow.authUserId;
+    final localByAuth = authUserId == null
+        ? null
+        : await _db.patientsDao.getRowByAuthUserId(authUserId);
 
     if (localByAuth != null && localByAuth.id != remoteRow.id) {
       await _db.reconcilePatientId(
@@ -89,305 +112,168 @@ class PatientsSync implements SyncableTable {
     }
 
     final local = await _db.patientsDao.getRowById(remoteRow.id) ?? localByAuth;
-    if (local == null) {
-      await _db.patientsDao.upsertRemoteRow(remoteRow, isDirty: false);
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
+    if (local == null ||
+        shouldApplyRemoteUpdate(
+          remoteUpdatedAt: remoteRow.updatedAt,
+          localUpdatedAt: local.updatedAt,
+        )) {
       await _db.patientsDao.upsertRemoteRow(remoteRow, isDirty: false);
     }
   }
 }
 
-class BpSync implements SyncableTable {
-  BpSync({
+/// Shared push/pull for append-style log tables keyed by `patient_id`
+/// (BP, glucose, weight, fluid): batch upsert of dirty rows, LWW pull.
+class PatientLogTableSync<R> implements SyncableTable {
+  PatientLogTableSync({
     required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
+    required this.remoteTableName,
+    required this.getDirtyRows,
+    required this.patientIdOf,
+    required this.toRemoteJson,
+    required this.fromRemoteJson,
+    required this.idOf,
+    required this.updatedAtOf,
+    required this.getRowById,
+    required this.upsertRemoteRow,
+    required this.markSynced,
+  }) : _db = db;
 
   final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
+  final Future<List<R>> Function() getDirtyRows;
+  final String Function(R row) patientIdOf;
+  final Map<String, dynamic> Function(R row) toRemoteJson;
+  final R Function(Map<String, dynamic> json) fromRemoteJson;
+  final String Function(R row) idOf;
+  final DateTime Function(R row) updatedAtOf;
+  final Future<R?> Function(String id) getRowById;
+  final Future<void> Function(R row) upsertRemoteRow;
+  final Future<void> Function(String id, DateTime updatedAt) markSynced;
+
+  @override
+  final String remoteTableName;
 
   @override
   String get tableKey => remoteTableName;
 
   @override
-  String get remoteTableName => 'blood_pressure_readings';
-
-  @override
-  Future<void> push(SupabaseClient supabase) async {
-    final dirtyRows = await _db.bloodPressureDao.getDirtyRows();
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
+    final dirtyRows = (await getDirtyRows())
+        .where((row) => scope.canWrite(patientIdOf(row)))
+        .toList();
     if (dirtyRows.isEmpty) {
       return;
     }
 
-    final payload = dirtyRows.map(bloodPressureRowToRemoteJson).toList();
+    final payload = dirtyRows.map(toRemoteJson).toList();
     final response = await supabase
         .from(remoteTableName)
         .upsert(payload, onConflict: 'id')
         .select();
 
     for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-      final id = serverRow['id'] as String;
-      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-      await _db.bloodPressureDao.markSynced(id, updatedAt);
+      await markSynced(
+        serverRow['id'] as String,
+        parseRemoteDateTime(serverRow['updated_at']),
+      );
     }
   }
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
+    for (final patientId in scope.patientIds) {
+      await pullForPatient(
+        db: _db,
+        supabase: supabase,
+        tableKey: tableKey,
+        remoteTableName: remoteTableName,
+        patientId: patientId,
+        apply: _applyPulledRow,
+      );
     }
   }
 
   Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
-    final remoteRow = bloodPressureRowFromRemoteJson(remote);
-    final local = await _db.bloodPressureDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.bloodPressureDao.upsertRemoteRow(remoteRow, isDirty: false);
-      return;
+    final remoteRow = fromRemoteJson(remote);
+    final local = await getRowById(idOf(remoteRow));
+    if (local == null ||
+        shouldApplyRemoteUpdate(
+          remoteUpdatedAt: updatedAtOf(remoteRow),
+          localUpdatedAt: updatedAtOf(local),
+        )) {
+      await upsertRemoteRow(remoteRow);
     }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
-      await _db.bloodPressureDao.upsertRemoteRow(remoteRow, isDirty: false);
-    }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
   }
 }
 
-class GlucoseSync implements SyncableTable {
-  GlucoseSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
+PatientLogTableSync<BloodPressureRow> bloodPressureSync(AppDatabase db) =>
+    PatientLogTableSync<BloodPressureRow>(
+      db: db,
+      remoteTableName: 'blood_pressure_readings',
+      getDirtyRows: db.bloodPressureDao.getDirtyRows,
+      patientIdOf: (row) => row.patientId,
+      toRemoteJson: bloodPressureRowToRemoteJson,
+      fromRemoteJson: bloodPressureRowFromRemoteJson,
+      idOf: (row) => row.id,
+      updatedAtOf: (row) => row.updatedAt,
+      getRowById: db.bloodPressureDao.getRowById,
+      upsertRemoteRow: (row) =>
+          db.bloodPressureDao.upsertRemoteRow(row, isDirty: false),
+      markSynced: db.bloodPressureDao.markSynced,
+    );
 
-  final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
+PatientLogTableSync<BloodGlucoseRow> bloodGlucoseSync(AppDatabase db) =>
+    PatientLogTableSync<BloodGlucoseRow>(
+      db: db,
+      remoteTableName: 'blood_glucose_readings',
+      getDirtyRows: db.bloodGlucoseDao.getDirtyRows,
+      patientIdOf: (row) => row.patientId,
+      toRemoteJson: bloodGlucoseRowToRemoteJson,
+      fromRemoteJson: bloodGlucoseRowFromRemoteJson,
+      idOf: (row) => row.id,
+      updatedAtOf: (row) => row.updatedAt,
+      getRowById: db.bloodGlucoseDao.getRowById,
+      upsertRemoteRow: (row) =>
+          db.bloodGlucoseDao.upsertRemoteRow(row, isDirty: false),
+      markSynced: db.bloodGlucoseDao.markSynced,
+    );
 
-  @override
-  String get tableKey => remoteTableName;
+PatientLogTableSync<WeightRow> weightSync(AppDatabase db) =>
+    PatientLogTableSync<WeightRow>(
+      db: db,
+      remoteTableName: 'weight_readings',
+      getDirtyRows: db.weightDao.getDirtyRows,
+      patientIdOf: (row) => row.patientId,
+      toRemoteJson: weightRowToRemoteJson,
+      fromRemoteJson: weightRowFromRemoteJson,
+      idOf: (row) => row.id,
+      updatedAtOf: (row) => row.updatedAt,
+      getRowById: db.weightDao.getRowById,
+      upsertRemoteRow: (row) =>
+          db.weightDao.upsertRemoteRow(row, isDirty: false),
+      markSynced: db.weightDao.markSynced,
+    );
 
-  @override
-  String get remoteTableName => 'blood_glucose_readings';
-
-  @override
-  Future<void> push(SupabaseClient supabase) async {
-    final dirtyRows = await _db.bloodGlucoseDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
-    final payload = dirtyRows.map(bloodGlucoseRowToRemoteJson).toList();
-    final response = await supabase
-        .from(remoteTableName)
-        .upsert(payload, onConflict: 'id')
-        .select();
-
-    for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-      final id = serverRow['id'] as String;
-      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-      await _db.bloodGlucoseDao.markSynced(id, updatedAt);
-    }
-  }
-
-  @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
-    }
-  }
-
-  Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
-    final remoteRow = bloodGlucoseRowFromRemoteJson(remote);
-    final local = await _db.bloodGlucoseDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.bloodGlucoseDao.upsertRemoteRow(remoteRow, isDirty: false);
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
-      await _db.bloodGlucoseDao.upsertRemoteRow(remoteRow, isDirty: false);
-    }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
-  }
-}
-
-class WeightSync implements SyncableTable {
-  WeightSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
-
-  final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
-
-  @override
-  String get tableKey => remoteTableName;
-
-  @override
-  String get remoteTableName => 'weight_readings';
-
-  @override
-  Future<void> push(SupabaseClient supabase) async {
-    final dirtyRows = await _db.weightDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
-    final payload = dirtyRows.map(weightRowToRemoteJson).toList();
-    final response = await supabase
-        .from(remoteTableName)
-        .upsert(payload, onConflict: 'id')
-        .select();
-
-    for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-      final id = serverRow['id'] as String;
-      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-      await _db.weightDao.markSynced(id, updatedAt);
-    }
-  }
-
-  @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
-    }
-  }
-
-  Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
-    final remoteRow = weightRowFromRemoteJson(remote);
-    final local = await _db.weightDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.weightDao.upsertRemoteRow(remoteRow, isDirty: false);
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
-      await _db.weightDao.upsertRemoteRow(remoteRow, isDirty: false);
-    }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
-  }
-}
+PatientLogTableSync<FluidIntakeRow> fluidIntakeSync(AppDatabase db) =>
+    PatientLogTableSync<FluidIntakeRow>(
+      db: db,
+      remoteTableName: 'fluid_intake_logs',
+      getDirtyRows: db.fluidIntakeDao.getDirtyRows,
+      patientIdOf: (row) => row.patientId,
+      toRemoteJson: fluidIntakeRowToRemoteJson,
+      fromRemoteJson: fluidIntakeRowFromRemoteJson,
+      idOf: (row) => row.id,
+      updatedAtOf: (row) => row.updatedAt,
+      getRowById: db.fluidIntakeDao.getRowById,
+      upsertRemoteRow: (row) =>
+          db.fluidIntakeDao.upsertRemoteRow(row, isDirty: false),
+      markSynced: db.fluidIntakeDao.markSynced,
+    );
 
 class PatientPreferencesSync implements SyncableTable {
-  PatientPreferencesSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
+  PatientPreferencesSync({required AppDatabase db}) : _db = db;
 
   final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
 
   @override
   String get tableKey => remoteTableName;
@@ -396,13 +282,12 @@ class PatientPreferencesSync implements SyncableTable {
   String get remoteTableName => 'patient_preferences';
 
   @override
-  Future<void> push(SupabaseClient supabase) async {
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
     final dirtyRows = await _db.patientPreferencesDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
     for (final row in dirtyRows) {
+      if (!scope.canWrite(row.patientId)) {
+        continue;
+      }
       // Remap to remote bootstrap id when local seed used a different UUID.
       final existing = await supabase
           .from(remoteTableName)
@@ -428,41 +313,25 @@ class PatientPreferencesSync implements SyncableTable {
           .select();
 
       for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-        final id = serverRow['id'] as String;
-        final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-        await _db.patientPreferencesDao.markSynced(id, updatedAt);
+        await _db.patientPreferencesDao.markSynced(
+          serverRow['id'] as String,
+          parseRemoteDateTime(serverRow['updated_at']),
+        );
       }
     }
   }
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
+    for (final patientId in scope.patientIds) {
+      await pullForPatient(
+        db: _db,
+        supabase: supabase,
+        tableKey: tableKey,
+        remoteTableName: remoteTableName,
+        patientId: patientId,
+        apply: _applyPulledRow,
+      );
     }
   }
 
@@ -493,135 +362,23 @@ class PatientPreferencesSync implements SyncableTable {
 
     final local = localByPatient ??
         await _db.patientPreferencesDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.patientPreferencesDao.upsertRemoteRow(
-        remoteRow,
-        isDirty: false,
-      );
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
+    if (local == null ||
+        shouldApplyRemoteUpdate(
+          remoteUpdatedAt: remoteRow.updatedAt,
+          localUpdatedAt: local.updatedAt,
+        )) {
       await _db.patientPreferencesDao.upsertRemoteRow(
         remoteRow,
         isDirty: false,
       );
     }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
-  }
-}
-
-class FluidIntakeSync implements SyncableTable {
-  FluidIntakeSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
-
-  final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
-
-  @override
-  String get tableKey => remoteTableName;
-
-  @override
-  String get remoteTableName => 'fluid_intake_logs';
-
-  @override
-  Future<void> push(SupabaseClient supabase) async {
-    final dirtyRows = await _db.fluidIntakeDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
-    final payload = dirtyRows.map(fluidIntakeRowToRemoteJson).toList();
-    final response = await supabase
-        .from(remoteTableName)
-        .upsert(payload, onConflict: 'id')
-        .select();
-
-    for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-      final id = serverRow['id'] as String;
-      final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-      await _db.fluidIntakeDao.markSynced(id, updatedAt);
-    }
-  }
-
-  @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
-    }
-  }
-
-  Future<void> _applyPulledRow(Map<String, dynamic> remote) async {
-    final remoteRow = fluidIntakeRowFromRemoteJson(remote);
-    final local = await _db.fluidIntakeDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.fluidIntakeDao.upsertRemoteRow(remoteRow, isDirty: false);
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
-      await _db.fluidIntakeDao.upsertRemoteRow(remoteRow, isDirty: false);
-    }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
   }
 }
 
 class PatientMedicationScheduleSync implements SyncableTable {
-  PatientMedicationScheduleSync({
-    required AppDatabase db,
-    required String? Function() currentAuthUserId,
-  })  : _db = db,
-        _currentAuthUserId = currentAuthUserId;
+  PatientMedicationScheduleSync({required AppDatabase db}) : _db = db;
 
   final AppDatabase _db;
-  final String? Function() _currentAuthUserId;
 
   @override
   String get tableKey => remoteTableName;
@@ -630,13 +387,12 @@ class PatientMedicationScheduleSync implements SyncableTable {
   String get remoteTableName => 'patient_medication_schedules';
 
   @override
-  Future<void> push(SupabaseClient supabase) async {
+  Future<void> push(SupabaseClient supabase, SyncScope scope) async {
     final dirtyRows = await _db.patientMedicationScheduleDao.getDirtyRows();
-    if (dirtyRows.isEmpty) {
-      return;
-    }
-
     for (final row in dirtyRows) {
+      if (!scope.canWrite(row.patientId)) {
+        continue;
+      }
       final existing = await supabase
           .from(remoteTableName)
           .select('id')
@@ -661,41 +417,25 @@ class PatientMedicationScheduleSync implements SyncableTable {
           .select();
 
       for (final serverRow in List<Map<String, dynamic>>.from(response)) {
-        final id = serverRow['id'] as String;
-        final updatedAt = parseRemoteDateTime(serverRow['updated_at']);
-        await _db.patientMedicationScheduleDao.markSynced(id, updatedAt);
+        await _db.patientMedicationScheduleDao.markSynced(
+          serverRow['id'] as String,
+          parseRemoteDateTime(serverRow['updated_at']),
+        );
       }
     }
   }
 
   @override
-  Future<void> pull(SupabaseClient supabase) async {
-    final patientId = await _resolvePatientId();
-    if (patientId == null) {
-      return;
-    }
-
-    final lastPulledAt = await _db.syncStateDao.getLastPulledAt(tableKey);
-    var query =
-        supabase.from(remoteTableName).select().eq('patient_id', patientId);
-    if (lastPulledAt != null) {
-      query = query.gt('updated_at', remoteIsoDateTime(lastPulledAt)!);
-    }
-
-    final response = await query.order('updated_at');
-    final rows = List<Map<String, dynamic>>.from(response);
-    var maxUpdatedAt = lastPulledAt;
-
-    for (final remote in rows) {
-      await _applyPulledRow(remote);
-      final updatedAt = parseRemoteDateTime(remote['updated_at']);
-      if (maxUpdatedAt == null || updatedAt.isAfter(maxUpdatedAt)) {
-        maxUpdatedAt = updatedAt;
-      }
-    }
-
-    if (maxUpdatedAt != lastPulledAt) {
-      await _db.syncStateDao.setLastPulledAt(tableKey, maxUpdatedAt);
+  Future<void> pull(SupabaseClient supabase, SyncScope scope) async {
+    for (final patientId in scope.patientIds) {
+      await pullForPatient(
+        db: _db,
+        supabase: supabase,
+        tableKey: tableKey,
+        remoteTableName: remoteTableName,
+        patientId: patientId,
+        apply: _applyPulledRow,
+      );
     }
   }
 
@@ -726,31 +466,16 @@ class PatientMedicationScheduleSync implements SyncableTable {
 
     final local = localByPatient ??
         await _db.patientMedicationScheduleDao.getRowById(remoteRow.id);
-    if (local == null) {
-      await _db.patientMedicationScheduleDao.upsertRemoteRow(
-        remoteRow,
-        isDirty: false,
-      );
-      return;
-    }
-
-    if (shouldApplyRemoteUpdate(
-      remoteUpdatedAt: remoteRow.updatedAt,
-      localUpdatedAt: local.updatedAt,
-    )) {
+    if (local == null ||
+        shouldApplyRemoteUpdate(
+          remoteUpdatedAt: remoteRow.updatedAt,
+          localUpdatedAt: local.updatedAt,
+        )) {
       await _db.patientMedicationScheduleDao.upsertRemoteRow(
         remoteRow,
         isDirty: false,
       );
     }
-  }
-
-  Future<String?> _resolvePatientId() async {
-    final authUserId = _currentAuthUserId();
-    if (authUserId == null) {
-      return null;
-    }
-    return _db.patientIdForAuthUser(authUserId);
   }
 }
 

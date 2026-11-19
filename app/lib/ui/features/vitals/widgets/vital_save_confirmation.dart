@@ -56,3 +56,12 @@ void showVitalSavedConfirmation(
       ),
     );
 }
+
+const readOnlyPatientMessage = 'You have view-only access to this patient.';
+
+/// Shown instead of opening a log/edit sheet for a viewer.
+void showReadOnlyPatientNotice(BuildContext context) {
+  ScaffoldMessenger.maybeOf(context)
+    ?..clearSnackBars()
+    ..showSnackBar(const SnackBar(content: Text(readOnlyPatientMessage)));
+}

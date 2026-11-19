@@ -15,6 +15,15 @@ class BloodGlucoseViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
+
+  bool _canWrite = true;
+
+  /// False when the signed-in user only has viewer access to the active
+  /// patient; log/edit sheets are not offered then.
+  bool get canWrite => _canWrite;
   List<BloodGlucoseReading> _readings = [];
   BloodGlucosePeriod _selectedPeriod = BloodGlucosePeriod.last7Days;
   DateTime _selectedMonthStart;
@@ -221,6 +230,7 @@ class BloodGlucoseViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _canWrite = await _vitalsRepository.canWriteCurrentPatient();
     _readings = await _vitalsRepository.getBloodGlucoseReadings();
     notifyListeners();
   }

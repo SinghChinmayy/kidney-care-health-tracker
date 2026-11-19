@@ -16,6 +16,17 @@ class BloodPressureReadings extends Table {
 
   IntColumn get heartRateBpm => integer().nullable()();
 
+  TextColumn get arm => text().nullable()();
+
+  TextColumn get posture => text().nullable()();
+
+  BoolColumn get isDialysisDay => boolean().nullable()();
+
+  TextColumn get dialysisPhase => text().nullable()();
+
+  /// auth user id that logged the row (server-set, see s2.2).
+  TextColumn get recordedBy => text().nullable()();
+
   TextColumn get notes => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime()();

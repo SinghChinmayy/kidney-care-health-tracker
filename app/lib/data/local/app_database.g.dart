@@ -25,9 +25,9 @@ class $PatientsTable extends Patients
   late final GeneratedColumn<String> authUserId = GeneratedColumn<String>(
     'auth_user_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _firstNameMeta = const VerificationMeta(
@@ -115,6 +115,17 @@ class $PatientsTable extends Patients
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _bloodGroupMeta = const VerificationMeta(
+    'bloodGroup',
+  );
+  @override
+  late final GeneratedColumn<String> bloodGroup = GeneratedColumn<String>(
+    'blood_group',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -175,6 +186,7 @@ class $PatientsTable extends Patients
     dialysisType,
     dialysisDaysOfWeek,
     heightCm,
+    bloodGroup,
     createdAt,
     updatedAt,
     deletedAt,
@@ -205,8 +217,6 @@ class $PatientsTable extends Patients
           _authUserIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_authUserIdMeta);
     }
     if (data.containsKey('first_name')) {
       context.handle(
@@ -256,6 +266,12 @@ class $PatientsTable extends Patients
         heightCm.isAcceptableOrUnknown(data['height_cm']!, _heightCmMeta),
       );
     }
+    if (data.containsKey('blood_group')) {
+      context.handle(
+        _bloodGroupMeta,
+        bloodGroup.isAcceptableOrUnknown(data['blood_group']!, _bloodGroupMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -300,7 +316,7 @@ class $PatientsTable extends Patients
       authUserId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}auth_user_id'],
-      )!,
+      ),
       firstName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}first_name'],
@@ -335,6 +351,10 @@ class $PatientsTable extends Patients
         DriftSqlType.double,
         data['${effectivePrefix}height_cm'],
       ),
+      bloodGroup: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blood_group'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -367,7 +387,10 @@ class $PatientsTable extends Patients
 
 class PatientRow extends DataClass implements Insertable<PatientRow> {
   final String id;
-  final String authUserId;
+
+  /// The account this record describes (self patient). Null for patients
+  /// created for someone without an account. Not used for authorization.
+  final String? authUserId;
   final String? firstName;
   final String? lastName;
   final DateTime? dateOfBirth;
@@ -376,13 +399,14 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   final String dialysisType;
   final List<int>? dialysisDaysOfWeek;
   final double? heightCm;
+  final String? bloodGroup;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final bool isDirty;
   const PatientRow({
     required this.id,
-    required this.authUserId,
+    this.authUserId,
     this.firstName,
     this.lastName,
     this.dateOfBirth,
@@ -391,6 +415,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     required this.dialysisType,
     this.dialysisDaysOfWeek,
     this.heightCm,
+    this.bloodGroup,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -400,7 +425,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['auth_user_id'] = Variable<String>(authUserId);
+    if (!nullToAbsent || authUserId != null) {
+      map['auth_user_id'] = Variable<String>(authUserId);
+    }
     if (!nullToAbsent || firstName != null) {
       map['first_name'] = Variable<String>(firstName);
     }
@@ -425,6 +452,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     if (!nullToAbsent || heightCm != null) {
       map['height_cm'] = Variable<double>(heightCm);
     }
+    if (!nullToAbsent || bloodGroup != null) {
+      map['blood_group'] = Variable<String>(bloodGroup);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -437,7 +467,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
   PatientsCompanion toCompanion(bool nullToAbsent) {
     return PatientsCompanion(
       id: Value(id),
-      authUserId: Value(authUserId),
+      authUserId: authUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authUserId),
       firstName: firstName == null && nullToAbsent
           ? const Value.absent()
           : Value(firstName),
@@ -458,6 +490,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       heightCm: heightCm == null && nullToAbsent
           ? const Value.absent()
           : Value(heightCm),
+      bloodGroup: bloodGroup == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bloodGroup),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -474,7 +509,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PatientRow(
       id: serializer.fromJson<String>(json['id']),
-      authUserId: serializer.fromJson<String>(json['authUserId']),
+      authUserId: serializer.fromJson<String?>(json['authUserId']),
       firstName: serializer.fromJson<String?>(json['firstName']),
       lastName: serializer.fromJson<String?>(json['lastName']),
       dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
@@ -485,6 +520,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
         json['dialysisDaysOfWeek'],
       ),
       heightCm: serializer.fromJson<double?>(json['heightCm']),
+      bloodGroup: serializer.fromJson<String?>(json['bloodGroup']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -496,7 +532,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'authUserId': serializer.toJson<String>(authUserId),
+      'authUserId': serializer.toJson<String?>(authUserId),
       'firstName': serializer.toJson<String?>(firstName),
       'lastName': serializer.toJson<String?>(lastName),
       'dateOfBirth': serializer.toJson<DateTime?>(dateOfBirth),
@@ -505,6 +541,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
       'dialysisType': serializer.toJson<String>(dialysisType),
       'dialysisDaysOfWeek': serializer.toJson<List<int>?>(dialysisDaysOfWeek),
       'heightCm': serializer.toJson<double?>(heightCm),
+      'bloodGroup': serializer.toJson<String?>(bloodGroup),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -514,7 +551,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
 
   PatientRow copyWith({
     String? id,
-    String? authUserId,
+    Value<String?> authUserId = const Value.absent(),
     Value<String?> firstName = const Value.absent(),
     Value<String?> lastName = const Value.absent(),
     Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -523,13 +560,14 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     String? dialysisType,
     Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
     Value<double?> heightCm = const Value.absent(),
+    Value<String?> bloodGroup = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     bool? isDirty,
   }) => PatientRow(
     id: id ?? this.id,
-    authUserId: authUserId ?? this.authUserId,
+    authUserId: authUserId.present ? authUserId.value : this.authUserId,
     firstName: firstName.present ? firstName.value : this.firstName,
     lastName: lastName.present ? lastName.value : this.lastName,
     dateOfBirth: dateOfBirth.present ? dateOfBirth.value : this.dateOfBirth,
@@ -540,6 +578,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
         ? dialysisDaysOfWeek.value
         : this.dialysisDaysOfWeek,
     heightCm: heightCm.present ? heightCm.value : this.heightCm,
+    bloodGroup: bloodGroup.present ? bloodGroup.value : this.bloodGroup,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -565,6 +604,9 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           ? data.dialysisDaysOfWeek.value
           : this.dialysisDaysOfWeek,
       heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
+      bloodGroup: data.bloodGroup.present
+          ? data.bloodGroup.value
+          : this.bloodGroup,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -585,6 +627,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           ..write('dialysisType: $dialysisType, ')
           ..write('dialysisDaysOfWeek: $dialysisDaysOfWeek, ')
           ..write('heightCm: $heightCm, ')
+          ..write('bloodGroup: $bloodGroup, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -605,6 +648,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
     dialysisType,
     dialysisDaysOfWeek,
     heightCm,
+    bloodGroup,
     createdAt,
     updatedAt,
     deletedAt,
@@ -624,6 +668,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
           other.dialysisType == this.dialysisType &&
           other.dialysisDaysOfWeek == this.dialysisDaysOfWeek &&
           other.heightCm == this.heightCm &&
+          other.bloodGroup == this.bloodGroup &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -632,7 +677,7 @@ class PatientRow extends DataClass implements Insertable<PatientRow> {
 
 class PatientsCompanion extends UpdateCompanion<PatientRow> {
   final Value<String> id;
-  final Value<String> authUserId;
+  final Value<String?> authUserId;
   final Value<String?> firstName;
   final Value<String?> lastName;
   final Value<DateTime?> dateOfBirth;
@@ -641,6 +686,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
   final Value<String> dialysisType;
   final Value<List<int>?> dialysisDaysOfWeek;
   final Value<double?> heightCm;
+  final Value<String?> bloodGroup;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -657,6 +703,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     this.dialysisType = const Value.absent(),
     this.dialysisDaysOfWeek = const Value.absent(),
     this.heightCm = const Value.absent(),
+    this.bloodGroup = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -665,7 +712,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
   });
   PatientsCompanion.insert({
     required String id,
-    required String authUserId,
+    this.authUserId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
     this.dateOfBirth = const Value.absent(),
@@ -674,13 +721,13 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     this.dialysisType = const Value.absent(),
     this.dialysisDaysOfWeek = const Value.absent(),
     this.heightCm = const Value.absent(),
+    this.bloodGroup = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       authUserId = Value(authUserId),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<PatientRow> custom({
@@ -694,6 +741,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     Expression<String>? dialysisType,
     Expression<String>? dialysisDaysOfWeek,
     Expression<double>? heightCm,
+    Expression<String>? bloodGroup,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -712,6 +760,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
       if (dialysisDaysOfWeek != null)
         'dialysis_days_of_week': dialysisDaysOfWeek,
       if (heightCm != null) 'height_cm': heightCm,
+      if (bloodGroup != null) 'blood_group': bloodGroup,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -722,7 +771,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
 
   PatientsCompanion copyWith({
     Value<String>? id,
-    Value<String>? authUserId,
+    Value<String?>? authUserId,
     Value<String?>? firstName,
     Value<String?>? lastName,
     Value<DateTime?>? dateOfBirth,
@@ -731,6 +780,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     Value<String>? dialysisType,
     Value<List<int>?>? dialysisDaysOfWeek,
     Value<double?>? heightCm,
+    Value<String?>? bloodGroup,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -748,6 +798,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
       dialysisType: dialysisType ?? this.dialysisType,
       dialysisDaysOfWeek: dialysisDaysOfWeek ?? this.dialysisDaysOfWeek,
       heightCm: heightCm ?? this.heightCm,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -793,6 +844,9 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
     if (heightCm.present) {
       map['height_cm'] = Variable<double>(heightCm.value);
     }
+    if (bloodGroup.present) {
+      map['blood_group'] = Variable<String>(bloodGroup.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -824,6 +878,7 @@ class PatientsCompanion extends UpdateCompanion<PatientRow> {
           ..write('dialysisType: $dialysisType, ')
           ..write('dialysisDaysOfWeek: $dialysisDaysOfWeek, ')
           ..write('heightCm: $heightCm, ')
+          ..write('bloodGroup: $bloodGroup, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -1479,6 +1534,62 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _armMeta = const VerificationMeta('arm');
+  @override
+  late final GeneratedColumn<String> arm = GeneratedColumn<String>(
+    'arm',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _postureMeta = const VerificationMeta(
+    'posture',
+  );
+  @override
+  late final GeneratedColumn<String> posture = GeneratedColumn<String>(
+    'posture',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDialysisDayMeta = const VerificationMeta(
+    'isDialysisDay',
+  );
+  @override
+  late final GeneratedColumn<bool> isDialysisDay = GeneratedColumn<bool>(
+    'is_dialysis_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dialysis_day" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _dialysisPhaseMeta = const VerificationMeta(
+    'dialysisPhase',
+  );
+  @override
+  late final GeneratedColumn<String> dialysisPhase = GeneratedColumn<String>(
+    'dialysis_phase',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recordedByMeta = const VerificationMeta(
+    'recordedBy',
+  );
+  @override
+  late final GeneratedColumn<String> recordedBy = GeneratedColumn<String>(
+    'recorded_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1544,6 +1655,11 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
     systolic,
     diastolic,
     heartRateBpm,
+    arm,
+    posture,
+    isDialysisDay,
+    dialysisPhase,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -1602,6 +1718,42 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
           data['heart_rate_bpm']!,
           _heartRateBpmMeta,
         ),
+      );
+    }
+    if (data.containsKey('arm')) {
+      context.handle(
+        _armMeta,
+        arm.isAcceptableOrUnknown(data['arm']!, _armMeta),
+      );
+    }
+    if (data.containsKey('posture')) {
+      context.handle(
+        _postureMeta,
+        posture.isAcceptableOrUnknown(data['posture']!, _postureMeta),
+      );
+    }
+    if (data.containsKey('is_dialysis_day')) {
+      context.handle(
+        _isDialysisDayMeta,
+        isDialysisDay.isAcceptableOrUnknown(
+          data['is_dialysis_day']!,
+          _isDialysisDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dialysis_phase')) {
+      context.handle(
+        _dialysisPhaseMeta,
+        dialysisPhase.isAcceptableOrUnknown(
+          data['dialysis_phase']!,
+          _dialysisPhaseMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recorded_by')) {
+      context.handle(
+        _recordedByMeta,
+        recordedBy.isAcceptableOrUnknown(data['recorded_by']!, _recordedByMeta),
       );
     }
     if (data.containsKey('notes')) {
@@ -1671,6 +1823,26 @@ class $BloodPressureReadingsTable extends BloodPressureReadings
         DriftSqlType.int,
         data['${effectivePrefix}heart_rate_bpm'],
       ),
+      arm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}arm'],
+      ),
+      posture: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}posture'],
+      ),
+      isDialysisDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dialysis_day'],
+      ),
+      dialysisPhase: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialysis_phase'],
+      ),
+      recordedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recorded_by'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -1708,6 +1880,13 @@ class BloodPressureRow extends DataClass
   final int? systolic;
   final int? diastolic;
   final int? heartRateBpm;
+  final String? arm;
+  final String? posture;
+  final bool? isDialysisDay;
+  final String? dialysisPhase;
+
+  /// auth user id that logged the row (server-set, see s2.2).
+  final String? recordedBy;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1720,6 +1899,11 @@ class BloodPressureRow extends DataClass
     this.systolic,
     this.diastolic,
     this.heartRateBpm,
+    this.arm,
+    this.posture,
+    this.isDialysisDay,
+    this.dialysisPhase,
+    this.recordedBy,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -1740,6 +1924,21 @@ class BloodPressureRow extends DataClass
     }
     if (!nullToAbsent || heartRateBpm != null) {
       map['heart_rate_bpm'] = Variable<int>(heartRateBpm);
+    }
+    if (!nullToAbsent || arm != null) {
+      map['arm'] = Variable<String>(arm);
+    }
+    if (!nullToAbsent || posture != null) {
+      map['posture'] = Variable<String>(posture);
+    }
+    if (!nullToAbsent || isDialysisDay != null) {
+      map['is_dialysis_day'] = Variable<bool>(isDialysisDay);
+    }
+    if (!nullToAbsent || dialysisPhase != null) {
+      map['dialysis_phase'] = Variable<String>(dialysisPhase);
+    }
+    if (!nullToAbsent || recordedBy != null) {
+      map['recorded_by'] = Variable<String>(recordedBy);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -1767,6 +1966,19 @@ class BloodPressureRow extends DataClass
       heartRateBpm: heartRateBpm == null && nullToAbsent
           ? const Value.absent()
           : Value(heartRateBpm),
+      arm: arm == null && nullToAbsent ? const Value.absent() : Value(arm),
+      posture: posture == null && nullToAbsent
+          ? const Value.absent()
+          : Value(posture),
+      isDialysisDay: isDialysisDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isDialysisDay),
+      dialysisPhase: dialysisPhase == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialysisPhase),
+      recordedBy: recordedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordedBy),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -1791,6 +2003,11 @@ class BloodPressureRow extends DataClass
       systolic: serializer.fromJson<int?>(json['systolic']),
       diastolic: serializer.fromJson<int?>(json['diastolic']),
       heartRateBpm: serializer.fromJson<int?>(json['heartRateBpm']),
+      arm: serializer.fromJson<String?>(json['arm']),
+      posture: serializer.fromJson<String?>(json['posture']),
+      isDialysisDay: serializer.fromJson<bool?>(json['isDialysisDay']),
+      dialysisPhase: serializer.fromJson<String?>(json['dialysisPhase']),
+      recordedBy: serializer.fromJson<String?>(json['recordedBy']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1808,6 +2025,11 @@ class BloodPressureRow extends DataClass
       'systolic': serializer.toJson<int?>(systolic),
       'diastolic': serializer.toJson<int?>(diastolic),
       'heartRateBpm': serializer.toJson<int?>(heartRateBpm),
+      'arm': serializer.toJson<String?>(arm),
+      'posture': serializer.toJson<String?>(posture),
+      'isDialysisDay': serializer.toJson<bool?>(isDialysisDay),
+      'dialysisPhase': serializer.toJson<String?>(dialysisPhase),
+      'recordedBy': serializer.toJson<String?>(recordedBy),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1823,6 +2045,11 @@ class BloodPressureRow extends DataClass
     Value<int?> systolic = const Value.absent(),
     Value<int?> diastolic = const Value.absent(),
     Value<int?> heartRateBpm = const Value.absent(),
+    Value<String?> arm = const Value.absent(),
+    Value<String?> posture = const Value.absent(),
+    Value<bool?> isDialysisDay = const Value.absent(),
+    Value<String?> dialysisPhase = const Value.absent(),
+    Value<String?> recordedBy = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1835,6 +2062,15 @@ class BloodPressureRow extends DataClass
     systolic: systolic.present ? systolic.value : this.systolic,
     diastolic: diastolic.present ? diastolic.value : this.diastolic,
     heartRateBpm: heartRateBpm.present ? heartRateBpm.value : this.heartRateBpm,
+    arm: arm.present ? arm.value : this.arm,
+    posture: posture.present ? posture.value : this.posture,
+    isDialysisDay: isDialysisDay.present
+        ? isDialysisDay.value
+        : this.isDialysisDay,
+    dialysisPhase: dialysisPhase.present
+        ? dialysisPhase.value
+        : this.dialysisPhase,
+    recordedBy: recordedBy.present ? recordedBy.value : this.recordedBy,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1853,6 +2089,17 @@ class BloodPressureRow extends DataClass
       heartRateBpm: data.heartRateBpm.present
           ? data.heartRateBpm.value
           : this.heartRateBpm,
+      arm: data.arm.present ? data.arm.value : this.arm,
+      posture: data.posture.present ? data.posture.value : this.posture,
+      isDialysisDay: data.isDialysisDay.present
+          ? data.isDialysisDay.value
+          : this.isDialysisDay,
+      dialysisPhase: data.dialysisPhase.present
+          ? data.dialysisPhase.value
+          : this.dialysisPhase,
+      recordedBy: data.recordedBy.present
+          ? data.recordedBy.value
+          : this.recordedBy,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1870,6 +2117,11 @@ class BloodPressureRow extends DataClass
           ..write('systolic: $systolic, ')
           ..write('diastolic: $diastolic, ')
           ..write('heartRateBpm: $heartRateBpm, ')
+          ..write('arm: $arm, ')
+          ..write('posture: $posture, ')
+          ..write('isDialysisDay: $isDialysisDay, ')
+          ..write('dialysisPhase: $dialysisPhase, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1887,6 +2139,11 @@ class BloodPressureRow extends DataClass
     systolic,
     diastolic,
     heartRateBpm,
+    arm,
+    posture,
+    isDialysisDay,
+    dialysisPhase,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -1903,6 +2160,11 @@ class BloodPressureRow extends DataClass
           other.systolic == this.systolic &&
           other.diastolic == this.diastolic &&
           other.heartRateBpm == this.heartRateBpm &&
+          other.arm == this.arm &&
+          other.posture == this.posture &&
+          other.isDialysisDay == this.isDialysisDay &&
+          other.dialysisPhase == this.dialysisPhase &&
+          other.recordedBy == this.recordedBy &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1917,6 +2179,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
   final Value<int?> systolic;
   final Value<int?> diastolic;
   final Value<int?> heartRateBpm;
+  final Value<String?> arm;
+  final Value<String?> posture;
+  final Value<bool?> isDialysisDay;
+  final Value<String?> dialysisPhase;
+  final Value<String?> recordedBy;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1930,6 +2197,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     this.systolic = const Value.absent(),
     this.diastolic = const Value.absent(),
     this.heartRateBpm = const Value.absent(),
+    this.arm = const Value.absent(),
+    this.posture = const Value.absent(),
+    this.isDialysisDay = const Value.absent(),
+    this.dialysisPhase = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1944,6 +2216,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     this.systolic = const Value.absent(),
     this.diastolic = const Value.absent(),
     this.heartRateBpm = const Value.absent(),
+    this.arm = const Value.absent(),
+    this.posture = const Value.absent(),
+    this.isDialysisDay = const Value.absent(),
+    this.dialysisPhase = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1962,6 +2239,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     Expression<int>? systolic,
     Expression<int>? diastolic,
     Expression<int>? heartRateBpm,
+    Expression<String>? arm,
+    Expression<String>? posture,
+    Expression<bool>? isDialysisDay,
+    Expression<String>? dialysisPhase,
+    Expression<String>? recordedBy,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1976,6 +2258,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
       if (systolic != null) 'systolic': systolic,
       if (diastolic != null) 'diastolic': diastolic,
       if (heartRateBpm != null) 'heart_rate_bpm': heartRateBpm,
+      if (arm != null) 'arm': arm,
+      if (posture != null) 'posture': posture,
+      if (isDialysisDay != null) 'is_dialysis_day': isDialysisDay,
+      if (dialysisPhase != null) 'dialysis_phase': dialysisPhase,
+      if (recordedBy != null) 'recorded_by': recordedBy,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1992,6 +2279,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     Value<int?>? systolic,
     Value<int?>? diastolic,
     Value<int?>? heartRateBpm,
+    Value<String?>? arm,
+    Value<String?>? posture,
+    Value<bool?>? isDialysisDay,
+    Value<String?>? dialysisPhase,
+    Value<String?>? recordedBy,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2006,6 +2298,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
       systolic: systolic ?? this.systolic,
       diastolic: diastolic ?? this.diastolic,
       heartRateBpm: heartRateBpm ?? this.heartRateBpm,
+      arm: arm ?? this.arm,
+      posture: posture ?? this.posture,
+      isDialysisDay: isDialysisDay ?? this.isDialysisDay,
+      dialysisPhase: dialysisPhase ?? this.dialysisPhase,
+      recordedBy: recordedBy ?? this.recordedBy,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2035,6 +2332,21 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
     }
     if (heartRateBpm.present) {
       map['heart_rate_bpm'] = Variable<int>(heartRateBpm.value);
+    }
+    if (arm.present) {
+      map['arm'] = Variable<String>(arm.value);
+    }
+    if (posture.present) {
+      map['posture'] = Variable<String>(posture.value);
+    }
+    if (isDialysisDay.present) {
+      map['is_dialysis_day'] = Variable<bool>(isDialysisDay.value);
+    }
+    if (dialysisPhase.present) {
+      map['dialysis_phase'] = Variable<String>(dialysisPhase.value);
+    }
+    if (recordedBy.present) {
+      map['recorded_by'] = Variable<String>(recordedBy.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -2066,6 +2378,11 @@ class BloodPressureReadingsCompanion extends UpdateCompanion<BloodPressureRow> {
           ..write('systolic: $systolic, ')
           ..write('diastolic: $diastolic, ')
           ..write('heartRateBpm: $heartRateBpm, ')
+          ..write('arm: $arm, ')
+          ..write('posture: $posture, ')
+          ..write('isDialysisDay: $isDialysisDay, ')
+          ..write('dialysisPhase: $dialysisPhase, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2149,6 +2466,17 @@ class $BloodGlucoseReadingsTable extends BloodGlucoseReadings
     requiredDuringInsert: false,
     defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _recordedByMeta = const VerificationMeta(
+    'recordedBy',
+  );
+  @override
+  late final GeneratedColumn<String> recordedBy = GeneratedColumn<String>(
+    'recorded_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -2214,6 +2542,7 @@ class $BloodGlucoseReadingsTable extends BloodGlucoseReadings
     valueMgDl,
     context,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -2271,6 +2600,12 @@ class $BloodGlucoseReadingsTable extends BloodGlucoseReadings
       context.handle(
         _sourceMeta,
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('recorded_by')) {
+      context.handle(
+        _recordedByMeta,
+        recordedBy.isAcceptableOrUnknown(data['recorded_by']!, _recordedByMeta),
       );
     }
     if (data.containsKey('notes')) {
@@ -2340,6 +2675,10 @@ class $BloodGlucoseReadingsTable extends BloodGlucoseReadings
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      recordedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recorded_by'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -2376,6 +2715,9 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
   final double valueMgDl;
   final String? context;
   final String source;
+
+  /// auth user id that logged the row (server-set, see s2.2).
+  final String? recordedBy;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -2388,6 +2730,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
     required this.valueMgDl,
     this.context,
     required this.source,
+    this.recordedBy,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -2405,6 +2748,9 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
       map['context'] = Variable<String>(context);
     }
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || recordedBy != null) {
+      map['recorded_by'] = Variable<String>(recordedBy);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -2427,6 +2773,9 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
           ? const Value.absent()
           : Value(context),
       source: Value(source),
+      recordedBy: recordedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordedBy),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -2451,6 +2800,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
       valueMgDl: serializer.fromJson<double>(json['valueMgDl']),
       context: serializer.fromJson<String?>(json['context']),
       source: serializer.fromJson<String>(json['source']),
+      recordedBy: serializer.fromJson<String?>(json['recordedBy']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -2468,6 +2818,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
       'valueMgDl': serializer.toJson<double>(valueMgDl),
       'context': serializer.toJson<String?>(context),
       'source': serializer.toJson<String>(source),
+      'recordedBy': serializer.toJson<String?>(recordedBy),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -2483,6 +2834,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
     double? valueMgDl,
     Value<String?> context = const Value.absent(),
     String? source,
+    Value<String?> recordedBy = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -2495,6 +2847,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
     valueMgDl: valueMgDl ?? this.valueMgDl,
     context: context.present ? context.value : this.context,
     source: source ?? this.source,
+    recordedBy: recordedBy.present ? recordedBy.value : this.recordedBy,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -2511,6 +2864,9 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
       valueMgDl: data.valueMgDl.present ? data.valueMgDl.value : this.valueMgDl,
       context: data.context.present ? data.context.value : this.context,
       source: data.source.present ? data.source.value : this.source,
+      recordedBy: data.recordedBy.present
+          ? data.recordedBy.value
+          : this.recordedBy,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -2528,6 +2884,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
           ..write('valueMgDl: $valueMgDl, ')
           ..write('context: $context, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2545,6 +2902,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
     valueMgDl,
     context,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -2561,6 +2919,7 @@ class BloodGlucoseRow extends DataClass implements Insertable<BloodGlucoseRow> {
           other.valueMgDl == this.valueMgDl &&
           other.context == this.context &&
           other.source == this.source &&
+          other.recordedBy == this.recordedBy &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -2575,6 +2934,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
   final Value<double> valueMgDl;
   final Value<String?> context;
   final Value<String> source;
+  final Value<String?> recordedBy;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -2588,6 +2948,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
     this.valueMgDl = const Value.absent(),
     this.context = const Value.absent(),
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -2602,6 +2963,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
     required double valueMgDl,
     this.context = const Value.absent(),
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -2621,6 +2983,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
     Expression<double>? valueMgDl,
     Expression<String>? context,
     Expression<String>? source,
+    Expression<String>? recordedBy,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -2635,6 +2998,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
       if (valueMgDl != null) 'value_mg_dl': valueMgDl,
       if (context != null) 'context': context,
       if (source != null) 'source': source,
+      if (recordedBy != null) 'recorded_by': recordedBy,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -2651,6 +3015,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
     Value<double>? valueMgDl,
     Value<String?>? context,
     Value<String>? source,
+    Value<String?>? recordedBy,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2665,6 +3030,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
       valueMgDl: valueMgDl ?? this.valueMgDl,
       context: context ?? this.context,
       source: source ?? this.source,
+      recordedBy: recordedBy ?? this.recordedBy,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2694,6 +3060,9 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
     }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
+    }
+    if (recordedBy.present) {
+      map['recorded_by'] = Variable<String>(recordedBy.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -2725,6 +3094,7 @@ class BloodGlucoseReadingsCompanion extends UpdateCompanion<BloodGlucoseRow> {
           ..write('valueMgDl: $valueMgDl, ')
           ..write('context: $context, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2820,6 +3190,17 @@ class $WeightReadingsTable extends WeightReadings
     requiredDuringInsert: false,
     defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _recordedByMeta = const VerificationMeta(
+    'recordedBy',
+  );
+  @override
+  late final GeneratedColumn<String> recordedBy = GeneratedColumn<String>(
+    'recorded_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -2886,6 +3267,7 @@ class $WeightReadingsTable extends WeightReadings
     dialysisTiming,
     weightContext,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -2955,6 +3337,12 @@ class $WeightReadingsTable extends WeightReadings
       context.handle(
         _sourceMeta,
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('recorded_by')) {
+      context.handle(
+        _recordedByMeta,
+        recordedBy.isAcceptableOrUnknown(data['recorded_by']!, _recordedByMeta),
       );
     }
     if (data.containsKey('notes')) {
@@ -3028,6 +3416,10 @@ class $WeightReadingsTable extends WeightReadings
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      recordedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recorded_by'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -3065,6 +3457,9 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
   final String dialysisTiming;
   final String? weightContext;
   final String source;
+
+  /// auth user id that logged the row (server-set, see s2.2).
+  final String? recordedBy;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -3078,6 +3473,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     required this.dialysisTiming,
     this.weightContext,
     required this.source,
+    this.recordedBy,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -3096,6 +3492,9 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       map['weight_context'] = Variable<String>(weightContext);
     }
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || recordedBy != null) {
+      map['recorded_by'] = Variable<String>(recordedBy);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -3119,6 +3518,9 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           ? const Value.absent()
           : Value(weightContext),
       source: Value(source),
+      recordedBy: recordedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordedBy),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -3144,6 +3546,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       dialysisTiming: serializer.fromJson<String>(json['dialysisTiming']),
       weightContext: serializer.fromJson<String?>(json['weightContext']),
       source: serializer.fromJson<String>(json['source']),
+      recordedBy: serializer.fromJson<String?>(json['recordedBy']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -3162,6 +3565,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
       'dialysisTiming': serializer.toJson<String>(dialysisTiming),
       'weightContext': serializer.toJson<String?>(weightContext),
       'source': serializer.toJson<String>(source),
+      'recordedBy': serializer.toJson<String?>(recordedBy),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -3178,6 +3582,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     String? dialysisTiming,
     Value<String?> weightContext = const Value.absent(),
     String? source,
+    Value<String?> recordedBy = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -3193,6 +3598,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
         ? weightContext.value
         : this.weightContext,
     source: source ?? this.source,
+    recordedBy: recordedBy.present ? recordedBy.value : this.recordedBy,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3214,6 +3620,9 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           ? data.weightContext.value
           : this.weightContext,
       source: data.source.present ? data.source.value : this.source,
+      recordedBy: data.recordedBy.present
+          ? data.recordedBy.value
+          : this.recordedBy,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -3232,6 +3641,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           ..write('dialysisTiming: $dialysisTiming, ')
           ..write('weightContext: $weightContext, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -3250,6 +3660,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
     dialysisTiming,
     weightContext,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -3267,6 +3678,7 @@ class WeightRow extends DataClass implements Insertable<WeightRow> {
           other.dialysisTiming == this.dialysisTiming &&
           other.weightContext == this.weightContext &&
           other.source == this.source &&
+          other.recordedBy == this.recordedBy &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -3282,6 +3694,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
   final Value<String> dialysisTiming;
   final Value<String?> weightContext;
   final Value<String> source;
+  final Value<String?> recordedBy;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -3296,6 +3709,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     this.dialysisTiming = const Value.absent(),
     this.weightContext = const Value.absent(),
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3311,6 +3725,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     this.dialysisTiming = const Value.absent(),
     this.weightContext = const Value.absent(),
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -3331,6 +3746,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     Expression<String>? dialysisTiming,
     Expression<String>? weightContext,
     Expression<String>? source,
+    Expression<String>? recordedBy,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -3346,6 +3762,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
       if (dialysisTiming != null) 'dialysis_timing': dialysisTiming,
       if (weightContext != null) 'weight_context': weightContext,
       if (source != null) 'source': source,
+      if (recordedBy != null) 'recorded_by': recordedBy,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -3363,6 +3780,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     Value<String>? dialysisTiming,
     Value<String?>? weightContext,
     Value<String>? source,
+    Value<String?>? recordedBy,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -3378,6 +3796,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
       dialysisTiming: dialysisTiming ?? this.dialysisTiming,
       weightContext: weightContext ?? this.weightContext,
       source: source ?? this.source,
+      recordedBy: recordedBy ?? this.recordedBy,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -3411,6 +3830,9 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (recordedBy.present) {
+      map['recorded_by'] = Variable<String>(recordedBy.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -3442,6 +3864,7 @@ class WeightReadingsCompanion extends UpdateCompanion<WeightRow> {
           ..write('dialysisTiming: $dialysisTiming, ')
           ..write('weightContext: $weightContext, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -3514,6 +3937,17 @@ class $FluidIntakeLogsTable extends FluidIntakeLogs
     requiredDuringInsert: false,
     defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _recordedByMeta = const VerificationMeta(
+    'recordedBy',
+  );
+  @override
+  late final GeneratedColumn<String> recordedBy = GeneratedColumn<String>(
+    'recorded_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -3578,6 +4012,7 @@ class $FluidIntakeLogsTable extends FluidIntakeLogs
     recordedAt,
     fluidMl,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -3629,6 +4064,12 @@ class $FluidIntakeLogsTable extends FluidIntakeLogs
       context.handle(
         _sourceMeta,
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('recorded_by')) {
+      context.handle(
+        _recordedByMeta,
+        recordedBy.isAcceptableOrUnknown(data['recorded_by']!, _recordedByMeta),
       );
     }
     if (data.containsKey('notes')) {
@@ -3694,6 +4135,10 @@ class $FluidIntakeLogsTable extends FluidIntakeLogs
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      recordedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recorded_by'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -3729,6 +4174,9 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
   final DateTime recordedAt;
   final double fluidMl;
   final String source;
+
+  /// auth user id that logged the row (server-set, see s2.2).
+  final String? recordedBy;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -3740,6 +4188,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
     required this.recordedAt,
     required this.fluidMl,
     required this.source,
+    this.recordedBy,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -3754,6 +4203,9 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
     map['recorded_at'] = Variable<DateTime>(recordedAt);
     map['fluid_ml'] = Variable<double>(fluidMl);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || recordedBy != null) {
+      map['recorded_by'] = Variable<String>(recordedBy);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -3773,6 +4225,9 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
       recordedAt: Value(recordedAt),
       fluidMl: Value(fluidMl),
       source: Value(source),
+      recordedBy: recordedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordedBy),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -3796,6 +4251,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
       recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
       fluidMl: serializer.fromJson<double>(json['fluidMl']),
       source: serializer.fromJson<String>(json['source']),
+      recordedBy: serializer.fromJson<String?>(json['recordedBy']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -3812,6 +4268,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
       'recordedAt': serializer.toJson<DateTime>(recordedAt),
       'fluidMl': serializer.toJson<double>(fluidMl),
       'source': serializer.toJson<String>(source),
+      'recordedBy': serializer.toJson<String?>(recordedBy),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -3826,6 +4283,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
     DateTime? recordedAt,
     double? fluidMl,
     String? source,
+    Value<String?> recordedBy = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -3837,6 +4295,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
     recordedAt: recordedAt ?? this.recordedAt,
     fluidMl: fluidMl ?? this.fluidMl,
     source: source ?? this.source,
+    recordedBy: recordedBy.present ? recordedBy.value : this.recordedBy,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3852,6 +4311,9 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
           : this.recordedAt,
       fluidMl: data.fluidMl.present ? data.fluidMl.value : this.fluidMl,
       source: data.source.present ? data.source.value : this.source,
+      recordedBy: data.recordedBy.present
+          ? data.recordedBy.value
+          : this.recordedBy,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -3868,6 +4330,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
           ..write('recordedAt: $recordedAt, ')
           ..write('fluidMl: $fluidMl, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -3884,6 +4347,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
     recordedAt,
     fluidMl,
     source,
+    recordedBy,
     notes,
     createdAt,
     updatedAt,
@@ -3899,6 +4363,7 @@ class FluidIntakeRow extends DataClass implements Insertable<FluidIntakeRow> {
           other.recordedAt == this.recordedAt &&
           other.fluidMl == this.fluidMl &&
           other.source == this.source &&
+          other.recordedBy == this.recordedBy &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -3912,6 +4377,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
   final Value<DateTime> recordedAt;
   final Value<double> fluidMl;
   final Value<String> source;
+  final Value<String?> recordedBy;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -3924,6 +4390,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
     this.recordedAt = const Value.absent(),
     this.fluidMl = const Value.absent(),
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3937,6 +4404,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
     required DateTime recordedAt,
     required double fluidMl,
     this.source = const Value.absent(),
+    this.recordedBy = const Value.absent(),
     this.notes = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -3955,6 +4423,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
     Expression<DateTime>? recordedAt,
     Expression<double>? fluidMl,
     Expression<String>? source,
+    Expression<String>? recordedBy,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -3968,6 +4437,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
       if (recordedAt != null) 'recorded_at': recordedAt,
       if (fluidMl != null) 'fluid_ml': fluidMl,
       if (source != null) 'source': source,
+      if (recordedBy != null) 'recorded_by': recordedBy,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -3983,6 +4453,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
     Value<DateTime>? recordedAt,
     Value<double>? fluidMl,
     Value<String>? source,
+    Value<String?>? recordedBy,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -3996,6 +4467,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
       recordedAt: recordedAt ?? this.recordedAt,
       fluidMl: fluidMl ?? this.fluidMl,
       source: source ?? this.source,
+      recordedBy: recordedBy ?? this.recordedBy,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4022,6 +4494,9 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
     }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
+    }
+    if (recordedBy.present) {
+      map['recorded_by'] = Variable<String>(recordedBy.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -4052,6 +4527,7 @@ class FluidIntakeLogsCompanion extends UpdateCompanion<FluidIntakeRow> {
           ..write('recordedAt: $recordedAt, ')
           ..write('fluidMl: $fluidMl, ')
           ..write('source: $source, ')
+          ..write('recordedBy: $recordedBy, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4975,6 +5451,494 @@ class PatientMedicationSchedulesCompanion
   }
 }
 
+class $PatientMembershipsTable extends PatientMemberships
+    with TableInfo<$PatientMembershipsTable, PatientMembershipRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PatientMembershipsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _patientIdMeta = const VerificationMeta(
+    'patientId',
+  );
+  @override
+  late final GeneratedColumn<String> patientId = GeneratedColumn<String>(
+    'patient_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [patientId, role, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'patient_memberships';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PatientMembershipRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('patient_id')) {
+      context.handle(
+        _patientIdMeta,
+        patientId.isAcceptableOrUnknown(data['patient_id']!, _patientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patientIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {patientId};
+  @override
+  PatientMembershipRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PatientMembershipRow(
+      patientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}patient_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PatientMembershipsTable createAlias(String alias) {
+    return $PatientMembershipsTable(attachedDatabase, alias);
+  }
+}
+
+class PatientMembershipRow extends DataClass
+    implements Insertable<PatientMembershipRow> {
+  final String patientId;
+
+  /// owner | caregiver | viewer
+  final String role;
+  final DateTime updatedAt;
+  const PatientMembershipRow({
+    required this.patientId,
+    required this.role,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['patient_id'] = Variable<String>(patientId);
+    map['role'] = Variable<String>(role);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PatientMembershipsCompanion toCompanion(bool nullToAbsent) {
+    return PatientMembershipsCompanion(
+      patientId: Value(patientId),
+      role: Value(role),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PatientMembershipRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PatientMembershipRow(
+      patientId: serializer.fromJson<String>(json['patientId']),
+      role: serializer.fromJson<String>(json['role']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'patientId': serializer.toJson<String>(patientId),
+      'role': serializer.toJson<String>(role),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PatientMembershipRow copyWith({
+    String? patientId,
+    String? role,
+    DateTime? updatedAt,
+  }) => PatientMembershipRow(
+    patientId: patientId ?? this.patientId,
+    role: role ?? this.role,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PatientMembershipRow copyWithCompanion(PatientMembershipsCompanion data) {
+    return PatientMembershipRow(
+      patientId: data.patientId.present ? data.patientId.value : this.patientId,
+      role: data.role.present ? data.role.value : this.role,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMembershipRow(')
+          ..write('patientId: $patientId, ')
+          ..write('role: $role, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(patientId, role, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PatientMembershipRow &&
+          other.patientId == this.patientId &&
+          other.role == this.role &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PatientMembershipsCompanion
+    extends UpdateCompanion<PatientMembershipRow> {
+  final Value<String> patientId;
+  final Value<String> role;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PatientMembershipsCompanion({
+    this.patientId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PatientMembershipsCompanion.insert({
+    required String patientId,
+    required String role,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : patientId = Value(patientId),
+       role = Value(role),
+       updatedAt = Value(updatedAt);
+  static Insertable<PatientMembershipRow> custom({
+    Expression<String>? patientId,
+    Expression<String>? role,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (patientId != null) 'patient_id': patientId,
+      if (role != null) 'role': role,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PatientMembershipsCompanion copyWith({
+    Value<String>? patientId,
+    Value<String>? role,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PatientMembershipsCompanion(
+      patientId: patientId ?? this.patientId,
+      role: role ?? this.role,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (patientId.present) {
+      map['patient_id'] = Variable<String>(patientId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PatientMembershipsCompanion(')
+          ..write('patientId: $patientId, ')
+          ..write('role: $role, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalSettingsTable extends LocalSettings
+    with TableInfo<$LocalSettingsTable, LocalSettingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalSettingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  LocalSettingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalSettingRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      ),
+    );
+  }
+
+  @override
+  $LocalSettingsTable createAlias(String alias) {
+    return $LocalSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalSettingRow extends DataClass implements Insertable<LocalSettingRow> {
+  final String key;
+  final String? value;
+  const LocalSettingRow({required this.key, this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    if (!nullToAbsent || value != null) {
+      map['value'] = Variable<String>(value);
+    }
+    return map;
+  }
+
+  LocalSettingsCompanion toCompanion(bool nullToAbsent) {
+    return LocalSettingsCompanion(
+      key: Value(key),
+      value: value == null && nullToAbsent
+          ? const Value.absent()
+          : Value(value),
+    );
+  }
+
+  factory LocalSettingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalSettingRow(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String?>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String?>(value),
+    };
+  }
+
+  LocalSettingRow copyWith({
+    String? key,
+    Value<String?> value = const Value.absent(),
+  }) => LocalSettingRow(
+    key: key ?? this.key,
+    value: value.present ? value.value : this.value,
+  );
+  LocalSettingRow copyWithCompanion(LocalSettingsCompanion data) {
+    return LocalSettingRow(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSettingRow(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalSettingRow &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class LocalSettingsCompanion extends UpdateCompanion<LocalSettingRow> {
+  final Value<String> key;
+  final Value<String?> value;
+  final Value<int> rowid;
+  const LocalSettingsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalSettingsCompanion.insert({
+    required String key,
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : key = Value(key);
+  static Insertable<LocalSettingRow> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalSettingsCompanion copyWith({
+    Value<String>? key,
+    Value<String?>? value,
+    Value<int>? rowid,
+  }) {
+    return LocalSettingsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalSettingsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncStateTable extends SyncState
     with TableInfo<$SyncStateTable, SyncStateRow> {
   @override
@@ -5279,6 +6243,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MedicationsTable medications = $MedicationsTable(this);
   late final $PatientMedicationSchedulesTable patientMedicationSchedules =
       $PatientMedicationSchedulesTable(this);
+  late final $PatientMembershipsTable patientMemberships =
+      $PatientMembershipsTable(this);
+  late final $LocalSettingsTable localSettings = $LocalSettingsTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
   late final PatientsDao patientsDao = PatientsDao(this as AppDatabase);
   late final PatientPreferencesDao patientPreferencesDao =
@@ -5298,6 +6265,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final PatientMedicationScheduleDao patientMedicationScheduleDao =
       PatientMedicationScheduleDao(this as AppDatabase);
+  late final PatientAccessDao patientAccessDao = PatientAccessDao(
+    this as AppDatabase,
+  );
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -5312,6 +6282,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fluidIntakeLogs,
     medications,
     patientMedicationSchedules,
+    patientMemberships,
+    localSettings,
     syncState,
   ];
   @override
@@ -5366,7 +6338,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$PatientsTableCreateCompanionBuilder =
     PatientsCompanion Function({
       required String id,
-      required String authUserId,
+      Value<String?> authUserId,
       Value<String?> firstName,
       Value<String?> lastName,
       Value<DateTime?> dateOfBirth,
@@ -5375,6 +6347,7 @@ typedef $$PatientsTableCreateCompanionBuilder =
       Value<String> dialysisType,
       Value<List<int>?> dialysisDaysOfWeek,
       Value<double?> heightCm,
+      Value<String?> bloodGroup,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -5384,7 +6357,7 @@ typedef $$PatientsTableCreateCompanionBuilder =
 typedef $$PatientsTableUpdateCompanionBuilder =
     PatientsCompanion Function({
       Value<String> id,
-      Value<String> authUserId,
+      Value<String?> authUserId,
       Value<String?> firstName,
       Value<String?> lastName,
       Value<DateTime?> dateOfBirth,
@@ -5393,6 +6366,7 @@ typedef $$PatientsTableUpdateCompanionBuilder =
       Value<String> dialysisType,
       Value<List<int>?> dialysisDaysOfWeek,
       Value<double?> heightCm,
+      Value<String?> bloodGroup,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -5590,6 +6564,11 @@ class $$PatientsTableFilterComposer
 
   ColumnFilters<double> get heightCm => $composableBuilder(
     column: $table.heightCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bloodGroup => $composableBuilder(
+    column: $table.bloodGroup,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5826,6 +6805,11 @@ class $$PatientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get bloodGroup => $composableBuilder(
+    column: $table.bloodGroup,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5894,6 +6878,11 @@ class $$PatientsTableAnnotationComposer
 
   GeneratedColumn<double> get heightCm =>
       $composableBuilder(column: $table.heightCm, builder: (column) => column);
+
+  GeneratedColumn<String> get bloodGroup => $composableBuilder(
+    column: $table.bloodGroup,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -6100,7 +7089,7 @@ class $$PatientsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String> authUserId = const Value.absent(),
+                Value<String?> authUserId = const Value.absent(),
                 Value<String?> firstName = const Value.absent(),
                 Value<String?> lastName = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -6109,6 +7098,7 @@ class $$PatientsTableTableManager
                 Value<String> dialysisType = const Value.absent(),
                 Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
+                Value<String?> bloodGroup = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -6125,6 +7115,7 @@ class $$PatientsTableTableManager
                 dialysisType: dialysisType,
                 dialysisDaysOfWeek: dialysisDaysOfWeek,
                 heightCm: heightCm,
+                bloodGroup: bloodGroup,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -6134,7 +7125,7 @@ class $$PatientsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                required String authUserId,
+                Value<String?> authUserId = const Value.absent(),
                 Value<String?> firstName = const Value.absent(),
                 Value<String?> lastName = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
@@ -6143,6 +7134,7 @@ class $$PatientsTableTableManager
                 Value<String> dialysisType = const Value.absent(),
                 Value<List<int>?> dialysisDaysOfWeek = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
+                Value<String?> bloodGroup = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -6159,6 +7151,7 @@ class $$PatientsTableTableManager
                 dialysisType: dialysisType,
                 dialysisDaysOfWeek: dialysisDaysOfWeek,
                 heightCm: heightCm,
+                bloodGroup: bloodGroup,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -6763,6 +7756,11 @@ typedef $$BloodPressureReadingsTableCreateCompanionBuilder =
       Value<int?> systolic,
       Value<int?> diastolic,
       Value<int?> heartRateBpm,
+      Value<String?> arm,
+      Value<String?> posture,
+      Value<bool?> isDialysisDay,
+      Value<String?> dialysisPhase,
+      Value<String?> recordedBy,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -6778,6 +7776,11 @@ typedef $$BloodPressureReadingsTableUpdateCompanionBuilder =
       Value<int?> systolic,
       Value<int?> diastolic,
       Value<int?> heartRateBpm,
+      Value<String?> arm,
+      Value<String?> posture,
+      Value<bool?> isDialysisDay,
+      Value<String?> dialysisPhase,
+      Value<String?> recordedBy,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -6848,6 +7851,31 @@ class $$BloodPressureReadingsTableFilterComposer
 
   ColumnFilters<int> get heartRateBpm => $composableBuilder(
     column: $table.heartRateBpm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get arm => $composableBuilder(
+    column: $table.arm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get posture => $composableBuilder(
+    column: $table.posture,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6934,6 +7962,31 @@ class $$BloodPressureReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get arm => $composableBuilder(
+    column: $table.arm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get posture => $composableBuilder(
+    column: $table.posture,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7008,6 +8061,27 @@ class $$BloodPressureReadingsTableAnnotationComposer
 
   GeneratedColumn<int> get heartRateBpm => $composableBuilder(
     column: $table.heartRateBpm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get arm =>
+      $composableBuilder(column: $table.arm, builder: (column) => column);
+
+  GeneratedColumn<String> get posture =>
+      $composableBuilder(column: $table.posture, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDialysisDay => $composableBuilder(
+    column: $table.isDialysisDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dialysisPhase => $composableBuilder(
+    column: $table.dialysisPhase,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
     builder: (column) => column,
   );
 
@@ -7095,6 +8169,11 @@ class $$BloodPressureReadingsTableTableManager
                 Value<int?> systolic = const Value.absent(),
                 Value<int?> diastolic = const Value.absent(),
                 Value<int?> heartRateBpm = const Value.absent(),
+                Value<String?> arm = const Value.absent(),
+                Value<String?> posture = const Value.absent(),
+                Value<bool?> isDialysisDay = const Value.absent(),
+                Value<String?> dialysisPhase = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -7108,6 +8187,11 @@ class $$BloodPressureReadingsTableTableManager
                 systolic: systolic,
                 diastolic: diastolic,
                 heartRateBpm: heartRateBpm,
+                arm: arm,
+                posture: posture,
+                isDialysisDay: isDialysisDay,
+                dialysisPhase: dialysisPhase,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7123,6 +8207,11 @@ class $$BloodPressureReadingsTableTableManager
                 Value<int?> systolic = const Value.absent(),
                 Value<int?> diastolic = const Value.absent(),
                 Value<int?> heartRateBpm = const Value.absent(),
+                Value<String?> arm = const Value.absent(),
+                Value<String?> posture = const Value.absent(),
+                Value<bool?> isDialysisDay = const Value.absent(),
+                Value<String?> dialysisPhase = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -7136,6 +8225,11 @@ class $$BloodPressureReadingsTableTableManager
                 systolic: systolic,
                 diastolic: diastolic,
                 heartRateBpm: heartRateBpm,
+                arm: arm,
+                posture: posture,
+                isDialysisDay: isDialysisDay,
+                dialysisPhase: dialysisPhase,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7220,6 +8314,7 @@ typedef $$BloodGlucoseReadingsTableCreateCompanionBuilder =
       required double valueMgDl,
       Value<String?> context,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -7235,6 +8330,7 @@ typedef $$BloodGlucoseReadingsTableUpdateCompanionBuilder =
       Value<double> valueMgDl,
       Value<String?> context,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7305,6 +8401,11 @@ class $$BloodGlucoseReadingsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7391,6 +8492,11 @@ class $$BloodGlucoseReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7465,6 +8571,11 @@ class $$BloodGlucoseReadingsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -7547,6 +8658,7 @@ class $$BloodGlucoseReadingsTableTableManager
                 Value<double> valueMgDl = const Value.absent(),
                 Value<String?> context = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -7560,6 +8672,7 @@ class $$BloodGlucoseReadingsTableTableManager
                 valueMgDl: valueMgDl,
                 context: context,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7575,6 +8688,7 @@ class $$BloodGlucoseReadingsTableTableManager
                 required double valueMgDl,
                 Value<String?> context = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -7588,6 +8702,7 @@ class $$BloodGlucoseReadingsTableTableManager
                 valueMgDl: valueMgDl,
                 context: context,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7673,6 +8788,7 @@ typedef $$WeightReadingsTableCreateCompanionBuilder =
       Value<String> dialysisTiming,
       Value<String?> weightContext,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -7689,6 +8805,7 @@ typedef $$WeightReadingsTableUpdateCompanionBuilder =
       Value<String> dialysisTiming,
       Value<String?> weightContext,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7759,6 +8876,11 @@ class $$WeightReadingsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7850,6 +8972,11 @@ class $$WeightReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7932,6 +9059,11 @@ class $$WeightReadingsTableAnnotationComposer
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
 
+  GeneratedColumn<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
@@ -8008,6 +9140,7 @@ class $$WeightReadingsTableTableManager
                 Value<String> dialysisTiming = const Value.absent(),
                 Value<String?> weightContext = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8022,6 +9155,7 @@ class $$WeightReadingsTableTableManager
                 dialysisTiming: dialysisTiming,
                 weightContext: weightContext,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -8038,6 +9172,7 @@ class $$WeightReadingsTableTableManager
                 Value<String> dialysisTiming = const Value.absent(),
                 Value<String?> weightContext = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -8052,6 +9187,7 @@ class $$WeightReadingsTableTableManager
                 dialysisTiming: dialysisTiming,
                 weightContext: weightContext,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -8134,6 +9270,7 @@ typedef $$FluidIntakeLogsTableCreateCompanionBuilder =
       required DateTime recordedAt,
       required double fluidMl,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -8148,6 +9285,7 @@ typedef $$FluidIntakeLogsTableUpdateCompanionBuilder =
       Value<DateTime> recordedAt,
       Value<double> fluidMl,
       Value<String> source,
+      Value<String?> recordedBy,
       Value<String?> notes,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -8209,6 +9347,11 @@ class $$FluidIntakeLogsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8290,6 +9433,11 @@ class $$FluidIntakeLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -8361,6 +9509,11 @@ class $$FluidIntakeLogsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get recordedBy => $composableBuilder(
+    column: $table.recordedBy,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -8436,6 +9589,7 @@ class $$FluidIntakeLogsTableTableManager
                 Value<DateTime> recordedAt = const Value.absent(),
                 Value<double> fluidMl = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8448,6 +9602,7 @@ class $$FluidIntakeLogsTableTableManager
                 recordedAt: recordedAt,
                 fluidMl: fluidMl,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -8462,6 +9617,7 @@ class $$FluidIntakeLogsTableTableManager
                 required DateTime recordedAt,
                 required double fluidMl,
                 Value<String> source = const Value.absent(),
+                Value<String?> recordedBy = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -8474,6 +9630,7 @@ class $$FluidIntakeLogsTableTableManager
                 recordedAt: recordedAt,
                 fluidMl: fluidMl,
                 source: source,
+                recordedBy: recordedBy,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -9162,6 +10319,321 @@ typedef $$PatientMedicationSchedulesTableProcessedTableManager =
       PatientMedicationScheduleRow,
       PrefetchHooks Function({bool patientId})
     >;
+typedef $$PatientMembershipsTableCreateCompanionBuilder =
+    PatientMembershipsCompanion Function({
+      required String patientId,
+      required String role,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PatientMembershipsTableUpdateCompanionBuilder =
+    PatientMembershipsCompanion Function({
+      Value<String> patientId,
+      Value<String> role,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$PatientMembershipsTableFilterComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get patientId => $composableBuilder(
+    column: $table.patientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PatientMembershipsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get patientId => $composableBuilder(
+    column: $table.patientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PatientMembershipsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PatientMembershipsTable> {
+  $$PatientMembershipsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get patientId =>
+      $composableBuilder(column: $table.patientId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PatientMembershipsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PatientMembershipsTable,
+          PatientMembershipRow,
+          $$PatientMembershipsTableFilterComposer,
+          $$PatientMembershipsTableOrderingComposer,
+          $$PatientMembershipsTableAnnotationComposer,
+          $$PatientMembershipsTableCreateCompanionBuilder,
+          $$PatientMembershipsTableUpdateCompanionBuilder,
+          (
+            PatientMembershipRow,
+            BaseReferences<
+              _$AppDatabase,
+              $PatientMembershipsTable,
+              PatientMembershipRow
+            >,
+          ),
+          PatientMembershipRow,
+          PrefetchHooks Function()
+        > {
+  $$PatientMembershipsTableTableManager(
+    _$AppDatabase db,
+    $PatientMembershipsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PatientMembershipsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PatientMembershipsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PatientMembershipsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> patientId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMembershipsCompanion(
+                patientId: patientId,
+                role: role,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String patientId,
+                required String role,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PatientMembershipsCompanion.insert(
+                patientId: patientId,
+                role: role,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PatientMembershipsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PatientMembershipsTable,
+      PatientMembershipRow,
+      $$PatientMembershipsTableFilterComposer,
+      $$PatientMembershipsTableOrderingComposer,
+      $$PatientMembershipsTableAnnotationComposer,
+      $$PatientMembershipsTableCreateCompanionBuilder,
+      $$PatientMembershipsTableUpdateCompanionBuilder,
+      (
+        PatientMembershipRow,
+        BaseReferences<
+          _$AppDatabase,
+          $PatientMembershipsTable,
+          PatientMembershipRow
+        >,
+      ),
+      PatientMembershipRow,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalSettingsTableCreateCompanionBuilder =
+    LocalSettingsCompanion Function({
+      required String key,
+      Value<String?> value,
+      Value<int> rowid,
+    });
+typedef $$LocalSettingsTableUpdateCompanionBuilder =
+    LocalSettingsCompanion Function({
+      Value<String> key,
+      Value<String?> value,
+      Value<int> rowid,
+    });
+
+class $$LocalSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalSettingsTable> {
+  $$LocalSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$LocalSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalSettingsTable,
+          LocalSettingRow,
+          $$LocalSettingsTableFilterComposer,
+          $$LocalSettingsTableOrderingComposer,
+          $$LocalSettingsTableAnnotationComposer,
+          $$LocalSettingsTableCreateCompanionBuilder,
+          $$LocalSettingsTableUpdateCompanionBuilder,
+          (
+            LocalSettingRow,
+            BaseReferences<_$AppDatabase, $LocalSettingsTable, LocalSettingRow>,
+          ),
+          LocalSettingRow,
+          PrefetchHooks Function()
+        > {
+  $$LocalSettingsTableTableManager(_$AppDatabase db, $LocalSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String?> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  LocalSettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                Value<String?> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalSettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalSettingsTable,
+      LocalSettingRow,
+      $$LocalSettingsTableFilterComposer,
+      $$LocalSettingsTableOrderingComposer,
+      $$LocalSettingsTableAnnotationComposer,
+      $$LocalSettingsTableCreateCompanionBuilder,
+      $$LocalSettingsTableUpdateCompanionBuilder,
+      (
+        LocalSettingRow,
+        BaseReferences<_$AppDatabase, $LocalSettingsTable, LocalSettingRow>,
+      ),
+      LocalSettingRow,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncStateTableCreateCompanionBuilder =
     SyncStateCompanion Function({
       required String tableKey,
@@ -9352,6 +10824,10 @@ class $AppDatabaseManager {
         _db,
         _db.patientMedicationSchedules,
       );
+  $$PatientMembershipsTableTableManager get patientMemberships =>
+      $$PatientMembershipsTableTableManager(_db, _db.patientMemberships);
+  $$LocalSettingsTableTableManager get localSettings =>
+      $$LocalSettingsTableTableManager(_db, _db.localSettings);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
 }

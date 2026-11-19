@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:app/data/repositories/vitals_repository.dart';
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/ui/features/vitals/models/blood_pressure_period.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,15 @@ class BloodPressureViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
+
+  bool _canWrite = true;
+
+  /// False when the signed-in user only has viewer access to the active
+  /// patient; log/edit sheets are not offered then.
+  bool get canWrite => _canWrite;
   List<BloodPressureReading> _readings = [];
   BloodPressurePeriod _selectedPeriod = BloodPressurePeriod.last7Days;
   DateTime _selectedMonthStart;
@@ -343,6 +353,7 @@ class BloodPressureViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _canWrite = await _vitalsRepository.canWriteCurrentPatient();
     _readings = await _vitalsRepository.getBloodPressureReadings();
     notifyListeners();
   }
@@ -351,6 +362,7 @@ class BloodPressureViewModel extends ChangeNotifier {
     int? systolic,
     int? diastolic,
     int? heartRateBpm,
+    BloodPressureContext context = BloodPressureContext.empty,
     String? notes,
     DateTime? recordedAt,
   }) async {
@@ -366,6 +378,7 @@ class BloodPressureViewModel extends ChangeNotifier {
       systolic: systolic,
       diastolic: diastolic,
       heartRateBpm: heartRateBpm,
+      context: context.normalized(),
       notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
     );
     await _vitalsRepository.addBloodPressureReading(reading);
@@ -377,6 +390,7 @@ class BloodPressureViewModel extends ChangeNotifier {
     int? systolic,
     int? diastolic,
     int? heartRateBpm,
+    BloodPressureContext? context,
     required DateTime recordedAt,
     String? notes,
   }) async {
@@ -394,6 +408,7 @@ class BloodPressureViewModel extends ChangeNotifier {
         systolic: systolic,
         diastolic: diastolic,
         heartRateBpm: heartRateBpm,
+        context: (context ?? existing.context).normalized(),
         notes: notes?.trim().isEmpty ?? true ? null : notes?.trim(),
         createdAt: existing.createdAt,
         updatedAt: existing.updatedAt,

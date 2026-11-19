@@ -1,5 +1,7 @@
 import 'package:app/data/repositories/auth_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
+import 'package:app/data/repositories/sharing_repository.dart';
+import 'package:app/domain/models/patient_member.dart';
 import 'package:app/data/sync/sync_coordinator.dart';
 import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_signup_profile.dart';
@@ -12,13 +14,20 @@ class PatientSignupViewModel extends ChangeNotifier {
     required AuthRepository authRepository,
     required PatientRepository patientRepository,
     required SyncCoordinator syncCoordinator,
+    SharingRepository? sharingRepository,
   })  : _authRepository = authRepository,
         _patientRepository = patientRepository,
-        _syncCoordinator = syncCoordinator;
+        _syncCoordinator = syncCoordinator,
+        _sharingRepository = sharingRepository;
 
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
   final SyncCoordinator _syncCoordinator;
+  final SharingRepository? _sharingRepository;
+  String? _warningMessage;
+
+  /// Non-fatal problem after the account was created (e.g. username taken).
+  String? get warningMessage => _warningMessage;
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -44,6 +53,7 @@ class PatientSignupViewModel extends ChangeNotifier {
 
     _isLoading = true;
     _errorMessage = null;
+    _warningMessage = null;
     notifyListeners();
 
     try {
@@ -54,6 +64,10 @@ class PatientSignupViewModel extends ChangeNotifier {
 
       if (result.hasSession) {
         await _applyProfile(profile);
+        await _applyUsername(profile.username);
+      } else if (profile.username != null) {
+        _warningMessage =
+            'Set your username in Profile after you confirm your email.';
       }
 
       return result;
@@ -97,6 +111,7 @@ class PatientSignupViewModel extends ChangeNotifier {
             ? null
             : profile.dialysisDaysOfWeek,
         heightCm: profile.heightCm,
+        bloodGroup: patient.bloodGroup,
         createdAt: patient.createdAt,
         updatedAt: patient.updatedAt,
         deletedAt: patient.deletedAt,
@@ -116,5 +131,23 @@ class PatientSignupViewModel extends ChangeNotifier {
         dailyWaterGoalMl: profile.dailyWaterGoalMl,
       ),
     );
+  }
+
+  Future<void> _applyUsername(String? username) async {
+    final sharing = _sharingRepository;
+    if (username == null || username.isEmpty || sharing == null) {
+      return;
+    }
+    try {
+      await sharing.setMyUsername(username);
+    } on SharingException catch (error) {
+      _warningMessage =
+          'Account created, but your username was not saved: '
+          '${error.message} You can set it in Profile.';
+    } catch (_) {
+      _warningMessage =
+          'Account created, but your username was not saved. '
+          'You can set it in Profile.';
+    }
   }
 }

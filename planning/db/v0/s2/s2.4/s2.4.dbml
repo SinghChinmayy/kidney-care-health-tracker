@@ -1,0 +1,24 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / s2 / s2.4 (usernames + sharing RPCs)
+// Generated: 2026-11-12
+// Engine: Postgres (Supabase)
+
+Table profiles {
+  user_id uuid [pk, note: 'auth.users(id) on delete cascade']
+  username text [not null, unique, note: 'CHECK ^[a-z0-9_]{3,30}$']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// RLS: select/insert/update own row only. No delete.
+//
+// public.find_user_by_username(p_username) -> table(user_id, username)   any authenticated
+// public.list_patient_members(p_patient_id) -> table(user_id, username, role, is_patient, granted_at)  viewer+
+// public.grant_patient_access(p_patient_id, p_username, p_role)          owner
+// public.change_patient_access_role(p_patient_id, p_user_id, p_role)     owner
+// public.revoke_patient_access(p_patient_id, p_user_id)                  owner, or caller leaving
+// private.assert_access_change_allowed(patient, target, new_role)        last-owner + self-patient rules
+//
+// Errors (exception message): not_authenticated, not_authorized, invalid_role,
+// user_not_found, already_has_access, access_not_found, last_owner,
+// cannot_remove_patient_self, cannot_change_patient_self.

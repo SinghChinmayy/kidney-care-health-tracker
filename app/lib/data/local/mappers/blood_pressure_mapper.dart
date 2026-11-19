@@ -1,4 +1,5 @@
 import 'package:app/data/local/app_database.dart';
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:drift/drift.dart';
 
@@ -11,6 +12,13 @@ extension BloodPressureRowMapper on BloodPressureRow {
       systolic: systolic,
       diastolic: diastolic,
       heartRateBpm: heartRateBpm,
+      context: BloodPressureContext(
+        arm: arm,
+        posture: posture,
+        isDialysisDay: isDialysisDay,
+        dialysisPhase: dialysisPhase,
+      ),
+      recordedBy: recordedBy,
       notes: notes,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -22,6 +30,7 @@ extension BloodPressureRowMapper on BloodPressureRow {
 extension BloodPressureDomainMapper on BloodPressureReading {
   BloodPressureReadingsCompanion toCompanion({required bool isDirty}) {
     final now = DateTime.now().toUtc();
+    final normalizedContext = context.normalized();
     return BloodPressureReadingsCompanion.insert(
       id: id,
       patientId: patientId ?? '',
@@ -29,6 +38,11 @@ extension BloodPressureDomainMapper on BloodPressureReading {
       systolic: Value(systolic),
       diastolic: Value(diastolic),
       heartRateBpm: Value(heartRateBpm),
+      arm: Value(normalizedContext.arm),
+      posture: Value(normalizedContext.posture),
+      isDialysisDay: Value(normalizedContext.isDialysisDay),
+      dialysisPhase: Value(normalizedContext.dialysisPhase),
+      recordedBy: Value(recordedBy),
       notes: Value(notes),
       createdAt: createdAt ?? now,
       updatedAt: updatedAt ?? now,

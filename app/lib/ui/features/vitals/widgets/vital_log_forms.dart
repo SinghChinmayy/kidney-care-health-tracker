@@ -1,3 +1,4 @@
+import 'package:app/domain/models/blood_pressure_context.dart';
 import 'package:app/domain/models/weight_reading_options.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/widgets/blood_glucose_context_picker.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 
 const bloodGlucoseContextOptions = [
   'fasting',
+  'before_meal',
   'post_meal',
   'random',
   'bedtime',
@@ -28,6 +30,7 @@ class AddBloodPressureForm extends StatefulWidget {
     int? diastolic,
     int? heartRate,
     DateTime recordedAt,
+    BloodPressureContext measurementContext,
   ) onSubmit;
 
   @override
@@ -39,6 +42,7 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
   int _systolic = 120;
   int _diastolic = 80;
   int _heartRate = 72;
+  BloodPressureContext _context = BloodPressureContext.empty;
   late DateTime _recordedAt;
 
   @override
@@ -66,11 +70,14 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
           diastolic: _diastolic,
           heartRateBpm: _heartRate,
           recordedAt: _recordedAt,
+          measurementContext: _context,
           onLogTypeChanged: (value) => setState(() => _logType = value),
           onSystolicChanged: (value) => setState(() => _systolic = value),
           onDiastolicChanged: (value) => setState(() => _diastolic = value),
           onHeartRateChanged: (value) => setState(() => _heartRate = value),
           onRecordedAtChanged: (value) => setState(() => _recordedAt = value),
+          onMeasurementContextChanged: (value) =>
+              setState(() => _context = value),
         ),
         const SizedBox(height: AppTheme.spacingSm),
         ElevatedButton(
@@ -92,7 +99,7 @@ class _AddBloodPressureFormState extends State<AddBloodPressureForm> {
     final heartRate =
         _logType == BloodPressureLogType.bloodPressure ? null : _heartRate;
 
-    widget.onSubmit(systolic, diastolic, heartRate, _recordedAt);
+    widget.onSubmit(systolic, diastolic, heartRate, _recordedAt, _context);
   }
 }
 

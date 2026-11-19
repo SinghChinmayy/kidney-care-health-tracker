@@ -1,6 +1,7 @@
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/debug/agent_debug_log.dart';
 import 'package:app/debug/synthetic_data_generator.dart';
+import 'package:app/domain/models/patient.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/auth/views/login_view.dart';
@@ -9,6 +10,11 @@ import 'package:app/ui/features/journal/view_models/journal_view_model.dart';
 import 'package:app/ui/features/onboarding/views/caretaker_signup_view.dart';
 import 'package:app/ui/features/onboarding/views/onboarding_view.dart';
 import 'package:app/ui/features/onboarding/views/patient_signup_view.dart';
+import 'package:app/ui/features/patients/view_models/patients_view_model.dart';
+import 'package:app/ui/features/patients/views/manage_patients_view.dart';
+import 'package:app/ui/features/patients/views/patient_access_view.dart';
+import 'package:app/ui/features/patients/widgets/username_sheet.dart';
+import 'package:app/ui/features/patients/widgets/patient_switcher_sheet.dart';
 import 'package:app/ui/features/profile/utils/profile_formatters.dart';
 import 'package:app/ui/features/profile/view_models/profile_view_model.dart';
 import 'package:app/ui/features/profile/widgets/profile_option_picker_sheet.dart';
@@ -172,6 +178,62 @@ class _ProfileViewState extends State<ProfileView> {
     _showSaveFeedback(saved, viewModel);
   }
 
+  String _usernameLabel(BuildContext context) {
+    final patients = context.watch<PatientsViewModel>();
+    if (!patients.usernameLoaded) {
+      return '—';
+    }
+    final username = patients.myUsername;
+    return username == null ? 'Not set' : '@$username';
+  }
+
+  Future<void> _editUsername(BuildContext context) async {
+    final patients = context.read<PatientsViewModel>();
+    await showUsernameSheet(
+      context,
+      initial: patients.myUsername,
+      save: patients.setMyUsername,
+    );
+  }
+
+  void _openAccess(BuildContext context) {
+    final active = context.read<PatientsViewModel>().activePatient;
+    if (active == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PatientAccessView(patient: active),
+      ),
+    );
+  }
+
+  String _viewingLabel(BuildContext context, ProfileViewModel viewModel) {
+    final active = context.watch<PatientsViewModel>().activePatient;
+    if (active == null) {
+      return 'You';
+    }
+    final name = active.isSelf ? 'You' : active.displayName;
+    return active.isSelf ? name : '$name · ${active.role.label}';
+  }
+
+  Future<void> _pickBloodGroup(ProfileViewModel viewModel) async {
+    final selected = await showProfileOptionPickerSheet(
+      context,
+      title: 'Blood group',
+      selectedValue: viewModel.patient?.bloodGroup,
+      options: [
+        for (final value in bloodGroupOptions)
+          ProfilePickerOption(value: value, label: value),
+      ],
+    );
+    if (!mounted || selected == null) {
+      return;
+    }
+    final saved = await viewModel.updateBloodGroup(selected);
+    _showSaveFeedback(saved, viewModel);
+  }
+
   Future<void> _pickDateOfBirth(ProfileViewModel viewModel) async {
     final current = viewModel.patient?.dateOfBirth?.toLocal() ??
         DateTime(DateTime.now().year - 40);
@@ -280,8 +342,10 @@ class _ProfileViewState extends State<ProfileView> {
     final displayName = patient?.displayName?.isNotEmpty == true
         ? patient!.displayName!
         : 'Patient';
-    final canEdit = patient != null && !viewModel.isSaving;
-    final canEditPreferences = preferences != null && !viewModel.isSaving;
+    final canEdit =
+        patient != null && viewModel.canWrite && !viewModel.isSaving;
+    final canEditPreferences =
+        preferences != null && viewModel.canWrite && !viewModel.isSaving;
 
     return SafeArea(
       child: Center(
@@ -298,7 +362,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
               children: [
                 Text(
-                  'My Profile',
+                  viewModel.isSelf ? 'My Profile' : 'Patient profile',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -313,11 +377,46 @@ class _ProfileViewState extends State<ProfileView> {
                 else ...[
                   _ProfileHeader(
                     name: displayName,
-                    email: viewModel.email,
+                    email: viewModel.isSelf ? viewModel.email : null,
                     onEditProfile:
                         canEdit ? () => _pickName(viewModel) : null,
                   ),
                   const SizedBox(height: AppTheme.spacingLg),
+                  _ProfileSection(
+                    title: 'Patients',
+                    children: [
+                      _ProfileDetailRow(
+                        icon: Icons.swap_horiz,
+                        label: 'Viewing',
+                        value: _viewingLabel(context, viewModel),
+                        onTap: () => showPatientSwitcherSheet(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.manage_accounts_outlined,
+                        label: 'Sharing & access',
+                        value: '',
+                        onTap: () => _openAccess(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.alternate_email,
+                        label: 'Your username',
+                        value: _usernameLabel(context),
+                        onTap: () => _editUsername(context),
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.group_outlined,
+                        label: 'Manage patients',
+                        value: '',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ManagePatientsView(),
+                          ),
+                        ),
+                        isLast: true,
+                      ),
+                    ],
+                  ),
+                  const _ProfileSectionDivider(),
                   _ProfileSection(
                     title: 'Personal',
                     children: [
@@ -339,6 +438,13 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Sex',
                         value: formatSexLabel(patient?.sex),
                         onTap: canEdit ? () => _pickSex(viewModel) : null,
+                      ),
+                      _ProfileDetailRow(
+                        icon: Icons.bloodtype_outlined,
+                        label: 'Blood group',
+                        value: formatBloodGroupLabel(patient?.bloodGroup),
+                        onTap:
+                            canEdit ? () => _pickBloodGroup(viewModel) : null,
                       ),
                       _ProfileDetailRow(
                         icon: Icons.height_outlined,

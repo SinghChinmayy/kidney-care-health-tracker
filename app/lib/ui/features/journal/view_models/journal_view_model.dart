@@ -1,6 +1,7 @@
 import 'package:app/data/repositories/medications_repository.dart';
 import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
+import 'package:app/domain/models/patient_role.dart';
 import 'package:app/domain/models/medication.dart';
 import 'package:app/domain/models/patient_medication_schedule.dart';
 import 'package:app/domain/models/weight_reading.dart';
@@ -101,11 +102,25 @@ class JournalViewModel extends ChangeNotifier {
     }
   }
 
+  /// Runs a schedule write; viewers get [error] set instead of a crash.
+  Future<bool> _guardWrite(Future<void> Function() write) async {
+    try {
+      await write();
+      return true;
+    } on ReadOnlyPatientException {
+      _error = 'You have view-only access to this patient.';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> applyDialysisDaysChange(List<int> newDays) async {
-    _schedule = await _scheduleRepository.applyDialysisDaysChange(
-      newDays: newDays,
-    );
-    notifyListeners();
+    await _guardWrite(() async {
+      _schedule = await _scheduleRepository.applyDialysisDaysChange(
+        newDays: newDays,
+      );
+      notifyListeners();
+    });
   }
 
   Future<bool> addMedToDay({
@@ -116,23 +131,26 @@ class JournalViewModel extends ChangeNotifier {
     if (before.contains(medicationId)) {
       return false;
     }
-    _schedule = await _scheduleRepository.addMedToDay(
-      isoWeekday: isoWeekday,
-      medicationId: medicationId,
-    );
-    notifyListeners();
-    return true;
+    return _guardWrite(() async {
+      _schedule = await _scheduleRepository.addMedToDay(
+        isoWeekday: isoWeekday,
+        medicationId: medicationId,
+      );
+      notifyListeners();
+    });
   }
 
   Future<void> removeMedFromDay({
     required int isoWeekday,
     required String medicationId,
   }) async {
-    _schedule = await _scheduleRepository.removeMedFromDay(
-      isoWeekday: isoWeekday,
-      medicationId: medicationId,
-    );
-    notifyListeners();
+    await _guardWrite(() async {
+      _schedule = await _scheduleRepository.removeMedFromDay(
+        isoWeekday: isoWeekday,
+        medicationId: medicationId,
+      );
+      notifyListeners();
+    });
   }
 
   Future<bool> replaceMedOnDay({
@@ -144,13 +162,14 @@ class JournalViewModel extends ChangeNotifier {
     if (newMedicationId != oldMedicationId && ids.contains(newMedicationId)) {
       return false;
     }
-    _schedule = await _scheduleRepository.replaceMedOnDay(
-      isoWeekday: isoWeekday,
-      oldMedicationId: oldMedicationId,
-      newMedicationId: newMedicationId,
-    );
-    notifyListeners();
-    return true;
+    return _guardWrite(() async {
+      _schedule = await _scheduleRepository.replaceMedOnDay(
+        isoWeekday: isoWeekday,
+        oldMedicationId: oldMedicationId,
+        newMedicationId: newMedicationId,
+      );
+      notifyListeners();
+    });
   }
 
   WeightReading? _latestPostDialysis(List<WeightReading> readings) {

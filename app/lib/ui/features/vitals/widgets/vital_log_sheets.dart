@@ -14,6 +14,10 @@ Future<void> showBloodPressureLogSheet(
   DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
+  if (!context.read<BloodPressureViewModel>().canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -26,11 +30,18 @@ Future<void> showBloodPressureLogSheet(
       return _VitalLogSheetPadding(
         child: AddBloodPressureForm(
           initialRecordedAt: initialRecordedAt,
-          onSubmit: (systolic, diastolic, heartRate, recordedAt) async {
+          onSubmit: (
+            systolic,
+            diastolic,
+            heartRate,
+            recordedAt,
+            measurementContext,
+          ) async {
             await viewModel.addReading(
               systolic: systolic,
               diastolic: diastolic,
               heartRateBpm: heartRate,
+              context: measurementContext,
               recordedAt: recordedAt,
             );
             if (sheetContext.mounted) {
@@ -56,6 +67,10 @@ Future<void> showBloodGlucoseLogSheet(
   DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
+  if (!context.read<BloodGlucoseViewModel>().canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -97,6 +112,10 @@ Future<void> showWeightLogSheet(
   DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
+  if (!context.read<WeightViewModel>().canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -140,6 +159,10 @@ Future<void> showFluidIntakeLogSheet(
   DateTime? initialRecordedAt,
   VoidCallback? onSaved,
 }) {
+  if (!context.read<FluidIntakeViewModel>().canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

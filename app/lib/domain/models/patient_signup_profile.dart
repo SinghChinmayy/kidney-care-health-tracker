@@ -14,6 +14,7 @@ class PatientSignupProfile {
     this.weightUnit = PatientPreferences.defaultWeightUnit,
     this.bloodGlucoseUnit = PatientPreferences.defaultBloodGlucoseUnit,
     this.dailyWaterGoalMl = PatientPreferences.defaultDailyWaterGoalMl,
+    this.username,
   });
 
   final String firstName;
@@ -27,4 +28,7 @@ class PatientSignupProfile {
   final String weightUnit;
   final String bloodGlucoseUnit;
   final int dailyWaterGoalMl;
+
+  /// Optional sharing handle; set after the account exists.
+  final String? username;
 }

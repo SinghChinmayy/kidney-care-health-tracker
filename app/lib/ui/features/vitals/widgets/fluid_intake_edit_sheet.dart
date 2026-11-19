@@ -3,6 +3,7 @@ import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/vitals/view_models/fluid_intake_view_model.dart';
 import 'package:app/ui/features/vitals/widgets/fluid_intake_reading_form.dart';
 import 'package:app/ui/features/vitals/widgets/vital_save_confirmation.dart';
+import 'package:app/ui/features/vitals/widgets/recorded_by_note.dart';
 import 'package:flutter/material.dart';
 
 Future<bool> confirmDeleteFluidIntakeLog(BuildContext context) async {
@@ -34,6 +35,10 @@ Future<void> showFluidIntakeEditSheet(
   required FluidIntakeLog log,
   required FluidIntakeViewModel viewModel,
 }) {
+  if (!viewModel.canWrite) {
+    showReadOnlyPatientNotice(context);
+    return Future.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -155,6 +160,11 @@ class _FluidIntakeEditSheetState extends State<_FluidIntakeEditSheet> {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
+            ),
+            RecordedByNote(
+              recordedBy: widget.log.recordedBy,
+              currentUserId: widget.viewModel.currentUserId,
+              patientId: widget.log.patientId,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             FluidIntakeReadingForm(

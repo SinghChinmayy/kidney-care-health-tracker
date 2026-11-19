@@ -6,10 +6,10 @@ This document describes the implementation currently present in `app/lib`, not t
 
 - `ui/`: Flutter screens and `ChangeNotifier` view models. View models call repositories and expose loading/error/data state to widgets.
 - `domain/models/`: immutable-ish application models for patients, readings, preferences, medications, and schedules.
-- `data/repositories/`: application-facing operations. Repositories resolve the signed-in patient, write locally first, and notify `SyncCoordinator` after mutations.
-- `data/local/`: Drift database, tables, DAOs, mappers, converters, generated query code, and schema migrations. `AppDatabase.schemaVersion` is currently 7.
+- `data/repositories/`: application-facing operations. Repositories resolve the *active* patient (persisted pick, falling back to the user's own record), reject writes for viewers, write locally first, and notify `SyncCoordinator` after mutations. `SharingRepository` is online-only and talks to the access RPCs.
+- `data/local/`: Drift database, tables, DAOs, mappers, converters, generated query code, and schema migrations. `AppDatabase.schemaVersion` is currently 10.
 - `data/sync/`: a `SyncableTable` registry, table-specific mappers, push/pull operations, cursors, and a debounced coordinator.
-- `data/services/`: Supabase Auth wrapper and a lightweight connectivity probe.
+- `data/services/`: Supabase Auth wrapper (email/password and native Google sign-in), patient/access RPC client, and a lightweight connectivity probe.
 
 `app/lib/app.dart` wires the graph with `provider`. `main.dart` validates build-time Supabase configuration, initializes Supabase, opens the Drift database, and mounts the app.
 
@@ -19,8 +19,9 @@ This document describes the implementation currently present in `app/lib`, not t
 2. `InitialSyncGate` checks connectivity and runs an initial synchronization before showing signed-in content.
 3. A form validates input in the UI, then calls a view model and repository.
 4. The repository writes to Drift, sets `is_dirty`, and schedules a debounced sync.
-5. `SyncEngine` processes registered tables in push-then-pull order. Each table failure is logged independently so one table does not stop the rest of the run.
-6. Pulls use a per-table `last_pulled_at` cursor. Remote rows are applied only when their `updated_at` is newer than the local row; equal timestamps keep the local row.
+5. `SyncEngine` refreshes the user's patient access, then processes registered tables in push-then-pull order for every accessible patient. Each table failure is isolated and reported back to `SyncCoordinator`, which publishes `SyncStatus` for the banner.
+6. Pulls use a per-patient, per-table `last_pulled_at` cursor. Remote rows are applied only when their `updated_at` is newer than the local row; equal timestamps keep the local row.
+7. Switching patient (or gaining/losing access) fires `ActivePatientNotifier`; the shell refreshes every view model.
 
 ## Reliability and concurrency decisions
 
@@ -33,4 +34,4 @@ This document describes the implementation currently present in `app/lib`, not t
 
 ## Boundaries and gaps
 
-The current sync registry covers seven remote tables. The local medication catalog is seeded locally and is not in the sync registry. Sync is foreground-only, errors are developer logs rather than user-visible status, and there is no background worker or durable retry schedule. These are explicit gaps, not hidden production capabilities.
+The current sync registry covers seven remote tables plus the access refresh. The local medication catalog is seeded locally and is not in the sync registry. Sync is foreground-only: a 45-second retry loop runs while the app is open, but there is no background worker. Creating patients and managing access need a connection. These are explicit gaps, not hidden production capabilities.

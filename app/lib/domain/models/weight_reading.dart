@@ -9,6 +9,7 @@ class WeightReading {
     this.dialysisTiming = dialysisTimingNonDialysis,
     this.weightContext,
     this.source = 'manual',
+    this.recordedBy,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -22,6 +23,9 @@ class WeightReading {
   final String dialysisTiming;
   final String? weightContext;
   final String source;
+
+  /// auth user id of whoever logged it; null = unknown.
+  final String? recordedBy;
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;

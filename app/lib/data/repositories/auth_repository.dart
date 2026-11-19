@@ -27,6 +27,11 @@ class AuthRepository {
     return _authService.signIn(email: email, password: password);
   }
 
+  /// Returns `false` if the user cancelled the Google account picker.
+  Future<bool> signInWithGoogle() {
+    return _authService.signInWithGoogle();
+  }
+
   Future<SignUpResult> signUp({
     required String email,
     required String password,

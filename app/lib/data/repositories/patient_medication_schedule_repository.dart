@@ -1,6 +1,7 @@
 import 'package:app/data/local/app_database.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/domain/models/patient_medication_schedule.dart';
+import 'package:app/domain/models/patient_role.dart';
 import 'package:uuid/uuid.dart';
 
 class PatientMedicationScheduleRepository {
@@ -25,9 +26,17 @@ class PatientMedicationScheduleRepository {
     if (authUserId == null) {
       return null;
     }
-    final patient =
-        await _patientRepository.getPatientForAuthUser(authUserId);
+    final patient = await _patientRepository.getActivePatient(authUserId);
     return patient?.id;
+  }
+
+  Future<bool> _canWrite(String patientId) async {
+    final authUserId = _currentAuthUserId();
+    if (authUserId == null) {
+      return false;
+    }
+    final role = await _patientRepository.roleFor(patientId, authUserId);
+    return role?.canWrite ?? false;
   }
 
   Future<PatientMedicationSchedule?> getOrCreateForCurrentPatient() async {
@@ -49,6 +58,10 @@ class PatientMedicationScheduleRepository {
       createdAt: now,
       updatedAt: now,
     );
+    if (!await _canWrite(patientId)) {
+      // Viewers see an empty schedule until a pull brings the real one.
+      return seeded;
+    }
     await _db.patientMedicationScheduleDao.insertSchedule(
       seeded,
       isDirty: true,
@@ -66,6 +79,9 @@ class PatientMedicationScheduleRepository {
   }
 
   Future<void> save(PatientMedicationSchedule schedule) async {
+    if (!await _canWrite(schedule.patientId)) {
+      throw const ReadOnlyPatientException();
+    }
     final now = DateTime.now().toUtc();
     final updated = schedule.copyWith(updatedAt: now);
     final existing =

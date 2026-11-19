@@ -1,0 +1,35 @@
+// Project: Kidney Care — Patient CKD Tracker
+// Plan version: v0 / s2 / s2.1 (BP measurement context)
+// Generated: 2026-11-12
+// Engine: Postgres (Supabase)
+//
+// Delta on blood_pressure_readings only. Ported from v1
+// (blood_pressure_log.arm / position / is_dialysis_day / dialysis_phase) with
+// v2 naming: position -> posture, lying_down -> lying,
+// before/after_dialysis -> pre_/post_dialysis (matches weight_readings).
+
+Enum bp_arm {
+  left
+  right
+}
+
+Enum bp_posture {
+  sitting
+  standing
+  lying
+}
+
+Enum bp_dialysis_phase {
+  pre_dialysis
+  post_dialysis
+}
+
+Table blood_pressure_readings {
+  id uuid [pk]
+  patient_id uuid [not null]
+  // ...unchanged s1.1 columns...
+  arm bp_arm [null, note: 'NULL = not recorded']
+  posture bp_posture [null, note: 'NULL = not recorded']
+  is_dialysis_day boolean [null, note: 'NULL = not recorded']
+  dialysis_phase bp_dialysis_phase [null, note: 'CHECK: NULL unless is_dialysis_day is true']
+}

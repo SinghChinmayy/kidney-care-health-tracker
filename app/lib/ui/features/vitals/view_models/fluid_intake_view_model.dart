@@ -15,6 +15,15 @@ class FluidIntakeViewModel extends ChangeNotifier {
   }
 
   final VitalsRepository _vitalsRepository;
+
+  /// Signed-in user, for "logged by you" attribution.
+  String? get currentUserId => _vitalsRepository.currentUserId;
+
+  bool _canWrite = true;
+
+  /// False when the signed-in user only has viewer access to the active
+  /// patient; log/edit sheets are not offered then.
+  bool get canWrite => _canWrite;
   List<FluidIntakeLog> _logs = [];
   int _dailyWaterGoalMl = PatientPreferences.defaultDailyWaterGoalMl;
   FluidIntakePeriod _selectedPeriod = FluidIntakePeriod.last7Days;
@@ -236,6 +245,7 @@ class FluidIntakeViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    _canWrite = await _vitalsRepository.canWriteCurrentPatient();
     _logs = await _vitalsRepository.getFluidIntakeLogs();
     final prefs = await _vitalsRepository.getCurrentPreferences();
     _dailyWaterGoalMl =

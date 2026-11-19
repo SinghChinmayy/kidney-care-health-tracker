@@ -147,5 +147,6 @@ String formatBloodPressureHistorySubtitle(BloodPressureReading reading) {
   if (hasBp && reading.heartRateBpm != null) {
     parts.add('${reading.heartRateBpm} bpm');
   }
+  parts.addAll(formatBloodPressureContextLabels(reading.context));
   return parts.join(' · ');
 }

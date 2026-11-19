@@ -91,6 +91,13 @@ String formatDialysisTypeLabel(String value) {
   };
 }
 
+String formatBloodGroupLabel(String? value) {
+  if (value == null || value.isEmpty) {
+    return 'Not set';
+  }
+  return value;
+}
+
 String formatSexLabel(String? value) {
   if (value == null || value.isEmpty) {
     return 'Not set';
