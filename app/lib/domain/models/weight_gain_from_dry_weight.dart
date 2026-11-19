@@ -2,7 +2,7 @@ import 'package:app/domain/models/weight_reading.dart';
 import 'package:app/domain/models/weight_reading_options.dart';
 
 /// Interdialytic weight change from the last post-dialysis (dry) weight
-/// to a later non-dialysis or random check reading.
+/// to a later non-post (pre-dialysis or non-dialysis) reading.
 class WeightGainFromDryWeight {
   const WeightGainFromDryWeight({
     required this.postDialysis,
@@ -47,16 +47,19 @@ class WeightGainSnapshot {
   const WeightGainSnapshot.paired({
     required this.postDialysis,
     required this.current,
-  }) : status = WeightGainStatus.paired;
+  })  : status = WeightGainStatus.paired;
 
   final WeightGainStatus status;
   final WeightReading? postDialysis;
   final WeightReading? current;
 
+  /// Gain vs dry weight. `0` when post exists but no later non-post yet.
+  /// `null` only when there is no post-dialysis baseline.
   double? get gainKg {
     final post = postDialysis;
+    if (post == null) return null;
     final cur = current;
-    if (post == null || cur == null) return null;
+    if (cur == null) return 0;
     return cur.valueKg - post.valueKg;
   }
 
@@ -76,7 +79,7 @@ class WeightGainSnapshot {
     return WeightGainFromDryWeight(postDialysis: post, current: cur);
   }
 
-  /// Short trend label for the home weight-gain card.
+  /// Short trend label (kept for callers; home card no longer shows it).
   String get trendLabel {
     switch (status) {
       case WeightGainStatus.empty:
@@ -106,36 +109,10 @@ class WeightGainSnapshot {
   }
 }
 
-/// Point on the interdialytic weight sparkline.
-class WeightGainChartPoint {
-  const WeightGainChartPoint({
-    required this.recordedAt,
-    required this.valueKg,
-  });
-
-  final DateTime recordedAt;
-  final double valueKg;
-}
-
-/// Dual-series chart data for the home weight-gain card.
-///
-/// [dryWeightKg] is the post-dialysis baseline; [weights] are readings in the
-/// current interdialytic window (including the post-dialysis start).
-class WeightGainChartData {
-  const WeightGainChartData({
-    this.dryWeightKg,
-    this.weights = const [],
-  });
-
-  final double? dryWeightKg;
-  final List<WeightGainChartPoint> weights;
-
-  bool get hasSeries => dryWeightKg != null && weights.isNotEmpty;
-}
-
+/// Eligible "current" weight for gain: any non-post timing after dry baseline.
 bool isWeightGainCurrentEntry(WeightReading reading) {
   return reading.dialysisTiming == dialysisTimingNonDialysis ||
-      reading.weightContext == weightContextRandom;
+      reading.dialysisTiming == dialysisTimingPreDialysis;
 }
 
 DateTime _localDateOnly(DateTime value) {
@@ -146,7 +123,7 @@ DateTime _localDateOnly(DateTime value) {
 /// Interdialytic weight state as of [localDate] (inclusive).
 ///
 /// Uses the latest post-dialysis on/before [localDate], then the latest
-/// eligible current entry after that post and on/before [localDate].
+/// non-post entry after that post and on/before [localDate].
 WeightGainSnapshot weightGainSnapshotOnLocalDate(
   List<WeightReading> readings,
   DateTime localDate,
@@ -202,46 +179,4 @@ WeightGainFromDryWeight? weightGainFromDryWeightOnLocalDate(
   DateTime localDate,
 ) {
   return weightGainSnapshotOnLocalDate(readings, localDate).asPaired;
-}
-
-/// Chart series for the interdialytic window ending on [localDate].
-WeightGainChartData weightGainChartOnLocalDate(
-  List<WeightReading> readings,
-  DateTime localDate,
-) {
-  final day = _localDateOnly(localDate);
-  final snapshot = weightGainSnapshotOnLocalDate(readings, localDate);
-  final post = snapshot.postDialysis;
-  if (post == null) {
-    return const WeightGainChartData();
-  }
-
-  final points = <WeightGainChartPoint>[
-    WeightGainChartPoint(
-      recordedAt: post.recordedAt,
-      valueKg: post.valueKg,
-    ),
-  ];
-
-  final sorted = [...readings]
-    ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
-  for (final reading in sorted) {
-    if (!reading.recordedAt.isAfter(post.recordedAt)) {
-      continue;
-    }
-    if (_localDateOnly(reading.recordedAt).isAfter(day)) {
-      continue;
-    }
-    points.add(
-      WeightGainChartPoint(
-        recordedAt: reading.recordedAt,
-        valueKg: reading.valueKg,
-      ),
-    );
-  }
-
-  return WeightGainChartData(
-    dryWeightKg: post.valueKg,
-    weights: points,
-  );
 }

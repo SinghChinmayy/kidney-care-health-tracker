@@ -97,9 +97,6 @@ class KidneyCareApp extends StatelessWidget {
             authRepository: context.read<AuthRepository>(),
             patientRepository: context.read<PatientRepository>(),
             vitalsRepository: context.read<VitalsRepository>(),
-            medicationsRepository: context.read<MedicationsRepository>(),
-            scheduleRepository:
-                context.read<PatientMedicationScheduleRepository>(),
           ),
         ),
         ChangeNotifierProxyProvider2<AuthRepository, PatientRepository,

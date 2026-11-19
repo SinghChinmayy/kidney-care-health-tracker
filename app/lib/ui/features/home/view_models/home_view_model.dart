@@ -1,14 +1,10 @@
 import 'package:app/data/repositories/auth_repository.dart';
-import 'package:app/data/repositories/medications_repository.dart';
-import 'package:app/data/repositories/patient_medication_schedule_repository.dart';
 import 'package:app/data/repositories/patient_repository.dart';
 import 'package:app/data/repositories/vitals_repository.dart';
 import 'package:app/domain/models/blood_glucose_reading.dart';
 import 'package:app/domain/models/blood_pressure_reading.dart';
 import 'package:app/domain/models/fluid_intake_log.dart';
-import 'package:app/domain/models/medication.dart';
 import 'package:app/domain/models/patient.dart';
-import 'package:app/domain/models/patient_medication_schedule.dart';
 import 'package:app/domain/models/patient_preferences.dart';
 import 'package:app/domain/models/weight_gain_from_dry_weight.dart';
 import 'package:app/domain/models/weight_reading.dart';
@@ -39,66 +35,43 @@ class BloodPressureHomeChartPoint {
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
-    required AuthRepository authRepository,
-    required PatientRepository patientRepository,
-    required VitalsRepository vitalsRepository,
-    required MedicationsRepository medicationsRepository,
-    required PatientMedicationScheduleRepository scheduleRepository,
-  })  : _authRepository = authRepository,
-        _patientRepository = patientRepository,
-        _vitalsRepository = vitalsRepository,
-        _medicationsRepository = medicationsRepository,
-        _scheduleRepository = scheduleRepository,
-        _selectedDate = localDateOnly(DateTime.now()) {
+    required this._authRepository,
+    required this._patientRepository,
+    required this._vitalsRepository,
+  }) {
+    final now = localDateOnly(DateTime.now());
+    _selectedDate = now;
+    _visibleWeekStart = weekStartForLocalDate(now);
     refresh();
   }
-
-  static const int checkInTotal = 1;
 
   final AuthRepository _authRepository;
   final PatientRepository _patientRepository;
   final VitalsRepository _vitalsRepository;
-  final MedicationsRepository _medicationsRepository;
-  final PatientMedicationScheduleRepository _scheduleRepository;
 
-  DateTime _selectedDate;
+  late DateTime _selectedDate;
+  /// Monday of the week shown in the home calendar. May differ from
+  /// [selectedDate] when browsing future weeks.
+  late DateTime _visibleWeekStart;
   Patient? _patient;
   PatientPreferences? _preferences;
   List<BloodPressureReading> _bloodPressureReadings = [];
   List<BloodGlucoseReading> _bloodGlucoseReadings = [];
   List<WeightReading> _weightReadings = [];
   List<FluidIntakeLog> _fluidIntakeLogs = [];
-  List<Medication> _medications = [];
-  PatientMedicationSchedule? _schedule;
 
   DateTime get selectedDate => _selectedDate;
 
-  String get selectedDateLabel => formatHomeDateLabel(_selectedDate);
-
   DateTime get today => localDateOnly(DateTime.now());
 
-  /// Monday of the week that contains [selectedDate].
-  DateTime get visibleWeekStart {
-    return _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
-  }
+  /// Monday of the week currently shown on the home calendar.
+  DateTime get visibleWeekStart => _visibleWeekStart;
 
-  List<DateTime> get visibleWeekDays {
-    final start = visibleWeekStart;
-    return List.generate(7, (i) => start.add(Duration(days: i)));
-  }
-
-  bool get canSelectNextWeek {
-    final nextWeekStart = visibleWeekStart.add(const Duration(days: 7));
-    return !nextWeekStart.isAfter(today);
-  }
-
-  String? get patientFirstName {
+  String get greetingName {
     final name = _patient?.firstName?.trim();
-    if (name == null || name.isEmpty) return null;
+    if (name == null || name.isEmpty) return 'there';
     return name;
   }
-
-  String get greetingName => patientFirstName ?? 'there';
 
   String get patientInitials {
     final first = _patient?.firstName?.trim();
@@ -108,179 +81,49 @@ class HomeViewModel extends ChangeNotifier {
     final lastInitial =
         (last != null && last.isNotEmpty) ? last[0].toUpperCase() : '';
     final initials = '$firstInitial$lastInitial';
-    if (initials.isNotEmpty) return initials;
-    return '?';
-  }
-
-  List<int> get dialysisDaysOfWeek =>
-      _patient?.dialysisDaysOfWeek ?? const [];
-
-  bool isDialysisDay(DateTime date) {
-    final days = _patient?.dialysisDaysOfWeek;
-    if (days == null || days.isEmpty) return false;
-    return days.contains(date.weekday);
-  }
-
-  bool get isSelectedDateDialysisDay => isDialysisDay(_selectedDate);
-
-  bool get isSelectedDateToday => _selectedDate == today;
-
-  /// Banner copy when [isSelectedDateDialysisDay] is true.
-  String get dialysisDayBannerLabel {
-    if (isSelectedDateToday) {
-      return 'Today is a dialysis day';
-    }
-    return 'Dialysis day · $selectedDateLabel';
-  }
-
-  Map<String, Medication> get _medicationById {
-    return {for (final med in _medications) med.id: med};
-  }
-
-  /// Catalog meds scheduled for the selected weekday (dialysis-day schedule).
-  List<Medication> get medicationsForSelectedDate {
-    final ids = _schedule?.medIdsForDay(_selectedDate.weekday) ?? const [];
-    final byId = _medicationById;
-    final meds = <Medication>[];
-    for (final id in ids) {
-      final med = byId[id];
-      if (med != null) {
-        meds.add(med);
-      }
-    }
-    return meds;
-  }
-
-  String get medicationsForSelectedDateTitle {
-    if (isSelectedDateToday) {
-      return 'Medicines for today';
-    }
-    return 'Medicines for $selectedDateLabel';
+    return initials.isNotEmpty ? initials : '?';
   }
 
   int get dailyWaterGoalMl =>
       _preferences?.dailyWaterGoalMl ??
       PatientPreferences.defaultDailyWaterGoalMl;
 
-  BloodPressureReading? get bloodPressureForSelectedDate =>
-      latestReadingOnLocalDate(
-        _bloodPressureReadings,
-        _selectedDate,
-        (reading) => reading.recordedAt,
-      );
-
-  BloodGlucoseReading? get bloodGlucoseForSelectedDate =>
-      latestReadingOnLocalDate(
-        _bloodGlucoseReadings,
-        _selectedDate,
-        (reading) => reading.recordedAt,
-      );
-
-  /// Daily latest glucose values for the 7 local days ending on selected date.
+  /// Daily latest glucose for the 7 local days ending on selected date.
   List<BloodGlucoseHomeChartPoint> get bloodGlucoseChartForSelectedDate {
-    final end = _selectedDate;
-    final start = end.subtract(const Duration(days: 6));
-    final latestByDay = <DateTime, BloodGlucoseReading>{};
-
-    for (final reading in _bloodGlucoseReadings) {
-      final day = localDateOnly(reading.recordedAt);
-      if (day.isBefore(start) || day.isAfter(end)) {
-        continue;
-      }
-      final existing = latestByDay[day];
-      if (existing == null ||
-          reading.recordedAt.isAfter(existing.recordedAt)) {
-        latestByDay[day] = reading;
-      }
-    }
-
-    final points = <BloodGlucoseHomeChartPoint>[];
-    for (var i = 0; i < 7; i++) {
-      final day = start.add(Duration(days: i));
-      final reading = latestByDay[day];
-      if (reading != null) {
-        points.add(
-          BloodGlucoseHomeChartPoint(
-            day: day,
-            valueMgDl: reading.valueMgDl,
-          ),
-        );
-      }
-    }
-    return points;
+    return _dailyLatestChart(
+      readings: _bloodGlucoseReadings,
+      recordedAt: (r) => r.recordedAt,
+      mapPoint: (day, r) => BloodGlucoseHomeChartPoint(
+        day: day,
+        valueMgDl: r.valueMgDl,
+      ),
+    );
   }
 
-  /// Daily latest systolic values for the 7 local days ending on selected date.
+  /// Daily latest systolic for the 7 local days ending on selected date.
   List<BloodPressureHomeChartPoint> get bloodPressureChartForSelectedDate {
-    final end = _selectedDate;
-    final start = end.subtract(const Duration(days: 6));
-    final latestByDay = <DateTime, BloodPressureReading>{};
-
-    for (final reading in _bloodPressureReadings) {
-      if (reading.systolic == null) {
-        continue;
-      }
-      final day = localDateOnly(reading.recordedAt);
-      if (day.isBefore(start) || day.isAfter(end)) {
-        continue;
-      }
-      final existing = latestByDay[day];
-      if (existing == null ||
-          reading.recordedAt.isAfter(existing.recordedAt)) {
-        latestByDay[day] = reading;
-      }
-    }
-
-    final points = <BloodPressureHomeChartPoint>[];
-    for (var i = 0; i < 7; i++) {
-      final day = start.add(Duration(days: i));
-      final reading = latestByDay[day];
-      if (reading?.systolic != null) {
-        points.add(
-          BloodPressureHomeChartPoint(
-            day: day,
-            systolic: reading!.systolic!,
-            diastolic: reading.diastolic,
-          ),
-        );
-      }
-    }
-    return points;
+    return _dailyLatestChart(
+      readings: _bloodPressureReadings.where((r) => r.systolic != null),
+      recordedAt: (r) => r.recordedAt,
+      mapPoint: (day, r) => BloodPressureHomeChartPoint(
+        day: day,
+        systolic: r.systolic!,
+        diastolic: r.diastolic,
+      ),
+    );
   }
 
-  /// Interdialytic weight state as of the selected date (carry-forward).
   WeightGainSnapshot get weightGainForSelectedDate =>
       weightGainSnapshotOnLocalDate(_weightReadings, _selectedDate);
-
-  WeightGainChartData get weightGainChartForSelectedDate =>
-      weightGainChartOnLocalDate(_weightReadings, _selectedDate);
-
-  String? get weightGainForSelectedDateLabel =>
-      weightGainForSelectedDate.displayGain;
 
   double get fluidIntakeTotalMlForSelectedDate {
     var total = 0.0;
     for (final log in _fluidIntakeLogs) {
-      final local = log.recordedAt.toLocal();
-      final logDay = DateTime(local.year, local.month, local.day);
-      if (logDay == _selectedDate) {
+      if (localDateOnly(log.recordedAt) == _selectedDate) {
         total += log.fluidMl;
       }
     }
     return total;
-  }
-
-  String? get fluidIntakeForSelectedDateLabel {
-    final total = fluidIntakeTotalMlForSelectedDate;
-    if (total <= 0) {
-      return null;
-    }
-    return '${total.toStringAsFixed(0)} ml';
-  }
-
-  String get fluidIntakeProgressLabel {
-    final current = fluidIntakeTotalMlForSelectedDate.toStringAsFixed(0);
-    return '$current / $dailyWaterGoalMl ml';
   }
 
   /// Ring fill 0..1 (clamped). Over-goal still reads as full ring.
@@ -293,67 +136,51 @@ class HomeViewModel extends ChangeNotifier {
   bool get isFluidOverGoal =>
       fluidIntakeTotalMlForSelectedDate > dailyWaterGoalMl;
 
-  int get checkInCompletedCount {
-    var count = 0;
-    if (fluidIntakeTotalMlForSelectedDate > 0) count++;
-    return count;
-  }
-
   DateTime get logRecordedAt => recordedAtFromSelectedDate(_selectedDate);
 
   void selectDate(DateTime date) {
     final next = localDateOnly(date);
     final clamped = next.isAfter(today) ? today : next;
-    if (clamped == _selectedDate) return;
+    final weekStart = weekStartForLocalDate(clamped);
+    if (clamped == _selectedDate && weekStart == _visibleWeekStart) return;
     _selectedDate = clamped;
+    _visibleWeekStart = weekStart;
     notifyListeners();
   }
 
-  void selectPreviousDay() {
-    selectDate(_selectedDate.subtract(const Duration(days: 1)));
-  }
+  /// Show [weekStart]'s Mon–Sun week. Keeps weekday when that day is selectable;
+  /// future-only weeks update the visible week without changing selection.
+  void selectWeekStarting(DateTime weekStart) {
+    final start = weekStartForLocalDate(weekStart);
+    if (start == _visibleWeekStart) return;
 
-  void selectNextDay() {
-    selectDate(_selectedDate.add(const Duration(days: 1)));
-  }
+    _visibleWeekStart = start;
 
-  void selectPreviousWeek() {
-    _shiftWeek(-7);
-  }
-
-  void selectNextWeek() {
-    if (!canSelectNextWeek) return;
-    _shiftWeek(7);
-  }
-
-  void _shiftWeek(int dayDelta) {
-    final candidate = _selectedDate.add(Duration(days: dayDelta));
-    if (candidate.isAfter(today)) {
-      selectDate(today);
+    if (start.isAfter(today)) {
+      notifyListeners();
       return;
     }
-    selectDate(candidate);
-  }
 
-  /// Move selection into [weekStart]'s week, keeping weekday when possible.
-  void selectWeekStarting(DateTime weekStart) {
-    final start = localDateOnly(weekStart);
-    final weekdayOffset = _selectedDate.weekday - 1;
-    var candidate = start.add(Duration(days: weekdayOffset));
+    final weekEnd = start.add(const Duration(days: 6));
+    var candidate = start.add(Duration(days: _selectedDate.weekday - 1));
     if (candidate.isAfter(today)) {
       candidate = today;
     }
-    // If today is before this week entirely, clamp to week start if allowed.
     if (candidate.isBefore(start)) {
       candidate = start;
     }
-    selectDate(candidate);
+    if (candidate.isAfter(weekEnd)) {
+      candidate = weekEnd.isAfter(today) ? today : weekEnd;
+    }
+
+    _selectedDate = candidate;
+    notifyListeners();
   }
 
   Future<void> pickDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate.isAfter(today) ? today : _selectedDate,
       firstDate: DateTime(2000),
       lastDate: today,
     );
@@ -372,14 +199,11 @@ class HomeViewModel extends ChangeNotifier {
       _vitalsRepository.getFluidIntakeLogs(),
     ]);
 
-    final medsFuture = _medicationsRepository.getAll();
-
     final Future<List<Object?>>? profileFuture = authUserId == null
         ? null
         : Future.wait([
             _patientRepository.getPatientForAuthUser(authUserId),
             _patientRepository.getOrCreatePreferencesForAuthUser(authUserId),
-            _scheduleRepository.getForCurrentPatient(),
           ]);
 
     final vitalsResults = await vitalsFuture;
@@ -387,19 +211,46 @@ class HomeViewModel extends ChangeNotifier {
     _bloodGlucoseReadings = vitalsResults[1] as List<BloodGlucoseReading>;
     _weightReadings = vitalsResults[2] as List<WeightReading>;
     _fluidIntakeLogs = vitalsResults[3] as List<FluidIntakeLog>;
-    _medications = await medsFuture;
 
     if (profileFuture == null) {
       _patient = null;
       _preferences = null;
-      _schedule = null;
     } else {
       final profileResults = await profileFuture;
       _patient = profileResults[0] as Patient?;
       _preferences = profileResults[1] as PatientPreferences?;
-      _schedule = profileResults[2] as PatientMedicationSchedule?;
     }
 
     notifyListeners();
+  }
+
+  List<TPoint> _dailyLatestChart<TReading, TPoint>({
+    required Iterable<TReading> readings,
+    required DateTime Function(TReading reading) recordedAt,
+    required TPoint Function(DateTime day, TReading reading) mapPoint,
+  }) {
+    final end = _selectedDate;
+    final start = end.subtract(const Duration(days: 6));
+    final latestByDay = <DateTime, TReading>{};
+
+    for (final reading in readings) {
+      final day = localDateOnly(recordedAt(reading));
+      if (day.isBefore(start) || day.isAfter(end)) continue;
+      final existing = latestByDay[day];
+      if (existing == null ||
+          recordedAt(reading).isAfter(recordedAt(existing))) {
+        latestByDay[day] = reading;
+      }
+    }
+
+    final points = <TPoint>[];
+    for (var i = 0; i < 7; i++) {
+      final day = start.add(Duration(days: i));
+      final reading = latestByDay[day];
+      if (reading != null) {
+        points.add(mapPoint(day, reading));
+      }
+    }
+    return points;
   }
 }

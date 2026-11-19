@@ -24,45 +24,48 @@ class HomeGreetingHeader extends StatelessWidget {
         AppTheme.spacingSm,
         AppTheme.spacingXs,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Hi, ${viewModel.greetingName}',
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.3,
-                height: 1.2,
-                color: const Color(0xFF1A1A1A),
+      child: SizedBox(
+        height: 46,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Hi, ${viewModel.greetingName}',
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3,
+                  height: 1.2,
+                  color: const Color(0xFF1A1A1A),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(width: AppTheme.spacingSm),
-          InkWell(
-            onTap: onOpenProfile,
-            customBorder: const CircleBorder(),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.cardBorder),
-              ),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: AppTheme.logWeight.withValues(alpha: 0.25),
-                foregroundColor: AppTheme.ink,
-                child: Text(
-                  viewModel.patientInitials,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+            const SizedBox(width: AppTheme.spacingSm),
+            InkWell(
+              onTap: onOpenProfile,
+              customBorder: const CircleBorder(),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.cardBorder),
+                ),
+                child: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppTheme.logWeight.withValues(alpha: 0.25),
+                  foregroundColor: AppTheme.ink,
+                  child: Text(
+                    viewModel.patientInitials,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

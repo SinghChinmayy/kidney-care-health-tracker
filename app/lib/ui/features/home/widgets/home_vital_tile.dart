@@ -1,7 +1,7 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-/// Compact vital summary card for the home 2×2 grid.
+/// Compact vital summary card for home (e.g. water intake).
 ///
 /// Primary tap opens the log sheet; [onHistoryTap] opens the detail view.
 class HomeVitalTile extends StatelessWidget {

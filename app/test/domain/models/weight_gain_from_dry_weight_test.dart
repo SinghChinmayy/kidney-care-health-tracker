@@ -49,7 +49,7 @@ void main() {
       expect(result.current!.id, 'current');
     });
 
-    test('accepts random context as current entry', () {
+    test('accepts pre-dialysis as current entry', () {
       final result = weightGainSnapshotOnLocalDate(
         [
           reading(
@@ -59,7 +59,7 @@ void main() {
             dialysisTiming: dialysisTimingPostDialysis,
           ),
           reading(
-            id: 'random',
+            id: 'pre',
             recordedAt: DateTime(2026, 7, 10, 11),
             valueKg: 69.2,
             dialysisTiming: dialysisTimingPreDialysis,
@@ -71,7 +71,7 @@ void main() {
 
       expect(result.status, WeightGainStatus.paired);
       expect(result.gainKg, closeTo(1.2, 0.001));
-      expect(result.current!.id, 'random');
+      expect(result.current!.id, 'pre');
     });
 
     test('uses most recent post-dialysis before current', () {
@@ -146,9 +146,11 @@ void main() {
       expect(result.status, WeightGainStatus.awaitingCurrent);
       expect(result.postDialysis!.id, 'post');
       expect(result.current, isNull);
+      expect(result.gainKg, 0);
+      expect(result.displayGain, '+0.0 kg');
     });
 
-    test('awaiting current when only post-dialysis exists', () {
+    test('awaiting current reports +0.0 kg gain', () {
       final result = weightGainSnapshotOnLocalDate(
         [
           reading(
@@ -164,7 +166,8 @@ void main() {
       expect(result.status, WeightGainStatus.awaitingCurrent);
       expect(result.postDialysis!.id, 'post');
       expect(result.current, isNull);
-      expect(result.displayGain, isNull);
+      expect(result.gainKg, 0);
+      expect(result.displayGain, '+0.0 kg');
     });
 
     test('empty without post-dialysis baseline', () {
@@ -180,10 +183,11 @@ void main() {
       );
 
       expect(result.status, WeightGainStatus.empty);
+      expect(result.gainKg, isNull);
       expect(result.asPaired, isNull);
     });
 
-    test('ignores pre-dialysis without random context as current', () {
+    test('ignores post-dialysis as current entry', () {
       final result = weightGainSnapshotOnLocalDate(
         [
           reading(
@@ -193,16 +197,19 @@ void main() {
             dialysisTiming: dialysisTimingPostDialysis,
           ),
           reading(
-            id: 'pre',
+            id: 'later-post',
             recordedAt: DateTime(2026, 7, 10, 8),
             valueKg: 73,
-            dialysisTiming: dialysisTimingPreDialysis,
+            dialysisTiming: dialysisTimingPostDialysis,
           ),
         ],
         day,
       );
 
+      // Later post becomes the baseline; no non-post after it.
       expect(result.status, WeightGainStatus.awaitingCurrent);
+      expect(result.postDialysis!.id, 'later-post');
+      expect(result.gainKg, 0);
     });
 
     test('formats negative gain without plus sign', () {
@@ -298,36 +305,6 @@ void main() {
       );
       expect(decreasing.trendLabel, 'Decreasing');
       expect(decreasing.trendDirection, -1);
-    });
-
-    test('weightGainChartOnLocalDate builds dry baseline and cycle points', () {
-      final chart = weightGainChartOnLocalDate(
-        [
-          reading(
-            id: 'post',
-            recordedAt: DateTime(2026, 7, 8, 14),
-            valueKg: 70,
-            dialysisTiming: dialysisTimingPostDialysis,
-          ),
-          reading(
-            id: 'mid',
-            recordedAt: DateTime(2026, 7, 9, 10),
-            valueKg: 71.2,
-          ),
-          reading(
-            id: 'current',
-            recordedAt: DateTime(2026, 7, 10, 9),
-            valueKg: 72.5,
-          ),
-        ],
-        day,
-      );
-
-      expect(chart.hasSeries, isTrue);
-      expect(chart.dryWeightKg, 70);
-      expect(chart.weights, hasLength(3));
-      expect(chart.weights.first.valueKg, 70);
-      expect(chart.weights.last.valueKg, 72.5);
     });
   });
 }

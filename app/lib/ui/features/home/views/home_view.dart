@@ -1,12 +1,10 @@
 import 'package:app/theme/app_theme.dart';
 import 'package:app/ui/features/home/view_models/home_view_model.dart';
-import 'package:app/ui/features/home/widgets/blood_pressure_widget.dart';
-import 'package:app/ui/features/home/widgets/home_day_medications_section.dart';
 import 'package:app/ui/features/home/widgets/home_greeting_header.dart';
+import 'package:app/ui/features/home/widgets/home_vital_sparkline_tiles.dart';
 import 'package:app/ui/features/home/widgets/home_vital_tile.dart';
 import 'package:app/ui/features/home/widgets/home_week_strip.dart';
 import 'package:app/ui/features/home/widgets/weight_gain_card.dart';
-import 'package:app/ui/features/medications/views/medications_view.dart';
 import 'package:app/ui/features/vitals/views/blood_glucose_view.dart';
 import 'package:app/ui/features/vitals/views/blood_pressure_view.dart';
 import 'package:app/ui/features/vitals/views/fluid_intake_view.dart';
@@ -18,7 +16,7 @@ import 'package:provider/provider.dart';
 
 const double _homeContentMaxWidth = 600;
 
-class HomeView extends StatefulWidget {
+class HomeView extends StatelessWidget {
   const HomeView({
     super.key,
     this.onOpenProfile,
@@ -27,66 +25,88 @@ class HomeView extends StatefulWidget {
   final VoidCallback? onOpenProfile;
 
   @override
-  State<HomeView> createState() => _HomeViewState();
-}
-
-class _HomeViewState extends State<HomeView> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<HomeViewModel>().refresh();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<HomeViewModel>();
 
     return ColoredBox(
       color: AppTheme.bpBackground,
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SafeArea(
-          bottom: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _homeContentMaxWidth),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SafeArea(
+            bottom: false,
+            child: _HomeWidth(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  HomeGreetingHeader(onOpenProfile: widget.onOpenProfile),
+                  HomeGreetingHeader(onOpenProfile: onOpenProfile),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppTheme.cardBorder,
+                  ),
                   const HomeWeekStrip(),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppTheme.cardBorder,
+                  ),
                 ],
               ),
             ),
           ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: viewModel.refresh,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                AppTheme.spacingSm,
-                AppTheme.spacingXs,
-                AppTheme.spacingSm,
-                AppTheme.spacingMd,
-              ),
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: _homeContentMaxWidth,
-                    ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: viewModel.refresh,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spacingSm,
+                  AppTheme.spacingXs,
+                  AppTheme.spacingSm,
+                  AppTheme.spacingMd,
+                ),
+                children: [
+                  _HomeWidth(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const HomeDayMedicationsSection(),
-                        if (viewModel.isSelectedDateDialysisDay)
-                          const SizedBox(height: AppTheme.spacingSm),
-                        // Water intake: 2×2 (half-width), above weight gain
+                        WeightGainCard(
+                          snapshot: viewModel.weightGainForSelectedDate,
+                          onTap: () => _openHistory(
+                            context,
+                            const WeightView(),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        SizedBox(
+                          height: 148,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: BloodGlucoseWidget(
+                                  chartPoints: viewModel
+                                      .bloodGlucoseChartForSelectedDate,
+                                  onTap: () => _openHistory(
+                                    context,
+                                    const BloodGlucoseView(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: BloodPressureWidget(
+                                  chartPoints: viewModel
+                                      .bloodPressureChartForSelectedDate,
+                                  onTap: () => _openHistory(
+                                    context,
+                                    const BloodPressureView(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: FractionallySizedBox(
@@ -118,140 +138,14 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        // Weight gain: 4×2 (full width)
-                        WeightGainCard(
-                          snapshot: viewModel.weightGainForSelectedDate,
-                          chart: viewModel.weightGainChartForSelectedDate,
-                          onTap: () => _openHistory(
-                            context,
-                            const WeightView(),
-                          ),
-                        ),
-                        // TODO: re-enable large cards when ready
-                        // BloodGlucoseCard(
-                        //   reading: viewModel.bloodGlucoseForSelectedDate,
-                        //   chartPoints:
-                        //       viewModel.bloodGlucoseChartForSelectedDate,
-                        //   onTap: () => _openHistory(
-                        //     context,
-                        //     const BloodGlucoseView(),
-                        //   ),
-                        // ),
-                        // const SizedBox(height: AppTheme.spacingSm),
-                        // BloodPressureCard(
-                        //   reading: viewModel.bloodPressureForSelectedDate,
-                        //   chartPoints:
-                        //       viewModel.bloodPressureChartForSelectedDate,
-                        //   onTap: () => _openHistory(
-                        //     context,
-                        //     const BloodPressureView(),
-                        //   ),
-                        // ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        // Compact side-by-side widget tiles
-                        SizedBox(
-                          height: 148,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: BloodGlucoseWidget(
-                                  chartPoints:
-                                      viewModel.bloodGlucoseChartForSelectedDate,
-                                  onTap: () => _openHistory(
-                                    context,
-                                    const BloodGlucoseView(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppTheme.spacingSm),
-                              Expanded(
-                                child: BloodPressureWidget(
-                                  chartPoints:
-                                      viewModel.bloodPressureChartForSelectedDate,
-                                  onTap: () => _openHistory(
-                                    context,
-                                    const BloodPressureView(),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _openHistory(
-                              context,
-                              const MedicationsView(),
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.cardCornerRadius,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(AppTheme.spacingSm),
-                              decoration: AppTheme.homeCardDecoration(),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.surfaceMuted,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.medication_outlined,
-                                      color: AppTheme.ink,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingSm),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Medications',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Browse names, composition & info',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: AppTheme.muted,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: AppTheme.muted,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
       ),
     );
   }
@@ -271,5 +165,21 @@ class _HomeViewState extends State<HomeView> {
     return Navigator.of(context)
         .push<void>(MaterialPageRoute<void>(builder: (_) => page))
         .then((_) => homeViewModel.refresh());
+  }
+}
+
+class _HomeWidth extends StatelessWidget {
+  const _HomeWidth({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _homeContentMaxWidth),
+        child: child,
+      ),
+    );
   }
 }

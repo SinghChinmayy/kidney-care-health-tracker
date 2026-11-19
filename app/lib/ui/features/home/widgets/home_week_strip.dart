@@ -6,8 +6,11 @@ import 'package:provider/provider.dart';
 
 const _shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/// Earliest day available in the strip (inclusive).
-final _stripFirstDate = DateTime(2000, 1, 1);
+/// Fixed Monday used as week-index origin (2000-01-03 was a Monday).
+final _epochMonday = DateTime(2000, 1, 3);
+
+/// Enough weeks for ~200 years either side of the epoch.
+const _pageCount = 20000;
 
 const _dayCircleSize = 34.0;
 
@@ -19,64 +22,64 @@ class HomeWeekStrip extends StatefulWidget {
 }
 
 class _HomeWeekStripState extends State<HomeWeekStrip> {
-  final ScrollController _scrollController = ScrollController();
-  double _itemWidth = 48;
-  double _viewportWidth = 0;
-  DateTime? _lastSyncedSelection;
-  bool _programmaticScroll = false;
+  late final PageController _pageController;
+  DateTime? _lastSyncedWeekStart;
+  bool _programmaticPageChange = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialWeek = weekStartForLocalDate(DateTime.now());
+    _pageController = PageController(
+      initialPage: _pageForWeekStart(initialWeek),
+    );
+    _lastSyncedWeekStart = initialWeek;
+  }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  int _indexFor(DateTime date) {
-    final day = localDateOnly(date);
-    return day.difference(_stripFirstDate).inDays;
+  int _pageForWeekStart(DateTime weekStart) {
+    return weekStart.difference(_epochMonday).inDays ~/ 7;
   }
 
-  DateTime _dateForIndex(int index) {
-    return _stripFirstDate.add(Duration(days: index));
+  DateTime _weekStartForPage(int page) {
+    return _epochMonday.add(Duration(days: page * 7));
   }
 
-  int _itemCount(DateTime today) => _indexFor(today) + 1;
+  Future<void> _jumpToWeek(DateTime weekStart, {bool animate = true}) async {
+    if (!_pageController.hasClients) return;
+    final page = _pageForWeekStart(weekStart);
+    if (page < 0 || page >= _pageCount) return;
 
-  double _offsetToCenter({
-    required int index,
-    required double viewportWidth,
-    required DateTime today,
-  }) {
-    final raw = index * _itemWidth - (viewportWidth - _itemWidth) / 2;
-    final maxScroll = (_itemCount(today) * _itemWidth) - viewportWidth;
-    return raw.clamp(0.0, maxScroll < 0 ? 0.0 : maxScroll);
-  }
+    final current = _pageController.page?.round();
+    if (current == page) {
+      _lastSyncedWeekStart = weekStart;
+      return;
+    }
 
-  Future<void> _scrollToDate(
-    DateTime date, {
-    required double viewportWidth,
-    required DateTime today,
-    bool animate = true,
-  }) async {
-    if (!_scrollController.hasClients) return;
-    final index = _indexFor(date);
-    final target = _offsetToCenter(
-      index: index,
-      viewportWidth: viewportWidth,
-      today: today,
-    );
-    _programmaticScroll = true;
-    _lastSyncedSelection = localDateOnly(date);
+    _programmaticPageChange = true;
+    _lastSyncedWeekStart = weekStart;
     if (animate) {
-      await _scrollController.animateTo(
-        target,
+      await _pageController.animateToPage(
+        page,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     } else {
-      _scrollController.jumpTo(target);
+      _pageController.jumpToPage(page);
     }
-    _programmaticScroll = false;
+    _programmaticPageChange = false;
+  }
+
+  void _onPageChanged(int page) {
+    if (_programmaticPageChange) return;
+    final weekStart = _weekStartForPage(page);
+    _lastSyncedWeekStart = weekStart;
+    context.read<HomeViewModel>().selectWeekStarting(weekStart);
   }
 
   @override
@@ -84,6 +87,14 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
     final viewModel = context.watch<HomeViewModel>();
     final selected = viewModel.selectedDate;
     final today = viewModel.today;
+    final weekStart = viewModel.visibleWeekStart;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageController.hasClients) return;
+      if (_lastSyncedWeekStart == weekStart) return;
+      if (_programmaticPageChange) return;
+      _jumpToWeek(weekStart, animate: _lastSyncedWeekStart != null);
+    });
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -97,49 +108,29 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
           Expanded(
             child: SizedBox(
               height: 72,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  _itemWidth = constraints.maxWidth / 7;
-                  _viewportWidth = constraints.maxWidth;
-
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!mounted || !_scrollController.hasClients) return;
-                    // Center on selection when it changes via tap/picker,
-                    // not while the user is freely scrolling the strip.
-                    if (_lastSyncedSelection == selected) return;
-                    if (_programmaticScroll) return;
-                    _scrollToDate(
-                      selected,
-                      viewportWidth: constraints.maxWidth,
-                      today: today,
-                      animate: _lastSyncedSelection != null,
-                    );
-                  });
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: _DaySnapScrollPhysics(itemWidth: _itemWidth),
-                    itemExtent: _itemWidth,
-                    itemCount: _itemCount(today),
-                    itemBuilder: (context, index) {
-                      final day = _dateForIndex(index);
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                itemCount: _pageCount,
+                itemBuilder: (context, page) {
+                  final start = _weekStartForPage(page);
+                  return Row(
+                    children: List.generate(7, (i) {
+                      final day = start.add(Duration(days: i));
                       final isFuture = day.isAfter(today);
-                      final isSelected = day == selected;
-                      final isToday = day == today;
-                      final isDialysis = viewModel.isDialysisDay(day);
-                      return _DayChip(
-                        weekdayLabel: _shortWeekdays[day.weekday - 1],
-                        dayNumber: '${day.day}',
-                        isSelected: isSelected,
-                        isToday: isToday,
-                        isDialysis: isDialysis,
-                        enabled: !isFuture,
-                        onTap: isFuture
-                            ? null
-                            : () => viewModel.selectDate(day),
+                      return Expanded(
+                        child: _DayChip(
+                          weekdayLabel: _shortWeekdays[i],
+                          dayNumber: '${day.day}',
+                          isSelected: day == selected,
+                          isToday: day == today,
+                          enabled: !isFuture,
+                          onTap: isFuture
+                              ? null
+                              : () => viewModel.selectDate(day),
+                        ),
                       );
-                    },
+                    }),
                   );
                 },
               ),
@@ -150,13 +141,7 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
             onPressed: () async {
               await viewModel.pickDate(context);
               if (!mounted) return;
-              if (_viewportWidth <= 0) return;
-              await _scrollToDate(
-                viewModel.selectedDate,
-                viewportWidth: _viewportWidth,
-                today: viewModel.today,
-                animate: true,
-              );
+              await _jumpToWeek(viewModel.visibleWeekStart);
             },
             icon: const Icon(Icons.calendar_today_outlined, size: 20),
             color: AppTheme.ink,
@@ -167,66 +152,12 @@ class _HomeWeekStripState extends State<HomeWeekStrip> {
   }
 }
 
-/// Snaps horizontal scroll to day-sized increments for smooth day-by-day feel.
-class _DaySnapScrollPhysics extends ScrollPhysics {
-  const _DaySnapScrollPhysics({
-    required this.itemWidth,
-    super.parent,
-  });
-
-  final double itemWidth;
-
-  @override
-  _DaySnapScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return _DaySnapScrollPhysics(
-      itemWidth: itemWidth,
-      parent: buildParent(ancestor),
-    );
-  }
-
-  double _snapTo(double offset) {
-    if (itemWidth <= 0) return offset;
-    return (offset / itemWidth).roundToDouble() * itemWidth;
-  }
-
-  @override
-  Simulation? createBallisticSimulation(
-    ScrollMetrics position,
-    double velocity,
-  ) {
-    final simulation = super.createBallisticSimulation(position, velocity);
-    if (position.outOfRange) return simulation;
-
-    final target = _snapTo(
-      simulation == null
-          ? position.pixels
-          : simulation.x(double.infinity).clamp(
-                position.minScrollExtent,
-                position.maxScrollExtent,
-              ),
-    );
-
-    if ((target - position.pixels).abs() < 0.5) {
-      return simulation;
-    }
-
-    return ScrollSpringSimulation(
-      spring,
-      position.pixels,
-      target.clamp(position.minScrollExtent, position.maxScrollExtent),
-      velocity,
-      tolerance: toleranceFor(position),
-    );
-  }
-}
-
 class _DayChip extends StatelessWidget {
   const _DayChip({
     required this.weekdayLabel,
     required this.dayNumber,
     required this.isSelected,
     required this.isToday,
-    required this.isDialysis,
     required this.enabled,
     required this.onTap,
   });
@@ -235,7 +166,6 @@ class _DayChip extends StatelessWidget {
   final String dayNumber;
   final bool isSelected;
   final bool isToday;
-  final bool isDialysis;
   final bool enabled;
   final VoidCallback? onTap;
 
@@ -298,17 +228,6 @@ class _DayChip extends StatelessWidget {
                   color: dayNumberColor,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDialysis
-                    ? (isSelected ? AppTheme.ink : AppTheme.logWeight)
-                    : Colors.transparent,
               ),
             ),
           ],
