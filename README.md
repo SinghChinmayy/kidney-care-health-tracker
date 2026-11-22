@@ -1,8 +1,12 @@
 # Kidney Care
 
-Kidney Care is a Flutter mobile app for recording patient health data—blood pressure, blood glucose, weight, fluid intake, dialysis context, profile preferences, and medication schedules. The project is a working engineering prototype focused on an offline-first client and a Supabase/Postgres backend.
+Kidney Care is a Flutter prototype for kidney patients who need to keep daily health readings together, including when connectivity is unavailable. It records readings locally and synchronizes them when the app is active and connectivity returns.
 
-The useful engineering problem is data durability: a patient should be able to record a reading locally without depending on a network request, then synchronize it when the app is active and connectivity is available. The repository also demonstrates local schema migrations, row-level access policies, validation, soft deletes, conflict resolution, and automated tests.
+Working flows include email/password authentication, patient profiles, logging and editing blood pressure, glucose, weight and fluid intake, history and charts, and medication schedules. Local SQLite storage and foreground synchronization support these flows; caregiver linking and several login options remain placeholders.
+
+[Case study](https://chinmaysingh.me/projects/kidney-care) · [Screenshot walkthrough](#screenshots) · [Run locally](#local-setup)
+
+There is no hosted interactive demo. The screenshots below use synthetic data. This is an engineering prototype, with known test failures and foreground-only sync detailed under [Current status](#current-status), not a clinically validated medical system.
 
 ## Screenshots
 
